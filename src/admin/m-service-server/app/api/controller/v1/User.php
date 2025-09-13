@@ -796,7 +796,7 @@ class User extends BaseController
             LogService::error($e, "Token续签异常");
             return json([
                 'code' => 500,
-                'msg' => 'Token续签失败：' . $e->getMessage()
+                'msg' => 'Token续签异常' . $e->getMessage()
             ]);
         }
     }
