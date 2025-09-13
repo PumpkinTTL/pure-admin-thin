@@ -36,7 +36,7 @@ TypeScript 5.0+       // 类型安全 + 开发体验
 Vite 5.x              // 极速构建 + HMR热重载
 
 // 🎨 UI & 样式
-Element Plus 2.4+     // 企业级组件库
+Element Plus 3.4+     // 企业级组件库
 SCSS + TailwindCSS    // 现代化样式解决方案
 Animate.css           // CSS3动画库
 Vue Motion            // Vue动画组件
