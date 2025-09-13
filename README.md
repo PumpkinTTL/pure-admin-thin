@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <h1>vue-pure-admin精简版（非国际化版本）</h1>
 
 [![license](https://img.shields.io/github/license/pure-admin/vue-pure-admin.svg)](LICENSE)
@@ -49,3 +50,7 @@
 ## 许可证
 
 [MIT © 2020-present, pure-admin](./LICENSE)
+=======
+# pure-admin-thin
+博客项目前后端集成开发
+>>>>>>> 93afbe93798404952ddf6a8d931f50e8afc79314
