@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>流式聊天演示</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .chat-container {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+        }
+        .chat-input {
+            width: 100%;
+            display: flex;
+            margin-bottom: 10px;
+        }
+        .chat-input textarea {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: none;
+            height: 60px;
+        }
+        .chat-input button {
+            margin-left: 10px;
+            padding: 0 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .chat-input button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .user-message {
+            background-color: #e3f2fd;
+            margin-left: 20%;
+            border-left: 3px solid #2196F3;
+        }
+        .bot-message {
+            background-color: #f1f1f1;
+            margin-right: 20%;
+            border-left: 3px solid #9E9E9E;
+        }
+        .message .header {
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .loader {
+            display: inline-block;
+            margin-left: 5px;
+        }
+        .dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #666;
+            animation: pulse 1.2s infinite;
+            margin: 0 2px;
+        }
+        .dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        @keyframes pulse {
+            0% {
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>QWQ-32B 流式聊天演示</h1>
+    <div class="chat-container" id="chatContainer"></div>
+    <div class="chat-input">
+        <textarea id="userInput" placeholder="输入您的问题..."></textarea>
+        <button id="sendButton">发送</button>
+    </div>
+
+    <h3>使用说明:</h3>
+    <ul>
+        <li>此演示使用Server-Sent Events (SSE)实现流式输出</li>
+        <li>后端API路径: /api/v1/ai/chat/stream</li>
+        <li>支持多轮对话记忆</li>
+    </ul>
+
+    <script>
+        const chatContainer = document.getElementById('chatContainer');
+        const userInput = document.getElementById('userInput');
+        const sendButton = document.getElementById('sendButton');
+        
+        // 存储对话历史
+        const chatHistory = [];
+        
+        // 添加消息到聊天界面
+        function addMessage(content, isUser) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+            
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'header';
+            headerDiv.textContent = isUser ? '您' : 'AI';
+            messageDiv.appendChild(headerDiv);
+            
+            const contentP = document.createElement('p');
+            contentP.textContent = content;
+            messageDiv.appendChild(contentP);
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            // 添加到历史
+            chatHistory.push({
+                role: isUser ? 'user' : 'assistant',
+                content: content
+            });
+            
+            return messageDiv;
+        }
+        
+        // 发送用户消息
+        function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+            
+            // 禁用输入框和按钮
+            userInput.disabled = true;
+            sendButton.disabled = true;
+            
+            // 添加用户消息
+            addMessage(message, true);
+            
+            // 创建AI消息占位符
+            const botMessageDiv = document.createElement('div');
+            botMessageDiv.className = 'message bot-message';
+            
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'header';
+            headerDiv.textContent = 'AI';
+            botMessageDiv.appendChild(headerDiv);
+            
+            const contentP = document.createElement('p');
+            contentP.id = 'current-response';
+            botMessageDiv.appendChild(contentP);
+            
+            // 添加加载指示器
+            const loader = document.createElement('span');
+            loader.className = 'loader';
+            loader.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+            contentP.appendChild(loader);
+            
+            chatContainer.appendChild(botMessageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            // 准备请求参数
+            const params = new URLSearchParams();
+            params.append('content', message);
+            
+            // 如果有历史消息，添加到请求中
+            if (chatHistory.length > 0) {
+                // 仅使用最近6次对话作为历史记录，减少请求大小
+                const recentHistory = chatHistory.slice(-6);
+                params.append('history', JSON.stringify(recentHistory));
+            }
+            
+            // 创建SSE连接
+            const eventSource = new EventSource(`/api/v1/ai/chat/stream?${params.toString()}`);
+            
+            let responseText = '';
+            
+            // 处理事件
+            eventSource.addEventListener('start', function(e) {
+                // 移除加载指示器
+                contentP.innerHTML = '';
+            });
+            
+            eventSource.addEventListener('chunk', function(e) {
+                const data = JSON.parse(e.data);
+                responseText += data.content;
+                contentP.textContent = responseText;
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            });
+            
+            eventSource.addEventListener('end', function(e) {
+                // 流式响应结束
+                eventSource.close();
+                
+                // 保存完整响应到聊天历史
+                chatHistory.push({
+                    role: 'assistant',
+                    content: responseText
+                });
+                
+                // 启用输入框和按钮
+                userInput.disabled = false;
+                sendButton.disabled = false;
+                userInput.value = '';
+                userInput.focus();
+            });
+            
+            eventSource.addEventListener('error', function(e) {
+                const data = e.data ? JSON.parse(e.data) : { error: '连接错误' };
+                contentP.textContent = `错误: ${data.error || '未知错误'}`;
+                eventSource.close();
+                
+                // 启用输入框和按钮
+                userInput.disabled = false;
+                sendButton.disabled = false;
+            });
+        }
+        
+        // 事件监听
+        sendButton.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        
+        // 欢迎消息
+        setTimeout(() => {
+            addMessage('你好！我是QWQ-32B大语言模型。我可以回答问题、编写代码、讨论话题等。有什么可以帮助你的吗？', false);
+        }, 500);
+    </script>
+</body>
+</html> 

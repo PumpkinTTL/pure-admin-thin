@@ -1,0 +1,10 @@
+---
+description: 
+globs: *.php
+alwaysApply: false
+---
+-这是thinkphp8框架它兼容了thinkphp6的所有语法和内容
+-在操作数据库的时候都要有日志记录记录生成的sql语句和查询时间以及查询是否成等
+
+
+-我封装了日志类在app\api\services\LogService.php里面记得都成日志

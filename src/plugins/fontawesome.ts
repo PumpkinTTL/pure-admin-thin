@@ -1,0 +1,69 @@
+import { library, config } from "@fortawesome/fontawesome-svg-core";
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+// fas格式图标
+import {
+  faHome, faUser, faChartBar, faCog, faBell, faEnvelope,
+  faCalendar, faServer, faDatabase, faExclamationTriangle,
+  faTachometerAlt, faClipboard, faComment, faEye, faUserPlus,
+  faChartLine, faCheckCircle, faInfoCircle, faExclamationCircle,
+  faList, faCloudUploadAlt, faFileAlt, faShieldAlt, faClock,
+  faLightbulb, faWrench, faTerminal, faFolder, faSync, faCopy,
+  faPlusCircle, faArrowUp, faArrowDown, faEdit, faImage,
+  faSun, faUpload, faCalendarAlt, faPlus, faCheck,
+  faTasks, faComments, faUsers, faMicrochip, faMemory,
+  faHdd, faNetworkWired, faAngleDown, faHeart, faReply, faBookmark,
+  faAd, faBook, faGift, faCoins, faMoneyBillWave,
+  faChevronDown, faDonate, faHandHoldingUsd, faUserFriends, faCrown,
+  faCloudArrowDown, faCubes, faSearch, faUndo, faTrash, faEllipsisH,
+  faPrint, faFileExport, faGlobe, faCodeBranch, faCloud, faDesktop,
+  faLink, faTag, faLaptopCode, faBan, faCircle, faCoffee, faBoxArchive, faMobileScreen,
+  faCommentDots, faCreditCard, faTimes, faBullhorn, faThumbsUp, faThumbsDown, faPaperPlane,
+  faPaperclip, faHourglass, faHourglassHalf, faThumbTack, faUserSlash,
+  faMagic, faStar, faCopy, faRocket
+} from "@fortawesome/free-solid-svg-icons";
+// far格式图标
+import {
+  faCheckCircle as farCheckCircle,
+  faBell as farBell
+} from "@fortawesome/free-regular-svg-icons";
+// fab格式图标
+import {
+  faGithub, faVuejs, faWindows, faApple, faLinux, faAndroid,
+  faWeixin, faAlipay,
+  faBtc, faEthereum, faBitcoin
+} from "@fortawesome/free-brands-svg-icons";
+
+// Add all icons to the library
+library.add(
+  // Solid icons
+  faHome, faUser, faChartBar, faCog, faBell, faEnvelope,
+  faCalendar, faServer, faDatabase, faExclamationTriangle,
+  faTachometerAlt, faClipboard, faComment, faEye, faUserPlus,
+  faChartLine, faCheckCircle, faInfoCircle, faExclamationCircle,
+  faList, faCloudUploadAlt, faFileAlt, faShieldAlt, faClock,
+  faLightbulb, faWrench, faTerminal, faFolder, faSync,
+  faPlusCircle, faArrowUp, faArrowDown, faEdit, faImage,
+  faBtc, faEthereum, faBitcoin,
+  faSun, faUpload, faCalendarAlt, faPlus, faCheck,
+  faTasks, faComments, faUsers, faChartLine, faMicrochip,
+  faMemory, faHdd, faNetworkWired, faAngleDown, faHeart, faReply,
+  faBookmark, faAd, faBook, faGift, faCoins,
+  faMoneyBillWave, faChevronDown, faDonate, faHandHoldingUsd, faUserFriends, faCrown,
+  faCloudArrowDown, faCubes, faSearch, faUndo, faTrash, faEllipsisH,
+  faPrint, faFileExport, faGlobe, faCodeBranch, faCloud, faDesktop,
+  faLink, faTag, faLaptopCode, faBan, faCircle, faCoffee, faBoxArchive, faMobileScreen,
+  faCommentDots, faCreditCard, faTimes, faBullhorn, faThumbsUp, faThumbsDown, faPaperPlane,
+  faPaperclip, faHourglass, faHourglassHalf, faThumbTack, faUserSlash,
+  faMagic, faStar, faRocket,
+  farCheckCircle, farBell,
+  faGithub, faVuejs, faWindows, faApple, faLinux, faAndroid,
+  faWeixin, faAlipay
+);
+
+// Prevent CSS auto-insertion since we're importing the CSS file directly
+config.autoAddCss = false;
+
+export function useFontAwesome(app) {
+  app.component("FontAwesomeIcon", FontAwesomeIcon);
+}
+
