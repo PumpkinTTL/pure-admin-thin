@@ -1,7 +1,9 @@
 <template>
   <el-config-provider :locale="currentLocale">
-    <router-view />
-    <ReDialog />
+    <ThemeProvider>
+      <router-view />
+      <ReDialog />
+    </ThemeProvider>
   </el-config-provider>
 </template>
 
@@ -9,6 +11,7 @@
 import { defineComponent, onMounted } from "vue";
 import { ElConfigProvider } from "element-plus";
 import { ReDialog } from "@/components/ReDialog";
+import ThemeProvider from "@/components/ThemeProvider/index.vue";
 import zhCn from "element-plus/es/locale/lang/zh-cn";
 import { generateFingerprint, getFingerprint } from "@/utils/fingerprint";
 
@@ -16,7 +19,8 @@ export default defineComponent({
   name: "app",
   components: {
     [ElConfigProvider.name]: ElConfigProvider,
-    ReDialog
+    ReDialog,
+    ThemeProvider
   },
   setup() {
     onMounted(async () => {

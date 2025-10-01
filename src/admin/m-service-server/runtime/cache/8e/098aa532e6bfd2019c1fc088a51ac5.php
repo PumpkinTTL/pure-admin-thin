@@ -1,0 +1,4 @@
+<?php
+//000000003600
+ exit();?>
+a:13:{s:2:"id";i:4;s:9:"theme_key";s:4:"zise";s:10:"theme_name";s:12:"紫色主题";s:11:"description";s:0:"";s:13:"preview_image";s:0:"";s:11:"config_data";O:8:"stdClass":4:{s:6:"colors";a:6:{s:4:"info";s:7:"#87CEEB";s:6:"danger";s:7:"#FF1493";s:7:"primary";s:7:"#8A2BE2";s:7:"success";s:7:"#00FA9A";s:7:"warning";s:7:"#FFD700";s:9:"secondary";s:7:"#9370DB";}s:6:"layout";a:4:{s:13:"border_radius";i:4;s:13:"header_height";i:60;s:13:"sidebar_width";i:240;s:15:"content_padding";i:20;}s:7:"effects";a:3:{s:12:"shadow_level";i:2;s:17:"transition_timing";s:11:"ease-in-out";s:18:"animation_duration";s:4:"0.3s";}s:10:"typography";a:3:{s:11:"font_family";s:28:"PingFang SC, Microsoft YaHei";s:11:"line_height";d:1.5;s:14:"font_size_base";i:14;}}s:9:"is_system";i:0;s:10:"is_current";i:1;s:9:"is_active";i:1;s:10:"sort_order";i:2;s:11:"create_time";s:19:"2025-10-01 14:16:16";s:11:"update_time";s:19:"2025-10-01 14:16:24";s:11:"delete_time";N;}

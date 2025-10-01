@@ -147,6 +147,16 @@ const systemRouter = {
         roles: ["superAdmin"],
         icon: "ep:setting"
       }
+    },
+    {
+      path: "/system/theme",
+      name: "SystemTheme",
+      component: "/src/views/system/theme/index.vue",
+      meta: {
+        title: "主题配置",
+        roles: ["superAdmin"],
+        icon: "ep:brush"
+      }
     }
   ]
 };

@@ -49,16 +49,16 @@ class User extends BaseController
             return json(['code' => 501, 'msg' => '参数错误', 'info' => $validate->getError()]);
         }
         // 请求头设备指纹验证
-        $fingerprint = request()->header('X-Fingerprint');
-        if (empty($fingerprint)) {
-            return json(['code' => 502, 'msg' => '设备参数丢失']);
-        }
+        // $fingerprint = request()->header('X-Fingerprint');
+        // if (empty($fingerprint)) {
+        //     return json(['code' => 502, 'msg' => '设备参数丢失']);
+        // }
         // 获取参数
         $account = $params['account'];
         $password = $params['password'];
         $action = $params['action'];
         // 调用服务进行登录
-        $result = UserService::login($account, $password, $action, $fingerprint);
+        $result = UserService::login($account, $password, $action);
         return json($result);
     }
 

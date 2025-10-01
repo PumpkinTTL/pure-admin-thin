@@ -19,7 +19,9 @@ import {
   faLink, faTag, faLaptopCode, faBan, faCircle, faCoffee, faBoxArchive, faMobileScreen,
   faCommentDots, faCreditCard, faTimes, faBullhorn, faThumbsUp, faThumbsDown, faPaperPlane,
   faPaperclip, faHourglass, faHourglassHalf, faThumbTack, faUserSlash,
-  faMagic, faStar, faCopy, faRocket
+  faMagic, faStar, faRocket, faPalette, faSave, faRefresh,
+  faFont, faWandMagicSparkles, faThLarge, faPause, faPlay,
+  faEllipsisV, faInbox, faSwatchbook, faRandom, faArrowRight, faKey
 } from "@fortawesome/free-solid-svg-icons";
 // far格式图标
 import {
@@ -41,7 +43,7 @@ library.add(
   faTachometerAlt, faClipboard, faComment, faEye, faUserPlus,
   faChartLine, faCheckCircle, faInfoCircle, faExclamationCircle,
   faList, faCloudUploadAlt, faFileAlt, faShieldAlt, faClock,
-  faLightbulb, faWrench, faTerminal, faFolder, faSync,
+  faLightbulb, faWrench, faTerminal, faFolder, faSync, faCopy,
   faPlusCircle, faArrowUp, faArrowDown, faEdit, faImage,
   faBtc, faEthereum, faBitcoin,
   faSun, faUpload, faCalendarAlt, faPlus, faCheck,
@@ -54,7 +56,9 @@ library.add(
   faLink, faTag, faLaptopCode, faBan, faCircle, faCoffee, faBoxArchive, faMobileScreen,
   faCommentDots, faCreditCard, faTimes, faBullhorn, faThumbsUp, faThumbsDown, faPaperPlane,
   faPaperclip, faHourglass, faHourglassHalf, faThumbTack, faUserSlash,
-  faMagic, faStar, faRocket,
+  faMagic, faStar, faRocket, faPalette, faSave, faRefresh,
+  faFont, faWandMagicSparkles, faThLarge, faPause, faPlay,
+  faEllipsisV, faInbox, faSwatchbook, faRandom, faArrowRight, faKey,
   farCheckCircle, farBell,
   faGithub, faVuejs, faWindows, faApple, faLinux, faAndroid,
   faWeixin, faAlipay

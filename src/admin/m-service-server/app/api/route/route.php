@@ -219,3 +219,17 @@ Route::group('/:version/paymentMethod', function () {
     Route::rule('getEnabledList', ':version.paymentMethod/getEnabledList');
 });
 
+// 主题配置路由组
+Route::group('/:version/theme', function () {
+    // ========== 客户端API ==========
+    Route::rule('current', ':version.Theme/current');                    // 获取当前主题
+    Route::rule('list', ':version.Theme/list');                         // 获取主题列表
+    Route::rule('detail/:key', ':version.Theme/detail');                // 获取指定主题
+
+    // ========== 管理端API ==========
+    Route::rule('create', ':version.Theme/create');                     // 创建主题
+    Route::rule('update/:id', ':version.Theme/update');                 // 更新主题
+    Route::rule('delete/:id', ':version.Theme/delete');                 // 删除主题
+    Route::rule('set-current', ':version.Theme/setCurrent');            // 设置当前主题
+    Route::rule('toggle-status/:id', ':version.Theme/toggleStatus');    // 切换状态
+});
