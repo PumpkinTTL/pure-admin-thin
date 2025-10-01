@@ -72,6 +72,16 @@ const testRouter = {
         icon: "ep:goods",
         title: "商品管理"
       }
+    },
+    {
+      path: "/basic/card-key",
+      name: "CardKey",
+      component: "/src/views/basic/cardKey.vue",
+      meta: {
+        icon: "ep:ticket",
+        title: "卡密管理",
+        auths: ["cardkey:view"]
+      }
     }
   ]
 };

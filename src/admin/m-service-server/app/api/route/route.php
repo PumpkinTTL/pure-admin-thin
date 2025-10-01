@@ -233,3 +233,31 @@ Route::group('/:version/theme', function () {
     Route::rule('set-current', ':version.Theme/setCurrent');            // 设置当前主题
     Route::rule('toggle-status/:id', ':version.Theme/toggleStatus');    // 切换状态
 });
+
+// ============================================
+// 卡密管理路由组
+// ============================================
+Route::group('/:version/cardkey', function () {
+    // 生成卡密
+    Route::post('generate', ':version.CardKey/generate');               // 生成单个卡密
+    Route::post('batch', ':version.CardKey/batchGenerate');             // 批量生成卡密
+
+    // 查询卡密
+    Route::get('list', ':version.CardKey/index');                       // 获取卡密列表（分页+筛选）
+    Route::get('detail/:id', ':version.CardKey/detail');                // 获取卡密详情
+    Route::get('types', ':version.CardKey/getTypes');                   // 获取类型列表
+    Route::get('logs/:id', ':version.CardKey/logs');                    // 获取使用记录
+
+    // 操作卡密
+    Route::post('verify', ':version.CardKey/verify');                   // 验证卡密
+    Route::post('use', ':version.CardKey/use');                         // 使用卡密
+    Route::post('disable/:id', ':version.CardKey/disable');             // 禁用卡密
+
+    // 删除卡密
+    Route::delete('delete/:id', ':version.CardKey/delete');             // 删除单个卡密
+    Route::post('batch-delete', ':version.CardKey/batchDelete');        // 批量删除卡密
+
+    // 导出和统计
+    Route::get('export', ':version.CardKey/export');                    // 导出卡密
+    Route::get('statistics', ':version.CardKey/statistics');            // 获取统计数据
+});

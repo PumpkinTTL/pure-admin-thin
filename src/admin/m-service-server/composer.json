@@ -25,10 +25,10 @@
         "topthink/think-orm": "^3.0",
         "topthink/think-filesystem": "^2.0",
         "topthink/think-multi-app": "^1.0",
-      "ext-openssl": "*",
+        "ext-openssl": "*",
         "firebase/php-jwt": "^6.10",
         "phpmailer/phpmailer": "^6.9",
-      "ext-curl": "*",
+        "ext-curl": "*",
         "openai-php/client": "^0.10.3",
         "symfony/http-client": "^7.2",
         "nyholm/psr7": "^1.8",
@@ -50,7 +50,8 @@
         "preferred-install": "dist",
         "allow-plugins": {
             "php-http/discovery": true
-        }
+        },
+        "platform-check": false
     },
     "scripts": {
         "post-autoload-dump": [
