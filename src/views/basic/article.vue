@@ -145,7 +145,7 @@
       <el-table :data="computedPagedData" style="width: 100%" v-loading="tableLoading" :fit="true"
         class="article-table modern-flat-table" size="default" @selection-change="handleSelectionChange"
         :show-header="true" element-loading-text="正在加载文章数据..." element-loading-background="rgba(255, 255, 255, 0.8)"
-        :empty-text="getEmptyText()">
+        :empty-text="getEmptyText()" :key="pageConfig.current_page">
         <el-table-column type="selection" width="50" align="center" />
 
         <!-- 文章内容 -->
@@ -533,7 +533,16 @@ const formatTime = (timeString) => {
 const computedPagedData = computed(() => {
   const start = (pageConfig.value.current_page - 1) * pageConfig.value.page_size
   const end = start + pageConfig.value.page_size
-  return serverData.value.slice(start, end)
+  const result = serverData.value.slice(start, end)
+  console.log('计算分页数据:', {
+    当前页: pageConfig.value.current_page,
+    每页条数: pageConfig.value.page_size,
+    开始索引: start,
+    结束索引: end,
+    总数据量: serverData.value.length,
+    返回数据量: result.length
+  })
+  return result
 })
 
 // 为了兼容现有代码，保持tableData指向服务器数据
@@ -1060,28 +1069,48 @@ const handleBatchPermanentDelete = async () => {
 
 // 分页大小变化
 const handleSizeChange = (val: number) => {
-  pageConfig.value.page_size = val;
-  pageConfig.value.current_page = 1; // 重置到第一页
+  console.log('=== 分页大小变化 ===')
+  console.log('新的每页条数:', val)
+  console.log('重置到第1页')
+
+  // v-model 已经自动更新了 pageConfig.value.page_size
+  // 这里只需要重置页码
+  pageConfig.value.current_page = 1
+
   // 检查是否需要重新加载数据
-  const totalNeeded = pageConfig.value.current_page * val;
-  const currentLoaded = serverData.value.length;
+  const totalNeeded = val // 第一页需要的数据量
+  const currentLoaded = serverData.value.length
+
+  console.log('需要数据量:', totalNeeded, '已加载数据量:', currentLoaded)
 
   if (totalNeeded > currentLoaded) {
-    // 需要加载更多数据
-    initTableData(1, false);
+    console.log('→ 需要从服务器加载更多数据')
+    initTableData(1, false)
+  } else {
+    console.log('→ 使用本地缓存数据')
   }
 }
 
 // 页码变化
 const handleCurrentChange = (val: number) => {
-  pageConfig.value.current_page = val;
+  console.log('=== 页码变化 ===')
+  console.log('新页码:', val)
+  console.log('每页条数:', pageConfig.value.page_size)
+
+  // v-model 已经自动更新了 pageConfig.value.current_page
+  // computed 属性会自动重新计算
+
   // 检查是否需要重新加载数据
-  const totalNeeded = val * pageConfig.value.page_size;
-  const currentLoaded = serverData.value.length;
+  const totalNeeded = val * pageConfig.value.page_size
+  const currentLoaded = serverData.value.length
+
+  console.log('需要数据量:', totalNeeded, '已加载数据量:', currentLoaded)
 
   if (totalNeeded > currentLoaded) {
-    // 需要加载更多数据
-    initTableData(1, false);
+    console.log('→ 需要从服务器加载更多数据')
+    initTableData(val, false)
+  } else {
+    console.log('→ 使用本地缓存数据，分页生效')
   }
 }
 
