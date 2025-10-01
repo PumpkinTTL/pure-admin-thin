@@ -29,28 +29,27 @@ class Auth
     public function handle($request, \Closure $next): mixed
     {
         // 建议统一通过 $request 获取参数
-        $accessToken = $request->header('accessToken');
-        $refreshToken = $request->header('refreshToken');
+        $token = $request->header('Bearer ');
         $currentId = $request->param('currentId');
         $targetUid = $request->param('targetUid');
         $uri = $request->url();
 
         // Step1: 检查Token是否存在
-        if (empty($refreshToken) || empty($accessToken)) {
+        if (empty($token)) {
             return $this->errorResponse('请先登录再继续操作', 502);
         }
 
         // Step2: 验证Refresh Token的合法性
-        $verifyToken = JWTUtil::verifyToken($refreshToken);
+        $verifyToken = JWTUtil::verifyToken($token);
 
         if (!is_array($verifyToken) || ($verifyToken['code'] ?? 0) !== 200) {
             Log::error(json_encode([
                 'url' => $uri,
                 'msg' => $verifyToken['msg'] ?? 'token解析失败',
                 'IP' => $request->ip(),
-                'refreshToken' => $refreshToken
+                'refreshToken' => $token
             ]));
-            return $this->errorResponse($verifyToken['msg'] ?? 'Token非法', 5003);
+            return $this->errorResponse($verifyToken['msg'] ?? '非法令牌', 5003);
         }
 
         // Step3: 获取 JWT 中的 uid
@@ -63,19 +62,12 @@ class Auth
         $redisKey = 'lt_' . $JWTUid;
         $redisJWT = RedisUtil::getString($redisKey);
 
-        if ($redisJWT !== $refreshToken || empty($redisJWT)) {
+        if ($redisJWT !== $token || empty($redisJWT)) {
             return $this->errorResponse('登录失效，请重新登录', 5005);
         }
 
-        // Step5: 解密 Access Token
-        $parseAccessToken = SecretUtil::parseAccessToken($accessToken);
-        if (!$parseAccessToken) {
-            return $this->errorResponse('登录信息存在异常', 5003);
-        }
-
-        // Step6: 注入用户ID到请求对象中
+        // Step5: 注入用户ID到请求对象中
         $request->JWTUid = $JWTUid;
-
         // Step7: 放行
         return $next($request);
     }

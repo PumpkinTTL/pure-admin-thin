@@ -118,7 +118,7 @@ Route::group('/:version/notice', function () {
     Route::rule('user/:user_id', ':version.notice/getUserNotices');
     Route::rule('trashed', ':version.notice/getTrashedNotices');
     Route::rule('restore/:notice_id', ':version.notice/restoreNotice');
-})->middleware([\app\api\middleware\PermissionCheck::class]);
+});
 
 //权限分组
 Route::group('/:version/permissions', function () {
