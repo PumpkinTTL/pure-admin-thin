@@ -14,9 +14,10 @@
   <el-dialog
     v-model="dialogVisible"
     title="卡密详情"
-    width="600px"
+    width="650px"
     :close-on-click-modal="false"
     @close="handleClose"
+    class="detail-dialog"
   >
     <div v-loading="loading" class="detail-container">
       <!-- 基本信息 -->
@@ -44,10 +45,10 @@
                 link
                 type="primary"
                 @click="handleCopyCode"
-                style="margin-left: 10px"
+                class="copy-btn"
               >
                 <IconifyIconOnline icon="ep:document-copy" />
-                复制
+                <span>复制</span>
               </el-button>
             </div>
           </el-descriptions-item>
@@ -55,7 +56,7 @@
             {{ detail.price ? `¥${detail.price}` : "无" }}
           </el-descriptions-item>
           <el-descriptions-item label="会员时长">
-            {{ formatValidMinutes(detail.valid_minutes) }}
+            {{ formatValidMinutes(detail.membership_duration || detail.valid_minutes) }}
           </el-descriptions-item>
           <el-descriptions-item label="可用期限" :span="2">
             <span v-if="!detail.available_time" style="color: #67c23a;">永久可用</span>
@@ -137,15 +138,18 @@
     </div>
 
     <template #footer>
-      <el-button @click="handleClose">关闭</el-button>
-      <el-button
-        type="danger"
-        :disabled="detail.status === 2"
-        @click="handleDisable"
-      >
-        <IconifyIconOnline icon="ep:close" />
-        禁用卡密
-      </el-button>
+      <div class="dialog-footer">
+        <el-button @click="handleClose" size="default">关闭</el-button>
+        <el-button
+          type="danger"
+          :disabled="detail.status === 1 || detail.status === 2"
+          @click="handleDisable"
+          size="default"
+        >
+          <IconifyIconOnline icon="ep:close" />
+          <span>禁用卡密</span>
+        </el-button>
+      </div>
     </template>
   </el-dialog>
 </template>
@@ -347,13 +351,30 @@ watch(
 </script>
 
 <style scoped lang="scss">
+.detail-dialog {
+  :deep(.el-dialog__header) {
+    padding: 20px 20px 10px;
+    border-bottom: 1px solid #ebeef5;
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 20px;
+  }
+
+  :deep(.el-dialog__footer) {
+    padding: 12px 20px 20px;
+    border-top: 1px solid #ebeef5;
+  }
+}
+
 .detail-container {
   .info-section,
   .logs-section {
-    margin-bottom: 16px;
-    padding: 12px;
-    background: #fafafa;
-    border-radius: 4px;
+    margin-bottom: 18px;
+    padding: 16px;
+    background: #f5f7fa;
+    border-radius: 8px;
+    border: 1px solid #ebeef5;
 
     &:last-child {
       margin-bottom: 0;
@@ -364,13 +385,13 @@ watch(
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid #e4e7ed;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e4e7ed;
 
     .section-title {
-      font-size: 14px;
-      font-weight: 500;
+      font-size: 15px;
+      font-weight: 600;
       color: #303133;
     }
   }
@@ -378,12 +399,20 @@ watch(
   .code-display {
     display: flex;
     align-items: center;
+    gap: 10px;
 
     .code-text {
       font-family: "Courier New", monospace;
-      letter-spacing: 2px;
+      letter-spacing: 1px;
       color: var(--el-color-primary);
+      font-weight: 600;
     }
+  }
+
+  .copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
   }
 
   .log-item {
@@ -391,20 +420,37 @@ watch(
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
 
       .log-user {
         font-weight: 500;
+        color: #606266;
       }
     }
 
     .log-content {
-      margin-bottom: 8px;
+      margin-bottom: 10px;
+      padding: 8px 12px;
+      background: #fafafa;
+      border-radius: 4px;
     }
 
     .log-meta {
       font-size: 12px;
+      color: #909399;
     }
+  }
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+
+  .el-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
   }
 }
 

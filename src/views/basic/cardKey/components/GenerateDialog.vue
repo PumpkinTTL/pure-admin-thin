@@ -17,16 +17,16 @@
   <el-dialog
     v-model="dialogVisible"
     title="生成卡密"
-    width="550px"
+    width="580px"
     :close-on-click-modal="false"
     @close="handleClose"
+    class="generate-dialog"
   >
     <el-form
       ref="formRef"
       :model="form"
       :rules="rules"
-      label-width="80px"
-      size="small"
+      label-width="85px"
       class="generate-form"
     >
       <!-- 卡密类型 -->
@@ -36,7 +36,6 @@
           placeholder="选择或输入类型"
           filterable
           allow-create
-          style="width: 100%"
         >
           <el-option-group label="常用类型">
             <el-option
@@ -71,14 +70,19 @@
 
       <!-- 会员时长 -->
       <el-form-item label="会员时长" prop="membership_duration">
-        <el-radio-group v-model="durationType" @change="handleDurationTypeChange" class="duration-radio-group">
-          <el-radio label="0">永久</el-radio>
-          <el-radio label="60">1小时</el-radio>
-          <el-radio label="1440">1天</el-radio>
-          <el-radio label="10080">7天</el-radio>
-          <el-radio label="43200">30天</el-radio>
-          <el-radio label="custom">自定义</el-radio>
-        </el-radio-group>
+        <div class="form-item-content">
+          <div class="button-group">
+            <div 
+              v-for="option in durationOptions" 
+              :key="option.value"
+              :class="['option-btn', { active: durationType === option.value }]"
+              @click="selectDuration(option.value)"
+            >
+              {{ option.label }}
+            </div>
+          </div>
+          <div class="form-tip">用户兑换后获得的会员时长</div>
+        </div>
         <el-input-number
           v-if="durationType === 'custom'"
           v-model="form.membership_duration"
@@ -86,11 +90,10 @@
           :max="5256000"
           :step="1"
           placeholder="输入分钟数"
-          style="width: 100%; margin-top: 8px"
+          class="custom-input"
         >
           <template #append>分钟</template>
         </el-input-number>
-        <div class="form-tip">用户兑换后获得的会员时长</div>
       </el-form-item>
 
       <!-- 价格（可选） -->
@@ -101,8 +104,7 @@
           :max="999999.99"
           :precision="2"
           :step="1"
-          placeholder="选填，适用于商品兑换码"
-          style="width: 100%"
+          placeholder="选填"
         >
           <template #prefix>¥</template>
         </el-input-number>
@@ -111,23 +113,28 @@
 
       <!-- 兑换期限（可选） -->
       <el-form-item label="兑换期限" prop="available_time">
-        <el-radio-group v-model="availableType" @change="handleAvailableTypeChange" class="available-radio-group">
-          <el-radio label="forever">永久可用</el-radio>
-          <el-radio label="7">7天内</el-radio>
-          <el-radio label="30">30天内</el-radio>
-          <el-radio label="90">90天内</el-radio>
-          <el-radio label="custom">自定义</el-radio>
-        </el-radio-group>
+        <div class="form-item-content">
+          <div class="button-group">
+            <div 
+              v-for="option in availableOptions" 
+              :key="option.value"
+              :class="['option-btn', { active: availableType === option.value }]"
+              @click="selectAvailable(option.value)"
+            >
+              {{ option.label }}
+            </div>
+          </div>
+          <div class="form-tip">卡密本身的可兑换截止时间，超过此时间卡密作废</div>
+        </div>
         <el-date-picker
           v-if="availableType === 'custom'"
           v-model="form.available_time"
           type="datetime"
-          placeholder="选择卡密失效时间"
+          placeholder="选择失效时间"
           format="YYYY-MM-DD HH:mm:ss"
           value-format="YYYY-MM-DD HH:mm:ss"
-          style="width: 100%; margin-top: 8px"
+          class="custom-input"
         />
-        <div class="form-tip">卡密本身的可兑换截止时间，超过此时间卡密作废</div>
       </el-form-item>
 
       <!-- 备注 -->
@@ -144,21 +151,22 @@
 
       <!-- 生成预览 -->
       <el-form-item label="生成预览">
-        <el-alert
-          :title="previewText"
-          type="info"
-          :closable="false"
-          show-icon
-        />
+        <div class="preview-box">
+          <div class="preview-content">
+            <IconifyIconOnline icon="ep:info-filled" class="preview-icon" />
+            <span>{{ previewText }}</span>
+          </div>
+        </div>
       </el-form-item>
     </el-form>
 
     <template #footer>
-      <el-button @click="handleClose">取消</el-button>
-      <el-button type="primary" :loading="loading" @click="handleSubmit">
-        <IconifyIconOnline icon="ep:check" v-if="!loading" />
-        {{ loading ? "生成中..." : "确定生成" }}
-      </el-button>
+      <div class="dialog-footer">
+        <el-button @click="handleClose" size="default">取消</el-button>
+        <el-button type="primary" :loading="loading" @click="handleSubmit" size="default">
+          {{ loading ? "生成中..." : "确定生成" }}
+        </el-button>
+      </div>
     </template>
   </el-dialog>
 </template>
@@ -208,6 +216,25 @@ const availableType = ref("forever"); // 兑换期限类型
 const presetTypes = ref(CardKeyTypeOptions); // 预设类型
 const historyTypes = ref<string[]>([]); // 历史类型
 
+// 会员时长选项
+const durationOptions = [
+  { label: '永久', value: '0' },
+  { label: '1小时', value: '60' },
+  { label: '1天', value: '1440' },
+  { label: '7天', value: '10080' },
+  { label: '30天', value: '43200' },
+  { label: '自定义', value: 'custom' }
+];
+
+// 兑换期限选项
+const availableOptions = [
+  { label: '永久可用', value: 'forever' },
+  { label: '7天内', value: '7' },
+  { label: '30天内', value: '30' },
+  { label: '90天内', value: '90' },
+  { label: '自定义', value: 'custom' }
+];
+
 // 表单数据
 const form = reactive<GenerateParams>({
   type: "",
@@ -246,6 +273,14 @@ const previewText = computed(() => {
 });
 
 /**
+ * 选择会员时长
+ */
+const selectDuration = (value: string) => {
+  durationType.value = value;
+  handleDurationTypeChange(value);
+};
+
+/**
  * 会员时长类型变化
  */
 const handleDurationTypeChange = (value: string) => {
@@ -254,6 +289,14 @@ const handleDurationTypeChange = (value: string) => {
   } else {
     form.membership_duration = parseInt(value);
   }
+};
+
+/**
+ * 选择兑换期限
+ */
+const selectAvailable = (value: string) => {
+  availableType.value = value;
+  handleAvailableTypeChange(value);
 };
 
 /**
@@ -352,23 +395,118 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-.generate-form {
-  .form-tip {
-    font-size: 11px;
-    color: var(--el-text-color-secondary);
-    margin-top: 4px;
+.generate-dialog {
+  :deep(.el-dialog__header) {
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid #e4e7ed;
   }
 
-  .duration-radio-group,
-  .available-radio-group {
-    :deep(.el-radio) {
-      margin-right: 12px;
-      margin-bottom: 0;
+  :deep(.el-dialog__body) {
+    padding: 16px 20px;
+    max-height: 65vh;
+    overflow-y: auto;
+  }
+
+  :deep(.el-dialog__footer) {
+    padding: 12px 20px 16px;
+    border-top: 1px solid #e4e7ed;
+  }
+}
+
+.generate-form {
+  .form-item-content {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .form-tip {
+    font-size: 12px;
+    color: #909399;
+    line-height: 1.4;
+  }
+
+  .button-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+
+    .option-btn {
+      padding: 3px 10px;
+      border: 1px solid #dcdfe6;
+      border-radius: 3px;
+      background: #fff;
+      color: #606266;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+      line-height: 1.5;
+
+      &:hover {
+        border-color: #409eff;
+        color: #409eff;
+        background: #ecf5ff;
+      }
+
+      &.active {
+        background: #409eff;
+        border-color: #409eff;
+        color: #fff;
+      }
     }
   }
 
   :deep(.el-input-number) {
     width: 100%;
+  }
+
+  :deep(.el-form-item__label) {
+    font-weight: 500;
+    color: #606266;
+  }
+
+  :deep(.el-form-item) {
+    margin-bottom: 16px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .custom-input {
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  .preview-box {
+    width: 100%;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #e8f4fd 0%, #f0f9ff 100%);
+    border-left: 3px solid #409eff;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: linear-gradient(135deg, #d9ecff 0%, #e8f4fd 100%);
+      box-shadow: 0 2px 6px rgba(64, 158, 255, 0.12);
+    }
+
+    .preview-content {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #606266;
+      font-size: 13px;
+      line-height: 1.5;
+
+      .preview-icon {
+        color: #409eff;
+        font-size: 16px;
+        flex-shrink: 0;
+      }
+    }
   }
 }
 
