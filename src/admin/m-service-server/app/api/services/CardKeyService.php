@@ -28,7 +28,7 @@ class CardKeyService
         // 调用工具类批量生成（数量为1）
         return CardKeyUtil::batchGenerate(1, $data['type'], [
             'price' => $data['price'] ?? null,
-            'valid_minutes' => $data['valid_minutes'] ?? 0,
+            'membership_duration' => $data['membership_duration'] ?? 0,  // 兑换后获得的会员时长
             'remark' => $data['remark'] ?? '',
             'salt' => $data['salt'] ?? ''
         ]);
@@ -62,7 +62,7 @@ class CardKeyService
         // 调用工具类批量生成
         return CardKeyUtil::batchGenerate($count, $type, [
             'price' => $data['price'] ?? null,
-            'valid_minutes' => $data['valid_minutes'] ?? 0,
+            'membership_duration' => $data['membership_duration'] ?? 0,  // 兑换后获得的会员时长
             'remark' => $data['remark'] ?? '',
             'salt' => $data['salt'] ?? ''
         ]);

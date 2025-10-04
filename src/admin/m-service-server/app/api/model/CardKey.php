@@ -1,4 +1,5 @@
 <?php
+
 /**
  * 卡密模型
  * 
@@ -16,35 +17,36 @@ class CardKey extends Model
 {
     // 设置表名（不含前缀）
     protected $name = 'card_keys';
-    
+
     // 设置表前缀
     protected $connection = 'mysql';
-    
+
     // 自动时间戳类型
     protected $autoWriteTimestamp = false;
-    
+
     // 定义时间字段名
     protected $createTime = 'create_time';
     protected $updateTime = false;
-    
+
     // 字段类型转换
     protected $type = [
         'id' => 'integer',
         'status' => 'integer',
         'price' => 'float',
-        'valid_minutes' => 'integer',
+        'membership_duration' => 'integer',  // 兑换后获得的会员时长(分钟)
         'user_id' => 'integer',
         'create_time' => 'datetime',
         'use_time' => 'datetime',
+        'available_time' => 'datetime',  // 卡密可兑换截止时间
     ];
-    
+
     /**
      * 状态常量定义
      */
     const STATUS_UNUSED = 0;    // 未使用
     const STATUS_USED = 1;      // 已使用
     const STATUS_DISABLED = 2;  // 已禁用
-    
+
     /**
      * 状态文本映射
      */
@@ -87,18 +89,18 @@ class CardKey extends Model
     }
 
     /**
-     * 获取有效时长文本
+     * 获取会员时长文本（兑换后获得的会员时长）
      * 
      * @param mixed $value
      * @param array $data
      * @return string
      */
-    public function getValidTextAttr($value, $data)
+    public function getMembershipDurationTextAttr($value, $data)
     {
-        $minutes = $data['valid_minutes'] ?? 0;
-        
+        $minutes = $data['membership_duration'] ?? 0;
+
         if ($minutes == 0) {
-            return '永久有效';
+            return '永久会员';
         } elseif ($minutes < 60) {
             return $minutes . '分钟';
         } elseif ($minutes < 1440) {
@@ -109,57 +111,67 @@ class CardKey extends Model
     }
 
     /**
-     * 检查卡密是否过期
+     * 向后兼容：保留旧方法名
      * 
+     * @deprecated 请使用 getMembershipDurationTextAttr
+     */
+    public function getValidTextAttr($value, $data)
+    {
+        return $this->getMembershipDurationTextAttr($value, $data);
+    }
+
+    /**
+     * 检查卡密本身是否过期（基于available_time）
+     *
      * @return bool
      */
     public function isExpired(): bool
     {
-        // 未使用不会过期
-        if ($this->status != self::STATUS_USED) {
+        // 已使用的卡密不算过期
+        if ($this->status == self::STATUS_USED) {
             return false;
         }
-        
-        // 永久有效
-        if ($this->valid_minutes == 0) {
+
+        // 没有设置可用期限，永久可用
+        if (!$this->available_time) {
             return false;
         }
-        
-        // 计算是否过期
-        $expireTime = strtotime($this->use_time) + ($this->valid_minutes * 60);
-        return time() > $expireTime;
+
+        // 检查是否超过可用期限
+        return strtotime($this->available_time) < time();
     }
 
     /**
-     * 获取过期时间
-     * 
+     * 获取会员到期时间（基于use_time + membership_duration）
+     *
      * @return string|null
      */
     public function getExpireTime(): ?string
     {
-        // 未使用或永久有效
-        if ($this->status != self::STATUS_USED || $this->valid_minutes == 0) {
+        // 未使用或永久会员
+        if ($this->status != self::STATUS_USED || $this->membership_duration == 0) {
             return null;
         }
-        
-        $expireTimestamp = strtotime($this->use_time) + ($this->valid_minutes * 60);
+
+        // 计算会员到期时间
+        $expireTimestamp = strtotime($this->use_time) + ($this->membership_duration * 60);
         return date('Y-m-d H:i:s', $expireTimestamp);
     }
 
     /**
-     * 获取剩余有效时间（秒）
+     * 获取剩余会员时间（秒）
      * 
      * @return int|null
      */
     public function getRemainingTime(): ?int
     {
-        if ($this->status != self::STATUS_USED || $this->valid_minutes == 0) {
+        if ($this->status != self::STATUS_USED || $this->membership_duration == 0) {
             return null;
         }
-        
-        $expireTime = strtotime($this->use_time) + ($this->valid_minutes * 60);
+
+        $expireTime = strtotime($this->use_time) + ($this->membership_duration * 60);
         $remaining = $expireTime - time();
-        
+
         return $remaining > 0 ? $remaining : 0;
     }
 
@@ -242,14 +254,14 @@ class CardKey extends Model
     {
         $page = $params['page'] ?? 1;
         $limit = $params['limit'] ?? 10;
-        
+
         $query = self::withSearch(['type', 'status', 'code', 'create_time'], $params)
             ->with(['user'])
             ->order('create_time', 'desc');
-        
+
         $total = $query->count();
         $list = $query->page($page, $limit)->select();
-        
+
         return [
             'total' => $total,
             'list' => $list,
@@ -267,17 +279,17 @@ class CardKey extends Model
     public static function getDetail(int $id): ?array
     {
         $cardKey = self::with(['user', 'logs.user'])->find($id);
-        
+
         if (!$cardKey) {
             return null;
         }
-        
+
         $data = $cardKey->toArray();
         $data['status_text'] = self::$statusMap[$data['status']] ?? '未知';
         $data['is_expired'] = $cardKey->isExpired();
         $data['expire_time'] = $cardKey->getExpireTime();
         $data['remaining_time'] = $cardKey->getRemainingTime();
-        
+
         return $data;
     }
 
@@ -292,4 +304,3 @@ class CardKey extends Model
         return self::whereIn('id', $ids)->delete();
     }
 }
-
