@@ -14,28 +14,26 @@
   <el-dialog
     v-model="dialogVisible"
     title="卡密详情"
-    width="700px"
+    width="600px"
     :close-on-click-modal="false"
     @close="handleClose"
   >
     <div v-loading="loading" class="detail-container">
       <!-- 基本信息 -->
-      <el-card class="info-card animate__animated animate__fadeIn" shadow="never">
-        <template #header>
-          <div class="card-header">
-            <span>基本信息</span>
-            <el-tag :type="getStatusType(detail.status)">
-              {{ getStatusText(detail.status) }}
-            </el-tag>
-          </div>
-        </template>
+      <div class="info-section">
+        <div class="section-header">
+          <span class="section-title">基本信息</span>
+          <el-tag :type="getStatusType(detail.status)" size="small">
+            {{ getStatusText(detail.status) }}
+          </el-tag>
+        </div>
 
-        <el-descriptions :column="2" border>
+        <el-descriptions :column="2" border size="small">
           <el-descriptions-item label="卡密ID">
             {{ detail.id }}
           </el-descriptions-item>
           <el-descriptions-item label="卡密类型">
-            <el-tag type="primary">{{ detail.type }}</el-tag>
+            <el-tag type="primary" size="small">{{ detail.type }}</el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="卡密码" :span="2">
             <div class="code-display">
@@ -56,8 +54,17 @@
           <el-descriptions-item label="价格">
             {{ detail.price ? `¥${detail.price}` : "无" }}
           </el-descriptions-item>
-          <el-descriptions-item label="有效时长">
+          <el-descriptions-item label="会员时长">
             {{ formatValidMinutes(detail.valid_minutes) }}
+          </el-descriptions-item>
+          <el-descriptions-item label="可用期限" :span="2">
+            <span v-if="!detail.available_time" style="color: #67c23a;">永久可用</span>
+            <span v-else :style="{ color: isAvailableExpired(detail.available_time) ? '#f56c6c' : '#606266' }">
+              {{ detail.available_time }}
+              <el-tag v-if="isAvailableExpired(detail.available_time)" type="danger" size="small" style="margin-left: 10px">
+                已过期
+              </el-tag>
+            </span>
           </el-descriptions-item>
           <el-descriptions-item label="创建时间" :span="2">
             {{ detail.create_time }}
@@ -80,16 +87,14 @@
             {{ detail.remark }}
           </el-descriptions-item>
         </el-descriptions>
-      </el-card>
+      </div>
 
       <!-- 使用记录 -->
-      <el-card class="logs-card animate__animated animate__fadeIn" shadow="never" v-if="logs.length > 0">
-        <template #header>
-          <div class="card-header">
-            <span>使用记录</span>
-            <el-badge :value="logs.length" type="primary" />
-          </div>
-        </template>
+      <div class="logs-section" v-if="logs.length > 0">
+        <div class="section-header">
+          <span class="section-title">使用记录</span>
+          <el-badge :value="logs.length" type="primary" />
+        </div>
 
         <el-timeline>
           <el-timeline-item
@@ -121,7 +126,7 @@
             </el-card>
           </el-timeline-item>
         </el-timeline>
-      </el-card>
+      </div>
 
       <!-- 空状态 -->
       <el-empty
@@ -313,6 +318,14 @@ const getLogType = (action: string): string => {
 };
 
 /**
+ * 判断可用期限是否过期
+ */
+const isAvailableExpired = (availableTime: string): boolean => {
+  if (!availableTime) return false;
+  return new Date(availableTime).getTime() < Date.now();
+};
+
+/**
  * 关闭对话框
  */
 const handleClose = () => {
@@ -335,19 +348,31 @@ watch(
 
 <style scoped lang="scss">
 .detail-container {
-  .info-card,
-  .logs-card {
-    margin-bottom: 20px;
+  .info-section,
+  .logs-section {
+    margin-bottom: 16px;
+    padding: 12px;
+    background: #fafafa;
+    border-radius: 4px;
 
     &:last-child {
       margin-bottom: 0;
     }
   }
 
-  .card-header {
+  .section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e4e7ed;
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: #303133;
+    }
   }
 
   .code-display {
@@ -397,10 +422,17 @@ watch(
 // 暗黑模式适配
 html.dark {
   .detail-container {
-    .info-card,
-    .logs-card {
-      background: var(--el-bg-color);
-      border-color: var(--el-border-color);
+    .info-section,
+    .logs-section {
+      background: var(--el-fill-color-light);
+    }
+
+    .section-header {
+      border-bottom-color: var(--el-border-color);
+
+      .section-title {
+        color: var(--el-text-color-primary);
+      }
     }
   }
 }

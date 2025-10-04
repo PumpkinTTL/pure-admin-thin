@@ -18,15 +18,27 @@ export interface CardKey {
   type: string;
   status: number;
   price?: number;
-  valid_minutes: number;
+  /** 
+   * 兑换后获得的会员时长(分钟)
+   * @example 0 - 永久会员
+   * @example 43200 - 30天会员
+   * @example 10080 - 7天会员
+   */
+  membership_duration: number;
+  /** 
+   * 卡密本身的可兑换截止时间
+   * @example null - 永久可用,任何时候都可以兑换
+   * @example "2025-12-31 23:59:59" - 必须在2025年底前兑换
+   */
+  available_time?: string;
   create_time: string;
   use_time?: string;
   user_id?: number;
   remark?: string;
   status_text?: string;
-  valid_text?: string;
+  duration_text?: string; // 会员时长文本
   is_expired?: boolean;
-  expire_time?: string;
+  expire_time?: string; // 会员到期时间
   remaining_time?: number;
   username?: string;
   nickname?: string;
@@ -39,7 +51,18 @@ export interface GenerateParams {
   type: string;
   count?: number;
   price?: number;
-  valid_minutes: number;
+  /** 
+   * 兑换后获得的会员时长(分钟)
+   * @example 0 - 永久会员
+   * @example 43200 - 30天会员
+   */
+  membership_duration: number;
+  /** 
+   * 卡密本身的可兑换截止时间
+   * @example null - 永久可用
+   * @example "2025-12-31 23:59:59" - 必须在此时间前兑换
+   */
+  available_time?: string;
   remark?: string;
   salt?: string;
 }
@@ -286,14 +309,16 @@ export const CardKeyStatusTypeMap = {
 };
 
 /**
- * 格式化有效时长文本
+ * 格式化会员时长文本
  * 
- * @param minutes 分钟数
+ * @param minutes 会员时长(分钟)
  * @returns 格式化后的文本
+ * @example formatMembershipDuration(0) => "永久"
+ * @example formatMembershipDuration(43200) => "30天"
  */
-export const formatValidMinutes = (minutes: number): string => {
+export const formatMembershipDuration = (minutes: number): string => {
   if (minutes === 0) {
-    return "永久有效";
+    return "永久";
   } else if (minutes < 60) {
     return `${minutes}分钟`;
   } else if (minutes < 1440) {
@@ -303,11 +328,14 @@ export const formatValidMinutes = (minutes: number): string => {
   }
 };
 
+// 保持向后兼容的别名
+export const formatValidMinutes = formatMembershipDuration;
+
 /**
- * 预设有效时长选项
+ * 预设会员时长选项
  */
-export const ValidMinutesOptions = [
-  { label: "永久有效", value: 0 },
+export const MembershipDurationOptions = [
+  { label: "永久会员", value: 0 },
   { label: "1小时", value: 60 },
   { label: "1天", value: 1440 },
   { label: "7天", value: 10080 },
@@ -315,6 +343,9 @@ export const ValidMinutesOptions = [
   { label: "90天", value: 129600 },
   { label: "自定义", value: -1 }
 ];
+
+// 保持向后兼容的别名
+export const ValidMinutesOptions = MembershipDurationOptions;
 
 /**
  * 预设卡密类型选项

@@ -4,7 +4,8 @@
   功能：
   - 选择卡密类型（预设+历史+自定义）
   - 设置生成数量
-  - 设置有效时长（预设选项+自定义）
+  - 设置会员时长（预设选项+自定义）
+  - 设置兑换期限（卡密可用截止时间）
   - 可选价格输入
   - 备注信息
   - 表单验证
@@ -16,7 +17,7 @@
   <el-dialog
     v-model="dialogVisible"
     title="生成卡密"
-    width="600px"
+    width="550px"
     :close-on-click-modal="false"
     @close="handleClose"
   >
@@ -24,7 +25,8 @@
       ref="formRef"
       :model="form"
       :rules="rules"
-      label-width="100px"
+      label-width="80px"
+      size="small"
       class="generate-form"
     >
       <!-- 卡密类型 -->
@@ -67,10 +69,10 @@
         <div class="form-tip">单次最多生成10000个卡密</div>
       </el-form-item>
 
-      <!-- 有效时长 -->
-      <el-form-item label="有效时长" prop="valid_minutes">
-        <el-radio-group v-model="validType" @change="handleValidTypeChange">
-          <el-radio label="0">永久有效</el-radio>
+      <!-- 会员时长 -->
+      <el-form-item label="会员时长" prop="membership_duration">
+        <el-radio-group v-model="durationType" @change="handleDurationTypeChange" class="duration-radio-group">
+          <el-radio label="0">永久</el-radio>
           <el-radio label="60">1小时</el-radio>
           <el-radio label="1440">1天</el-radio>
           <el-radio label="10080">7天</el-radio>
@@ -78,19 +80,17 @@
           <el-radio label="custom">自定义</el-radio>
         </el-radio-group>
         <el-input-number
-          v-if="validType === 'custom'"
-          v-model="form.valid_minutes"
+          v-if="durationType === 'custom'"
+          v-model="form.membership_duration"
           :min="1"
           :max="5256000"
           :step="1"
           placeholder="输入分钟数"
-          style="width: 100%; margin-top: 10px"
+          style="width: 100%; margin-top: 8px"
         >
           <template #append>分钟</template>
         </el-input-number>
-        <div class="form-tip" v-if="validType === 'custom'">
-          提示：100年 = 52,560,000分钟
-        </div>
+        <div class="form-tip">用户兑换后获得的会员时长</div>
       </el-form-item>
 
       <!-- 价格（可选） -->
@@ -107,6 +107,27 @@
           <template #prefix>¥</template>
         </el-input-number>
         <div class="form-tip">可选字段，不填表示无价格</div>
+      </el-form-item>
+
+      <!-- 兑换期限（可选） -->
+      <el-form-item label="兑换期限" prop="available_time">
+        <el-radio-group v-model="availableType" @change="handleAvailableTypeChange" class="available-radio-group">
+          <el-radio label="forever">永久可用</el-radio>
+          <el-radio label="7">7天内</el-radio>
+          <el-radio label="30">30天内</el-radio>
+          <el-radio label="90">90天内</el-radio>
+          <el-radio label="custom">自定义</el-radio>
+        </el-radio-group>
+        <el-date-picker
+          v-if="availableType === 'custom'"
+          v-model="form.available_time"
+          type="datetime"
+          placeholder="选择卡密失效时间"
+          format="YYYY-MM-DD HH:mm:ss"
+          value-format="YYYY-MM-DD HH:mm:ss"
+          style="width: 100%; margin-top: 8px"
+        />
+        <div class="form-tip">卡密本身的可兑换截止时间，超过此时间卡密作废</div>
       </el-form-item>
 
       <!-- 备注 -->
@@ -150,7 +171,7 @@ import {
   batchGenerateCardKey,
   getCardKeyTypes,
   CardKeyTypeOptions,
-  formatValidMinutes,
+  formatMembershipDuration,
   type GenerateParams
 } from "@/api/cardKey";
 import { message } from "@/utils/message";
@@ -182,7 +203,8 @@ const dialogVisible = computed({
 
 const formRef = ref<FormInstance>();
 const loading = ref(false);
-const validType = ref("0"); // 有效时长类型
+const durationType = ref("0"); // 会员时长类型
+const availableType = ref("forever"); // 兑换期限类型
 const presetTypes = ref(CardKeyTypeOptions); // 预设类型
 const historyTypes = ref<string[]>([]); // 历史类型
 
@@ -191,7 +213,8 @@ const form = reactive<GenerateParams>({
   type: "",
   count: 100,
   price: undefined,
-  valid_minutes: 0,
+  membership_duration: 0,
+  available_time: undefined,
   remark: ""
 });
 
@@ -204,8 +227,8 @@ const rules = reactive<FormRules>({
     { required: true, message: "请输入生成数量", trigger: "blur" },
     { type: "number", min: 1, max: 10000, message: "数量必须在1-10000之间", trigger: "blur" }
   ],
-  valid_minutes: [
-    { required: true, message: "请选择有效时长", trigger: "change" }
+  membership_duration: [
+    { required: true, message: "请选择会员时长", trigger: "change" }
   ]
 });
 
@@ -213,20 +236,41 @@ const rules = reactive<FormRules>({
 const previewText = computed(() => {
   const type = form.type || "未选择";
   const count = form.count || 0;
-  const validText = formatValidMinutes(form.valid_minutes);
-  const priceText = form.price ? `，单价¥${form.price}` : "";
+  const durationText = formatMembershipDuration(form.membership_duration);
+  const priceText = form.price ? `，单价￥${form.price}` : "";
+  const availableText = form.available_time 
+    ? `，必须在${form.available_time}前兑换` 
+    : "，永久可用";
   
-  return `将生成 ${count} 个【${type}】卡密，有效期：${validText}${priceText}`;
+  return `将生成 ${count} 个【${type}】卡密，赠送${durationText}会员${priceText}${availableText}`;
 });
 
 /**
- * 有效时长类型变化
+ * 会员时长类型变化
  */
-const handleValidTypeChange = (value: string) => {
+const handleDurationTypeChange = (value: string) => {
   if (value === "custom") {
-    form.valid_minutes = 60; // 默认1小时
+    form.membership_duration = 60; // 默认1小时
   } else {
-    form.valid_minutes = parseInt(value);
+    form.membership_duration = parseInt(value);
+  }
+};
+
+/**
+ * 兑换期限类型变化
+ */
+const handleAvailableTypeChange = (value: string) => {
+  if (value === "forever") {
+    form.available_time = undefined;
+  } else if (value === "custom") {
+    // 自定义，由用户选择日期
+    form.available_time = undefined;
+  } else {
+    // 计算截止时间
+    const days = parseInt(value);
+    const deadline = new Date();
+    deadline.setDate(deadline.getDate() + days);
+    form.available_time = deadline.toISOString().slice(0, 19).replace('T', ' ');
   }
 };
 
@@ -280,11 +324,13 @@ const handleSubmit = async () => {
  */
 const handleClose = () => {
   formRef.value?.resetFields();
-  validType.value = "0";
+  durationType.value = "0";
+  availableType.value = "forever";
   form.type = "";
   form.count = 100;
   form.price = undefined;
-  form.valid_minutes = 0;
+  form.membership_duration = 0;
+  form.available_time = undefined;
   form.remark = "";
   dialogVisible.value = false;
 };
@@ -308,15 +354,17 @@ onMounted(() => {
 <style scoped lang="scss">
 .generate-form {
   .form-tip {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--el-text-color-secondary);
-    margin-top: 5px;
+    margin-top: 4px;
   }
 
-  :deep(.el-radio-group) {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+  .duration-radio-group,
+  .available-radio-group {
+    :deep(.el-radio) {
+      margin-right: 12px;
+      margin-bottom: 0;
+    }
   }
 
   :deep(.el-input-number) {

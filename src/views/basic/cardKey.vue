@@ -1,41 +1,45 @@
 <template>
   <div class="card-key-container">
-    <!-- 顶部统计栏 -->
-    <div class="stats-bar animate__animated animate__fadeInDown">
-      <div class="stat-item">
-        <span class="stat-label">总数</span>
-        <span class="stat-value">{{ pagination.total }}</span>
+    <!-- 主容器：统计+搜索+表格 -->
+    <el-card class="main-card animate__animated animate__fadeIn" shadow="never">
+      <!-- 顶部统计栏 -->
+      <div class="stats-bar">
+        <div class="stat-item">
+          <span class="stat-label">总数</span>
+          <span class="stat-value">{{ pagination.total }}</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-label">未使用</span>
+          <span class="stat-value stat-unused">{{ statsData.unused }}</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-label">已使用</span>
+          <span class="stat-value stat-used">{{ statsData.used }}</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-label">已禁用</span>
+          <span class="stat-value stat-disabled">{{ statsData.disabled }}</span>
+        </div>
       </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <span class="stat-label">未使用</span>
-        <span class="stat-value stat-unused">{{ statsData.unused }}</span>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <span class="stat-label">已使用</span>
-        <span class="stat-value stat-used">{{ statsData.used }}</span>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <span class="stat-label">已禁用</span>
-        <span class="stat-value stat-disabled">{{ statsData.disabled }}</span>
-      </div>
-    </div>
 
-    <!-- 搜索和操作栏合并 -->
-    <el-card class="search-toolbar-card animate__animated animate__fadeInUp" shadow="never">
-      <el-row :gutter="12" align="middle">
+      <!-- 分隔线 -->
+      <el-divider style="margin: 12px 0" />
+
+      <!-- 搜索和操作栏 -->
+      <el-row :gutter="8" align="middle">
         <!-- 类型筛选 -->
         <el-col :xs="24" :sm="8" :md="5" :lg="4">
-          <el-select v-model="searchForm.type" placeholder="类型" clearable filterable size="default" @change="handleSearch">
+          <el-select v-model="searchForm.type" placeholder="类型" clearable filterable size="small" @change="handleSearch">
             <el-option v-for="type in typeOptions" :key="type" :label="type" :value="type" />
           </el-select>
         </el-col>
 
         <!-- 状态筛选 -->
         <el-col :xs="24" :sm="8" :md="5" :lg="4">
-          <el-select v-model="searchForm.status" placeholder="状态" clearable size="default" @change="handleSearch">
+          <el-select v-model="searchForm.status" placeholder="状态" clearable size="small" @change="handleSearch">
             <el-option label="未使用" :value="0" />
             <el-option label="已使用" :value="1" />
             <el-option label="已禁用" :value="2" />
@@ -44,7 +48,7 @@
 
         <!-- 关键词搜索 -->
         <el-col :xs="24" :sm="8" :md="6" :lg="5">
-          <el-input v-model="searchForm.code" placeholder="搜索卡密" clearable size="default" @keyup.enter="handleSearch">
+          <el-input v-model="searchForm.code" placeholder="搜索卡密" clearable size="small" @keyup.enter="handleSearch">
             <template #prefix>
               <IconifyIconOnline icon="ep:search" />
             </template>
@@ -53,14 +57,14 @@
 
         <!-- 搜索按钮 -->
         <el-col :xs="12" :sm="6" :md="4" :lg="3">
-          <el-button type="primary" size="default" @click="handleSearch">
+          <el-button type="primary" size="small" @click="handleSearch">
             <IconifyIconOnline icon="ep:search" />
             搜索
           </el-button>
         </el-col>
 
         <el-col :xs="12" :sm="6" :md="4" :lg="2">
-          <el-button size="default" @click="handleReset">
+          <el-button size="small" @click="handleReset">
             <IconifyIconOnline icon="ep:refresh" />
             重置
           </el-button>
@@ -68,40 +72,47 @@
 
         <!-- 右侧操作按钮 -->
         <el-col :xs="24" :sm="24" :md="24" :lg="6" class="action-buttons">
-          <el-button type="primary" size="default" @click="handleGenerate">
+          <el-button type="primary" size="small" @click="handleGenerate">
             <IconifyIconOnline icon="ep:plus" />
             生成
           </el-button>
-          <el-button type="danger" size="default" :disabled="selectedIds.length === 0" @click="handleBatchDelete">
+          <el-button type="danger" size="small" :disabled="selectedIds.length === 0" @click="handleBatchDelete">
             <IconifyIconOnline icon="ep:delete" />
             删除
           </el-button>
-          <el-button type="success" size="default" @click="handleExport">
+          <el-button type="success" size="small" @click="handleExport">
             <IconifyIconOnline icon="ep:download" />
             导出
           </el-button>
         </el-col>
       </el-row>
-    </el-card>
 
-    <!-- 数据表格 -->
-    <el-card class="table-card animate__animated animate__fadeIn" shadow="never">
+      <!-- 分隔线 -->
+      <el-divider style="margin: 12px 0" />
+
+      <!-- 数据表格 -->
       <el-table :data="tableData" v-loading="loading" size="small" style="width: 100%"
-        @selection-change="handleSelectionChange" stripe border>
+        @selection-change="handleSelectionChange" stripe>
         <el-table-column type="selection" width="40" align="center" />
         <el-table-column prop="id" label="ID" width="50" align="center" />
 
         <!-- 卡密码列 -->
         <el-table-column prop="code" label="卡密码" min-width="140" align="center">
           <template #default="{ row }">
-            <span style="font-family: 'Courier New', monospace;">
+            <el-tag size="small" effect="plain" style="font-family: 'Courier New', monospace;">
               {{ row.code }}
-            </span>
+            </el-tag>
           </template>
         </el-table-column>
 
         <!-- 类型列 -->
-        <el-table-column prop="type" label="类型" width="100" align="center" />
+        <el-table-column prop="type" label="类型" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag type="info" size="small" effect="plain">
+              {{ row.type }}
+            </el-tag>
+          </template>
+        </el-table-column>
 
         <!-- 状态列 -->
         <el-table-column prop="status" label="状态" width="70" align="center">
@@ -120,11 +131,25 @@
           </template>
         </el-table-column>
 
-        <!-- 有效时长列 -->
-        <el-table-column prop="valid_minutes" label="有效期" width="80" align="center">
+        <!-- 会员时长列 -->
+        <el-table-column prop="membership_duration" label="赠送时长" width="90" align="center">
           <template #default="{ row }">
-            <span v-if="row.valid_minutes === 0" style="color: #67c23a;">永久</span>
-            <span v-else>{{ formatValidMinutes(row.valid_minutes) }}</span>
+            <el-tag v-if="row.membership_duration === 0" type="success" size="small" effect="plain">
+              永久
+            </el-tag>
+            <span v-else>{{ formatMembershipDuration(row.membership_duration) }}</span>
+          </template>
+        </el-table-column>
+
+        <!-- 兑换期限列 -->
+        <el-table-column prop="available_time" label="兑换期限" width="140" align="center">
+          <template #default="{ row }">
+            <el-tag v-if="!row.available_time" type="success" size="small" effect="plain">
+              永久可用
+            </el-tag>
+            <span v-else :style="{ color: isAvailableExpired(row.available_time) ? '#f56c6c' : '#606266' }">
+              {{ formatDateTime(row.available_time) }}
+            </span>
           </template>
         </el-table-column>
 
@@ -189,7 +214,7 @@ import {
   CardKeyStatus,
   CardKeyStatusMap,
   CardKeyStatusTypeMap,
-  formatValidMinutes,
+  formatMembershipDuration,
   type CardKey,
   type CardKeyListParams
 } from "@/api/cardKey";
@@ -447,6 +472,22 @@ const getStatusType = (status: number): string => {
   return CardKeyStatusTypeMap[status] || "info";
 };
 
+/**
+ * 判断兑换期限是否过期
+ */
+const isAvailableExpired = (availableTime: string): boolean => {
+  if (!availableTime) return false;
+  return new Date(availableTime).getTime() < Date.now();
+};
+
+/**
+ * 格式化日期时间
+ */
+const formatDateTime = (datetime: string): string => {
+  if (!datetime) return "-";
+  return datetime.replace(" ", " ");
+};
+
 // 组件挂载时获取数据
 onMounted(() => {
   fetchList();
@@ -458,16 +499,18 @@ onMounted(() => {
 .card-key-container {
   padding: 12px;
 
+  // 主容器
+  .main-card {
+    :deep(.el-card__body) {
+      padding: 12px;
+    }
+  }
+
   // 统计栏 - 扁平化设计
   .stats-bar {
     display: flex;
     align-items: center;
     justify-content: space-around;
-    background: #fff;
-    border: 1px solid #dcdfe6;
-    border-radius: 4px;
-    padding: 12px 16px;
-    margin-bottom: 12px;
 
     .stat-item {
       display: flex;
@@ -506,44 +549,29 @@ onMounted(() => {
     }
   }
 
-  // 搜索和工具栏卡片
-  .search-toolbar-card {
-    margin-bottom: 12px;
+  // 输入框宽度
+  .el-select,
+  .el-input {
+    width: 100%;
+  }
 
-    :deep(.el-card__body) {
-      padding: 12px;
-    }
+  // 操作按钮区域
+  .action-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
 
-    .el-select,
-    .el-input {
-      width: 100%;
-    }
-
-    .action-buttons {
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-
-      @media (max-width: 1200px) {
-        justify-content: flex-start;
-        margin-top: 8px;
-      }
+    @media (max-width: 1200px) {
+      justify-content: flex-start;
+      margin-top: 8px;
     }
   }
 
-  // 表格卡片
-  .table-card {
-    margin-bottom: 12px;
-
-    :deep(.el-card__body) {
-      padding: 12px;
-    }
-
-    .pagination-wrapper {
-      display: flex;
-      justify-content: flex-end;
-      margin-top: 12px;
-    }
+  // 分页区域
+  .pagination-wrapper {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
   }
 
   // 响应式适配
@@ -591,19 +619,13 @@ onMounted(() => {
 
   // 暗黑模式适配
   html.dark & {
-    .stats-bar {
+    .main-card {
       background: var(--el-bg-color);
       border-color: var(--el-border-color);
-
-      .stat-value {
-        color: var(--el-text-color-primary);
-      }
     }
 
-    .search-toolbar-card,
-    .table-card {
-      background: var(--el-bg-color);
-      border-color: var(--el-border-color);
+    .stat-value {
+      color: var(--el-text-color-primary);
     }
   }
 }
