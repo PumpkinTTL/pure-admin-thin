@@ -1,32 +1,58 @@
 <template>
   <div class="card-key-container">
-    <!-- 主容器：统计+搜索+表格 -->
-    <el-card class="main-card animate__animated animate__fadeIn" shadow="never">
-      <!-- 顶部统计栏 -->
-      <div class="stats-bar">
-        <div class="stat-item">
-          <span class="stat-label">总数</span>
-          <span class="stat-value">{{ pagination.total }}</span>
+    <!-- 顶部统计卡片 -->
+    <div class="stats-container">
+      <el-card class="stat-card stat-total" shadow="hover">
+        <div class="stat-content">
+          <div class="stat-icon">
+            <IconifyIconOnline icon="ep:data-line" width="32" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-label">总数</div>
+            <div class="stat-value">{{ pagination.total }}</div>
+          </div>
         </div>
-        <div class="stat-divider"></div>
-        <div class="stat-item">
-          <span class="stat-label">未使用</span>
-          <span class="stat-value stat-unused">{{ statsData.unused }}</span>
-        </div>
-        <div class="stat-divider"></div>
-        <div class="stat-item">
-          <span class="stat-label">已使用</span>
-          <span class="stat-value stat-used">{{ statsData.used }}</span>
-        </div>
-        <div class="stat-divider"></div>
-        <div class="stat-item">
-          <span class="stat-label">已禁用</span>
-          <span class="stat-value stat-disabled">{{ statsData.disabled }}</span>
-        </div>
-      </div>
+      </el-card>
 
-      <!-- 分隔线 -->
-      <el-divider style="margin: 12px 0" />
+      <el-card class="stat-card stat-unused" shadow="hover">
+        <div class="stat-content">
+          <div class="stat-icon">
+            <IconifyIconOnline icon="ep:tickets" width="32" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-label">未使用</div>
+            <div class="stat-value">{{ statsData.unused }}</div>
+          </div>
+        </div>
+      </el-card>
+
+      <el-card class="stat-card stat-used" shadow="hover">
+        <div class="stat-content">
+          <div class="stat-icon">
+            <IconifyIconOnline icon="ep:circle-check" width="32" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-label">已使用</div>
+            <div class="stat-value">{{ statsData.used }}</div>
+          </div>
+        </div>
+      </el-card>
+
+      <el-card class="stat-card stat-disabled" shadow="hover">
+        <div class="stat-content">
+          <div class="stat-icon">
+            <IconifyIconOnline icon="ep:circle-close" width="32" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-label">已禁用</div>
+            <div class="stat-value">{{ statsData.disabled }}</div>
+          </div>
+        </div>
+      </el-card>
+    </div>
+
+    <!-- 主内容卡片 -->
+    <el-card class="main-card" shadow="never">
 
       <!-- 搜索和操作栏 -->
       <el-row :gutter="8" align="middle">
@@ -87,90 +113,109 @@
         </el-col>
       </el-row>
 
-      <!-- 分隔线 -->
-      <el-divider style="margin: 12px 0" />
-
       <!-- 数据表格 -->
-      <el-table :data="tableData" v-loading="loading" size="small" style="width: 100%"
-        @selection-change="handleSelectionChange" stripe>
-        <el-table-column type="selection" width="40" align="center" />
-        <el-table-column prop="id" label="ID" width="50" align="center" />
+      <!-- 数据表格 -->
+      <el-table 
+        :data="tableData" 
+        v-loading="loading" 
+        style="width: 100%; margin-top: 16px"
+        @selection-change="handleSelectionChange" 
+        :header-cell-style="{ background: '#f5f7fa', color: '#606266' }"
+        stripe>
+        <el-table-column type="selection" width="45" align="center" fixed />
+        <el-table-column prop="id" label="ID" width="60" align="center" />
 
         <!-- 卡密码列 -->
-        <el-table-column prop="code" label="卡密码" min-width="140" align="center">
+        <el-table-column prop="code" label="卡密码" min-width="160" align="center">
           <template #default="{ row }">
-            <el-tag size="small" effect="plain" style="font-family: 'Courier New', monospace;">
-              {{ row.code }}
-            </el-tag>
+            <div class="code-cell">
+              <span class="code-text">{{ row.code }}</span>
+              <el-icon class="copy-icon" @click="handleCopyCode(row.code)">
+                <IconifyIconOnline icon="ep:document-copy" />
+              </el-icon>
+            </div>
           </template>
         </el-table-column>
 
         <!-- 类型列 -->
-        <el-table-column prop="type" label="类型" width="100" align="center">
+        <el-table-column prop="type" label="类型" width="110" align="center">
           <template #default="{ row }">
-            <el-tag type="info" size="small" effect="plain">
+            <el-tag type="" size="small" effect="light">
               {{ row.type }}
             </el-tag>
           </template>
         </el-table-column>
 
         <!-- 状态列 -->
-        <el-table-column prop="status" label="状态" width="70" align="center">
+        <el-table-column prop="status" label="状态" width="85" align="center">
           <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)" size="small">
+            <el-tag :type="getStatusType(row.status)" size="small" effect="light">
               {{ getStatusText(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
 
         <!-- 价格列 -->
-        <el-table-column prop="price" label="价格" width="70" align="center">
+        <el-table-column prop="price" label="价格" width="85" align="center">
           <template #default="{ row }">
-            <span v-if="row.price">¥{{ row.price }}</span>
-            <span v-else style="color: #909399;">-</span>
+            <span v-if="row.price" class="price-text">¥{{ row.price }}</span>
+            <span v-else class="empty-text">-</span>
           </template>
         </el-table-column>
 
         <!-- 会员时长列 -->
-        <el-table-column prop="membership_duration" label="赠送时长" width="90" align="center">
+        <el-table-column prop="membership_duration" label="赠送时长" width="100" align="center">
           <template #default="{ row }">
-            <el-tag v-if="row.membership_duration === 0" type="success" size="small" effect="plain">
+            <el-tag v-if="row.membership_duration === 0" type="success" size="small" effect="light">
+              <IconifyIconOnline icon="ep:trophy" style="margin-right: 4px" />
               永久
             </el-tag>
-            <span v-else>{{ formatMembershipDuration(row.membership_duration) }}</span>
+            <span v-else class="duration-text">{{ formatMembershipDuration(row.membership_duration) }}</span>
           </template>
         </el-table-column>
 
         <!-- 兑换期限列 -->
-        <el-table-column prop="available_time" label="兑换期限" width="140" align="center">
+        <el-table-column prop="available_time" label="兑换期限" width="155" align="center">
           <template #default="{ row }">
-            <el-tag v-if="!row.available_time" type="success" size="small" effect="plain">
+            <el-tag v-if="!row.available_time" type="success" size="small" effect="light">
+              <IconifyIconOnline icon="ep:timer" style="margin-right: 4px" />
               永久可用
             </el-tag>
-            <span v-else :style="{ color: isAvailableExpired(row.available_time) ? '#f56c6c' : '#606266' }">
-              {{ formatDateTime(row.available_time) }}
-            </span>
+            <div v-else class="time-cell">
+              <el-icon v-if="isAvailableExpired(row.available_time)" style="color: #f56c6c; margin-right: 4px">
+                <IconifyIconOnline icon="ep:warning" />
+              </el-icon>
+              <span :class="isAvailableExpired(row.available_time) ? 'expired-text' : 'time-text'">
+                {{ formatDateTime(row.available_time) }}
+              </span>
+            </div>
           </template>
         </el-table-column>
 
         <!-- 创建时间列 -->
-        <el-table-column prop="create_time" label="创建时间" width="140" align="center" />
+        <el-table-column prop="create_time" label="创建时间" width="155" align="center">
+          <template #default="{ row }">
+            <span class="time-text">{{ row.create_time }}</span>
+          </template>
+        </el-table-column>
 
         <!-- 使用时间列 -->
-        <el-table-column prop="use_time" label="使用时间" width="140" align="center">
+        <el-table-column prop="use_time" label="使用时间" width="155" align="center">
           <template #default="{ row }">
-            <span v-if="row.use_time">{{ row.use_time }}</span>
-            <span v-else style="color: #c0c4cc;">-</span>
+            <span v-if="row.use_time" class="time-text">{{ row.use_time }}</span>
+            <span v-else class="empty-text">-</span>
           </template>
         </el-table-column>
 
         <!-- 操作列 -->
-        <el-table-column label="操作" fixed="right" width="120" align="center">
+        <el-table-column label="操作" fixed="right" width="140" align="center">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="handleDetail(row)">
+              <IconifyIconOnline icon="ep:view" />
               详情
             </el-button>
             <el-button link type="danger" size="small" @click="handleDelete(row)" :disabled="row.status === 1">
+              <IconifyIconOnline icon="ep:delete" />
               删除
             </el-button>
           </template>
@@ -488,6 +533,27 @@ const formatDateTime = (datetime: string): string => {
   return datetime.replace(" ", " ");
 };
 
+/**
+ * 复制卡密码
+ */
+const handleCopyCode = async (code: string) => {
+  try {
+    await navigator.clipboard.writeText(code);
+    message("复制成功", { type: "success" });
+  } catch (error) {
+    // 降级处理：使用传统方法
+    const textarea = document.createElement("textarea");
+    textarea.value = code;
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    document.body.removeChild(textarea);
+    message("复制成功", { type: "success" });
+  }
+};
+
 // 组件挂载时获取数据
 onMounted(() => {
   fetchList();
@@ -497,56 +563,188 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .card-key-container {
-  padding: 12px;
+  padding: 16px;
 
-  // 主容器
-  .main-card {
-    :deep(.el-card__body) {
-      padding: 12px;
+  // 统计卡片容器
+  .stats-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+
+    .stat-card {
+      border-radius: 12px;
+      transition: all 0.3s ease;
+      cursor: pointer;
+
+      &:hover {
+        transform: translateY(-4px);
+      }
+
+      :deep(.el-card__body) {
+        padding: 20px;
+      }
+
+      .stat-content {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+
+        .stat-icon {
+          width: 56px;
+          height: 56px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 12px;
+          font-size: 28px;
+          transition: all 0.3s ease;
+        }
+
+        .stat-info {
+          flex: 1;
+
+          .stat-label {
+            font-size: 13px;
+            color: #909399;
+            margin-bottom: 8px;
+          }
+
+          .stat-value {
+            font-size: 28px;
+            font-weight: 600;
+            line-height: 1;
+          }
+        }
+      }
+
+      // 总数卡片
+      &.stat-total {
+        .stat-icon {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: #fff;
+        }
+
+        .stat-value {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+      }
+
+      // 未使用卡片
+      &.stat-unused {
+        .stat-icon {
+          background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+          color: #fff;
+        }
+
+        .stat-value {
+          background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+      }
+
+      // 已使用卡片
+      &.stat-used {
+        .stat-icon {
+          background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+          color: #fff;
+        }
+
+        .stat-value {
+          background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+      }
+
+      // 已禁用卡片
+      &.stat-disabled {
+        .stat-icon {
+          background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+          color: #fff;
+        }
+
+        .stat-value {
+          background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+      }
     }
   }
 
-  // 统计栏 - 扁平化设计
-  .stats-bar {
+  // 主容器
+  .main-card {
+    border-radius: 12px;
+
+    :deep(.el-card__body) {
+      padding: 20px;
+    }
+  }
+
+  // 表格样式增强
+  .code-cell {
     display: flex;
     align-items: center;
-    justify-content: space-around;
+    justify-content: center;
+    gap: 8px;
 
-    .stat-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2px;
-
-      .stat-label {
-        font-size: 11px;
-        color: #909399;
-      }
-
-      .stat-value {
-        font-size: 18px;
-        font-weight: 500;
-        color: #303133;
-
-        &.stat-unused {
-          color: #67c23a;
-        }
-
-        &.stat-used {
-          color: #409eff;
-        }
-
-        &.stat-disabled {
-          color: #f56c6c;
-        }
-      }
+    .code-text {
+      font-family: "Courier New", monospace;
+      font-size: 13px;
+      font-weight: 500;
+      color: #606266;
+      letter-spacing: 0.5px;
     }
 
-    .stat-divider {
-      width: 1px;
-      height: 28px;
-      background: #dcdfe6;
+    .copy-icon {
+      cursor: pointer;
+      color: #909399;
+      transition: all 0.3s ease;
+
+      &:hover {
+        color: #409eff;
+        transform: scale(1.2);
+      }
     }
+  }
+
+  .time-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .price-text {
+    color: #f56c6c;
+    font-weight: 500;
+  }
+
+  .duration-text {
+    color: #606266;
+    font-size: 13px;
+  }
+
+  .time-text {
+    color: #606266;
+    font-size: 12px;
+  }
+
+  .expired-text {
+    color: #f56c6c;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .empty-text {
+    color: #c0c4cc;
   }
 
   // 输入框宽度
@@ -576,35 +774,35 @@ onMounted(() => {
 
   // 响应式适配
   @media (max-width: 768px) {
-    padding: 10px;
+    padding: 12px;
 
-    .stats-bar {
-      flex-wrap: wrap;
+    .stats-container {
+      grid-template-columns: repeat(2, 1fr);
       gap: 12px;
-      padding: 12px;
 
-      .stat-item {
-        flex: 1;
-        min-width: 80px;
+      .stat-card {
+        .stat-content {
+          .stat-icon {
+            width: 48px;
+            height: 48px;
+          }
 
-        .stat-value {
-          font-size: 18px;
+          .stat-info {
+            .stat-value {
+              font-size: 24px;
+            }
+
+            .stat-label {
+              font-size: 12px;
+            }
+          }
         }
-
-        .stat-label {
-          font-size: 11px;
-        }
-      }
-
-      .stat-divider {
-        display: none;
       }
     }
 
-    .search-toolbar-card {
+    .action-buttons {
       .el-button {
-        width: 100%;
-        margin-bottom: 8px;
+        flex: 1;
       }
     }
 
@@ -619,12 +817,29 @@ onMounted(() => {
 
   // 暗黑模式适配
   html.dark & {
+    .stats-container {
+      .stat-card {
+        background: var(--el-bg-color);
+        border-color: var(--el-border-color);
+
+        .stat-content {
+          .stat-info {
+            .stat-label {
+              color: var(--el-text-color-secondary);
+            }
+          }
+        }
+      }
+    }
+
     .main-card {
       background: var(--el-bg-color);
       border-color: var(--el-border-color);
     }
 
-    .stat-value {
+    .code-text,
+    .time-text,
+    .duration-text {
       color: var(--el-text-color-primary);
     }
   }
