@@ -34,12 +34,12 @@
             {{ detail.id }}
           </el-descriptions-item>
           <el-descriptions-item label="卡密类型">
-            <el-tag type="primary" size="small">{{ detail.type }}</el-tag>
+            <el-tag type="primary" size="small">{{ detail.cardType?.type_name || detail.type || '-' }}</el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="卡密码" :span="2">
             <div class="code-display">
               <el-text class="code-text" size="large" tag="b">
-                {{ detail.code }}
+                {{ detail.card_key || detail.code }}
               </el-text>
               <el-button
                 link
@@ -59,10 +59,10 @@
             {{ formatValidMinutes(detail.membership_duration || detail.valid_minutes) }}
           </el-descriptions-item>
           <el-descriptions-item label="可用期限" :span="2">
-            <span v-if="!detail.available_time" style="color: #67c23a;">永久可用</span>
-            <span v-else :style="{ color: isAvailableExpired(detail.available_time) ? '#f56c6c' : '#606266' }">
-              {{ detail.available_time }}
-              <el-tag v-if="isAvailableExpired(detail.available_time)" type="danger" size="small" style="margin-left: 10px">
+            <span v-if="!detail.expire_time" style="color: #67c23a;">永久可用</span>
+            <span v-else :style="{ color: isAvailableExpired(detail.expire_time) ? '#f56c6c' : '#606266' }">
+              {{ detail.expire_time }}
+              <el-tag v-if="isAvailableExpired(detail.expire_time)" type="danger" size="small" style="margin-left: 10px">
                 已过期
               </el-tag>
             </span>
@@ -252,7 +252,7 @@ const handleCopyCode = async () => {
   }
 
   try {
-    await copy(detail.value.code);
+    await copy(detail.value.card_key || detail.value.code);
     message("复制成功", { type: "success" });
   } catch (error) {
     message("复制失败", { type: "error" });

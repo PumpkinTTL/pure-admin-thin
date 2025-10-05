@@ -46,10 +46,10 @@ class CardKey extends BaseController
         $data = $request->post();
         
         // 参数验证
-        if (empty($data['type'])) {
+        if (empty($data['type_id'])) {
             return json([
                 'code' => 400,
-                'message' => '卡密类型不能为空'
+                'message' => '卡密类型ID不能为空'
             ]);
         }
         
@@ -77,10 +77,10 @@ class CardKey extends BaseController
         $data = $request->post();
         
         // 参数验证
-        if (empty($data['type'])) {
+        if (empty($data['type_id'])) {
             return json([
                 'code' => 400,
-                'message' => '卡密类型不能为空'
+                'message' => '卡密类型ID不能为空'
             ]);
         }
         
@@ -207,9 +207,9 @@ class CardKey extends BaseController
     public function verify(Request $request): Json
     {
         // 获取卡密码
-        $code = $request->post('code', '');
+        $cardKey = $request->post('card_key', '');
         
-        if (empty($code)) {
+        if (empty($cardKey)) {
             return json([
                 'code' => 400,
                 'message' => '卡密码不能为空'
@@ -217,7 +217,7 @@ class CardKey extends BaseController
         }
         
         // 调用服务验证
-        $result = $this->service->verify($code);
+        $result = $this->service->verify($cardKey);
         
         return json([
             'code' => $result['valid'] ? 200 : 400,
@@ -238,10 +238,10 @@ class CardKey extends BaseController
     public function use(Request $request): Json
     {
         // 获取参数
-        $code = $request->post('code', '');
+        $cardKey = $request->post('card_key', '');
         $userId = $request->post('user_id', 0);
         
-        if (empty($code)) {
+        if (empty($cardKey)) {
             return json([
                 'code' => 400,
                 'message' => '卡密码不能为空'
@@ -263,7 +263,7 @@ class CardKey extends BaseController
         ];
         
         // 调用服务使用卡密
-        $result = $this->service->use($code, $userId, $extra);
+        $result = $this->service->use($cardKey, $userId, $extra);
         
         return json([
             'code' => $result['success'] ? 200 : 400,

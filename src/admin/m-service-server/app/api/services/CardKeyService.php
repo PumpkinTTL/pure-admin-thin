@@ -12,6 +12,7 @@
 namespace app\api\services;
 
 use app\api\model\CardKey;
+use app\api\model\CardType;
 use app\api\model\CardKeyLog;
 use utils\CardKeyUtil;
 
@@ -25,10 +26,26 @@ class CardKeyService
      */
     public function generate(array $data): array
     {
+        // 验证type_id
+        if (empty($data['type_id'])) {
+            return [
+                'success' => false,
+                'message' => '卡密类型ID不能为空'
+            ];
+        }
+
+        // 查询类型信息
+        $cardType = CardType::find($data['type_id']);
+        if (!$cardType) {
+            return [
+                'success' => false,
+                'message' => '卡密类型不存在'
+            ];
+        }
+
         // 调用工具类批量生成（数量为1）
-        return CardKeyUtil::batchGenerate(1, $data['type'], [
-            'price' => $data['price'] ?? null,
-            'membership_duration' => $data['membership_duration'] ?? 0,  // 兑换后获得的会员时长
+        return CardKeyUtil::batchGenerate(1, $data['type_id'], [
+            'expire_time' => $data['expire_time'] ?? null,  // 单独设置的过期时间
             'remark' => $data['remark'] ?? '',
             'salt' => $data['salt'] ?? ''
         ]);
@@ -43,7 +60,7 @@ class CardKeyService
     public function batchGenerate(array $data): array
     {
         $count = $data['count'] ?? 1;
-        $type = $data['type'] ?? '';
+        $typeId = $data['type_id'] ?? null;
 
         if ($count <= 0 || $count > 10000) {
             return [
@@ -52,17 +69,25 @@ class CardKeyService
             ];
         }
 
-        if (empty($type)) {
+        if (empty($typeId)) {
             return [
                 'success' => false,
-                'message' => '卡密类型不能为空'
+                'message' => '卡密类型ID不能为空'
+            ];
+        }
+
+        // 查询类型信息
+        $cardType = CardType::find($typeId);
+        if (!$cardType) {
+            return [
+                'success' => false,
+                'message' => '卡密类型不存在'
             ];
         }
 
         // 调用工具类批量生成
-        return CardKeyUtil::batchGenerate($count, $type, [
-            'price' => $data['price'] ?? null,
-            'membership_duration' => $data['membership_duration'] ?? 0,  // 兑换后获得的会员时长
+        return CardKeyUtil::batchGenerate($count, $typeId, [
+            'expire_time' => $data['expire_time'] ?? null,  // 单独设置的过期时间
             'remark' => $data['remark'] ?? '',
             'salt' => $data['salt'] ?? ''
         ]);
@@ -202,10 +227,10 @@ class CardKeyService
      * @param string $code 卡密码
      * @return array
      */
-    public function verify(string $code): array
+    public function verify(string $cardKey): array
     {
         // 调用工具类验证
-        return CardKeyUtil::verifyCode($code);
+        return CardKeyUtil::verify($cardKey);
     }
 
     /**
@@ -216,10 +241,45 @@ class CardKeyService
      * @param array $extra 额外信息
      * @return array
      */
-    public function use(string $code, int $userId, array $extra = []): array
+    public function use(string $cardKey, int $userId, array $extra = []): array
     {
-        // 调用工具类使用卡密
-        return CardKeyUtil::useCode($code, $userId, $extra);
+        try {
+            // 验证卡密
+            $verifyResult = CardKeyUtil::verify($cardKey);
+            if (!$verifyResult['success']) {
+                return $verifyResult;
+            }
+
+            $cardKeyModel = $verifyResult['data'];
+            
+            // 更新为已使用状态
+            $cardKeyModel->status = CardKey::STATUS_USED;
+            $cardKeyModel->user_id = $userId;
+            $cardKeyModel->use_time = date('Y-m-d H:i:s');
+            $cardKeyModel->save();
+            
+            // 记录使用日志
+            CardKeyLog::create([
+                'card_key_id' => $cardKeyModel->id,
+                'user_id' => $userId,
+                'action' => 'use',
+                'ip' => $extra['ip'] ?? '',
+                'user_agent' => $extra['user_agent'] ?? '',
+                'remark' => $extra['remark'] ?? '',
+                'create_time' => date('Y-m-d H:i:s')
+            ]);
+            
+            return [
+                'success' => true,
+                'message' => '使用成功',
+                'data' => $cardKeyModel
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => '使用失败：' . $e->getMessage()
+            ];
+        }
     }
 
     /**
@@ -243,7 +303,7 @@ class CardKeyService
             }
 
             // 调用工具类禁用
-            return CardKeyUtil::disableCode($cardKey->code, $userId, $reason);
+            return CardKeyUtil::disableCode($cardKey->card_key, $userId, $reason);
         } catch (\Exception $e) {
             return [
                 'success' => false,

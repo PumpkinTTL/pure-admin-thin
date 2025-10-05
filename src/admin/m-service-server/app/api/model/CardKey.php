@@ -31,13 +31,12 @@ class CardKey extends Model
     // 字段类型转换
     protected $type = [
         'id' => 'integer',
+        'type_id' => 'integer',
         'status' => 'integer',
-        'price' => 'float',
-        'membership_duration' => 'integer',  // 兑换后获得的会员时长(分钟)
         'user_id' => 'integer',
         'create_time' => 'datetime',
         'use_time' => 'datetime',
-        'available_time' => 'datetime',  // 卡密可兑换截止时间
+        'expire_time' => 'datetime',  // 卡密本身的过期时间
     ];
 
     /**
@@ -55,6 +54,16 @@ class CardKey extends Model
         self::STATUS_USED => '已使用',
         self::STATUS_DISABLED => '已禁用',
     ];
+
+    /**
+     * 关联卡密类型
+     * 
+     * @return \think\model\relation\BelongsTo
+     */
+    public function cardType()
+    {
+        return $this->belongsTo(CardType::class, 'type_id', 'id');
+    }
 
     /**
      * 关联使用者（用户表）
@@ -89,15 +98,43 @@ class CardKey extends Model
     }
 
     /**
-     * 获取会员时长文本（兑换后获得的会员时长）
+     * 获取价格（从type_id关联读取）
      * 
-     * @param mixed $value
-     * @param array $data
+     * @return float|null
+     */
+    public function getPrice(): ?float
+    {
+        if (!$this->cardType) {
+            return null;
+        }
+        return $this->cardType->price;
+    }
+
+    /**
+     * 获取会员时长（从type_id关联读取）
+     * 
+     * @return int|null
+     */
+    public function getMembershipDuration(): ?int
+    {
+        if (!$this->cardType) {
+            return null;
+        }
+        return $this->cardType->membership_duration;
+    }
+
+    /**
+     * 获取会员时长文本（从type_id关联读取）
+     * 
      * @return string
      */
-    public function getMembershipDurationTextAttr($value, $data)
+    public function getMembershipDurationText(): string
     {
-        $minutes = $data['membership_duration'] ?? 0;
+        $minutes = $this->getMembershipDuration();
+
+        if ($minutes === null) {
+            return '不需要会员时长';
+        }
 
         if ($minutes == 0) {
             return '永久会员';
@@ -111,17 +148,7 @@ class CardKey extends Model
     }
 
     /**
-     * 向后兼容：保留旧方法名
-     * 
-     * @deprecated 请使用 getMembershipDurationTextAttr
-     */
-    public function getValidTextAttr($value, $data)
-    {
-        return $this->getMembershipDurationTextAttr($value, $data);
-    }
-
-    /**
-     * 检查卡密本身是否过期（基于available_time）
+     * 检查卡密本身是否过期（基于expire_time或类型表的available_days）
      *
      * @return bool
      */
@@ -132,29 +159,42 @@ class CardKey extends Model
             return false;
         }
 
-        // 没有设置可用期限，永久可用
-        if (!$this->available_time) {
-            return false;
+        // 优先检查卡密本身的expire_time
+        if ($this->expire_time) {
+            return strtotime($this->expire_time) < time();
         }
 
-        // 检查是否超过可用期限
-        return strtotime($this->available_time) < time();
+        // 其次检查类型表的available_days
+        if ($this->cardType && $this->cardType->available_days !== null) {
+            $expireTime = strtotime($this->create_time) + ($this->cardType->available_days * 86400);
+            return $expireTime < time();
+        }
+
+        // 都没有设置，永久可用
+        return false;
     }
 
     /**
-     * 获取会员到期时间（基于use_time + membership_duration）
+     * 获取会员到期时间（基于use_time + 类型表的membership_duration）
      *
      * @return string|null
      */
-    public function getExpireTime(): ?string
+    public function getMemberExpireTime(): ?string
     {
-        // 未使用或永久会员
-        if ($this->status != self::STATUS_USED || $this->membership_duration == 0) {
+        // 未使用
+        if ($this->status != self::STATUS_USED) {
+            return null;
+        }
+
+        $duration = $this->getMembershipDuration();
+
+        // 不需要会员时长或永久会员
+        if ($duration === null || $duration == 0) {
             return null;
         }
 
         // 计算会员到期时间
-        $expireTimestamp = strtotime($this->use_time) + ($this->membership_duration * 60);
+        $expireTimestamp = strtotime($this->use_time) + ($duration * 60);
         return date('Y-m-d H:i:s', $expireTimestamp);
     }
 
@@ -165,27 +205,33 @@ class CardKey extends Model
      */
     public function getRemainingTime(): ?int
     {
-        if ($this->status != self::STATUS_USED || $this->membership_duration == 0) {
+        if ($this->status != self::STATUS_USED) {
             return null;
         }
 
-        $expireTime = strtotime($this->use_time) + ($this->membership_duration * 60);
+        $duration = $this->getMembershipDuration();
+
+        if ($duration === null || $duration == 0) {
+            return null;
+        }
+
+        $expireTime = strtotime($this->use_time) + ($duration * 60);
         $remaining = $expireTime - time();
 
         return $remaining > 0 ? $remaining : 0;
     }
 
     /**
-     * 搜索器：按类型搜索
+     * 搜索器：按类型ID搜索
      * 
      * @param \think\db\Query $query
      * @param mixed $value
      * @return void
      */
-    public function searchTypeAttr($query, $value)
+    public function searchTypeIdAttr($query, $value)
     {
         if ($value) {
-            $query->where('type', $value);
+            $query->where('type_id', $value);
         }
     }
 
@@ -210,10 +256,10 @@ class CardKey extends Model
      * @param mixed $value
      * @return void
      */
-    public function searchCodeAttr($query, $value)
+    public function searchCardKeyAttr($query, $value)
     {
         if ($value) {
-            $query->where('code', 'like', '%' . $value . '%');
+            $query->where('card_key', 'like', '%' . $value . '%');
         }
     }
 
@@ -232,16 +278,17 @@ class CardKey extends Model
     }
 
     /**
-     * 获取所有卡密类型列表
+     * 获取所有卡密类型ID列表（已废弃，请使用CardType::getEnabledTypes()）
      * 
+     * @deprecated
      * @return array
      */
     public static function getTypeList(): array
     {
-        return self::field('type')
-            ->group('type')
+        return self::field('type_id')
+            ->group('type_id')
             ->order('create_time', 'desc')
-            ->column('type');
+            ->column('type_id');
     }
 
     /**
@@ -255,8 +302,8 @@ class CardKey extends Model
         $page = $params['page'] ?? 1;
         $limit = $params['limit'] ?? 10;
 
-        $query = self::withSearch(['type', 'status', 'code', 'create_time'], $params)
-            ->with(['user'])
+        $query = self::withSearch(['type_id', 'status', 'card_key', 'create_time'], $params)
+            ->with(['cardType', 'user'])
             ->order('create_time', 'desc');
 
         $total = $query->count();
@@ -278,7 +325,7 @@ class CardKey extends Model
      */
     public static function getDetail(int $id): ?array
     {
-        $cardKey = self::with(['user', 'logs.user'])->find($id);
+        $cardKey = self::with(['cardType', 'user', 'logs.user'])->find($id);
 
         if (!$cardKey) {
             return null;
@@ -287,8 +334,11 @@ class CardKey extends Model
         $data = $cardKey->toArray();
         $data['status_text'] = self::$statusMap[$data['status']] ?? '未知';
         $data['is_expired'] = $cardKey->isExpired();
-        $data['expire_time'] = $cardKey->getExpireTime();
+        $data['member_expire_time'] = $cardKey->getMemberExpireTime();
         $data['remaining_time'] = $cardKey->getRemainingTime();
+        $data['price'] = $cardKey->getPrice();
+        $data['membership_duration'] = $cardKey->getMembershipDuration();
+        $data['membership_duration_text'] = $cardKey->getMembershipDurationText();
 
         return $data;
     }

@@ -14,55 +14,46 @@ import { http } from "@/utils/http";
  */
 export interface CardKey {
   id: number;
-  code: string;
-  type: string;
+  card_key: string;  // 卡密码
+  type_id: number;  // 类型ID
   status: number;
-  price?: number;
-  /** 
-   * 兑换后获得的会员时长(分钟)
-   * @example 0 - 永久会员
-   * @example 43200 - 30天会员
-   * @example 10080 - 7天会员
-   */
-  membership_duration: number;
-  /** 
-   * 卡密本身的可兑换截止时间
-   * @example null - 永久可用,任何时候都可以兑换
-   * @example "2025-12-31 23:59:59" - 必须在2025年底前兑换
-   */
-  available_time?: string;
+  user_id?: number;
   create_time: string;
   use_time?: string;
-  user_id?: number;
+  expire_time?: string;  // 卡密本身的过期时间
   remark?: string;
+  
+  // 以下为关联数据或计算属性
+  cardType?: {
+    id: number;
+    type_name: string;
+    type_code: string;
+    price?: number | null;
+    membership_duration?: number | null;
+    available_days?: number | null;
+  };
   status_text?: string;
-  duration_text?: string; // 会员时长文本
   is_expired?: boolean;
-  expire_time?: string; // 会员到期时间
+  member_expire_time?: string; // 会员到期时间
   remaining_time?: number;
+  price?: number; // 从类型表读取
+  membership_duration?: number; // 从类型表读取
+  membership_duration_text?: string;
   username?: string;
   nickname?: string;
+  
+  // 向后兼容字段
+  code?: string;  // = card_key
+  type?: string;  // = cardType.type_name
 }
 
 /**
  * 生成卡密参数类型
  */
 export interface GenerateParams {
-  type: string;
-  count?: number;
-  price?: number;
-  /** 
-   * 兑换后获得的会员时长(分钟)
-   * @example 0 - 永久会员
-   * @example 43200 - 30天会员
-   */
-  membership_duration: number;
-  /** 
-   * 卡密本身的可兑换截止时间
-   * @example null - 永久可用
-   * @example "2025-12-31 23:59:59" - 必须在此时间前兑换
-   */
-  available_time?: string;
+  type_id: number;  // 类型ID
+  count?: number;  // 生成数量
+  expire_time?: string;  // 单独设置的过期时间（可覆盖类型默认值）
   remark?: string;
   salt?: string;
 }
@@ -73,9 +64,9 @@ export interface GenerateParams {
 export interface CardKeyListParams {
   page?: number;
   limit?: number;
-  type?: string;
+  type_id?: number;  // 类型ID筛选
   status?: number | string;
-  code?: string;
+  card_key?: string;  // 卡密码搜索
   create_time?: string[];
   start_time?: string;
   end_time?: string;
@@ -262,12 +253,12 @@ export const getCardKeyStatistics = () => {
 };
 
 /**
- * 获取类型列表
+ * 获取类型列表（用于下拉选择，返回启用的类型）
  *
  * @returns Promise
  */
 export const getCardKeyTypes = () => {
-  return http.request<any>("get", "/api/v1/cardkey/types");
+  return http.request<any>("get", "/api/v1/cardtype/enabled");
 };
 
 /**

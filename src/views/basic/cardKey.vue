@@ -53,13 +53,16 @@
 
     <!-- 主内容卡片 -->
     <el-card class="main-card" shadow="never">
-
+      <!-- Tab切换 -->
+      <el-tabs v-model="activeTab" class="card-key-tabs">
+        <!-- 卡密列表Tab -->
+        <el-tab-pane label="卡密列表" name="cardKeys">
       <!-- 搜索和操作栏 -->
       <el-row :gutter="8" align="middle">
         <!-- 类型筛选 -->
         <el-col :xs="24" :sm="8" :md="5" :lg="4">
-          <el-select v-model="searchForm.type" placeholder="类型" clearable filterable size="small" @change="handleSearch">
-            <el-option v-for="type in typeOptions" :key="type" :label="type" :value="type" />
+          <el-select v-model="searchForm.type_id" placeholder="类型" clearable filterable size="small" @change="handleSearch">
+            <el-option v-for="type in typeOptions" :key="type.id" :label="type.type_name" :value="type.id" />
           </el-select>
         </el-col>
 
@@ -74,7 +77,7 @@
 
         <!-- 关键词搜索 -->
         <el-col :xs="24" :sm="8" :md="6" :lg="5">
-          <el-input v-model="searchForm.code" placeholder="搜索卡密" clearable size="small" @keyup.enter="handleSearch">
+          <el-input v-model="searchForm.card_key" placeholder="搜索卡密" clearable size="small" @keyup.enter="handleSearch">
             <template #prefix>
               <IconifyIconOnline icon="ep:search" />
             </template>
@@ -126,14 +129,14 @@
         <el-table-column prop="id" label="ID" width="60" align="center" />
 
         <!-- 卡密码列 -->
-        <el-table-column prop="code" label="卡密码" min-width="180" align="center">
+        <el-table-column prop="card_key" label="卡密码" min-width="180" align="center">
           <template #default="{ row }">
             <div class="code-cell">
               <el-tag type="" effect="light" class="code-tag">
-                {{ row.code }}
+                {{ row.card_key || row.code }}
               </el-tag>
               <el-tooltip content="复制" placement="top">
-                <el-icon class="copy-icon" @click="handleCopyCode(row.code)">
+                <el-icon class="copy-icon" @click="handleCopyCode(row.card_key || row.code)">
                   <IconifyIconOnline icon="ep:document-copy" />
                 </el-icon>
               </el-tooltip>
@@ -145,7 +148,7 @@
         <el-table-column prop="type" label="类型" width="110" align="center">
           <template #default="{ row }">
             <el-tag type="" size="small" effect="light">
-              {{ row.type }}
+              {{ row.cardType?.type_name || row.type || '-' }}
             </el-tag>
           </template>
         </el-table-column>
@@ -162,45 +165,34 @@
         <!-- 价格列 -->
         <el-table-column prop="price" label="价格" width="85" align="center">
           <template #default="{ row }">
-            <span v-if="row.price" class="price-text">¥{{ row.price }}</span>
+            <span v-if="row.cardType?.price !== null && row.cardType?.price !== undefined" class="price-text">¥{{ row.cardType.price }}</span>
             <span v-else class="empty-text">-</span>
           </template>
         </el-table-column>
 
         <!-- 会员时长列 -->
-        <el-table-column prop="membership_duration" label="赠送时长" width="110" align="center">
+        <el-table-column prop="membership_duration" label="赠送时长" width="130" align="center">
           <template #default="{ row }">
-            <el-tag v-if="row.membership_duration === 0" type="success" size="small" effect="light">
-              <template #default>
-                <div class="tag-content">
-                  <IconifyIconOnline icon="ep:trophy" />
-                  <span>永久</span>
-                </div>
-              </template>
+            <span v-if="row.cardType?.membership_duration === null || row.cardType?.membership_duration === undefined">-</span>
+            <el-tag v-else-if="row.cardType?.membership_duration === 0" type="success" size="small">
+              <IconifyIconOnline icon="ep:trophy" />永久
             </el-tag>
-            <span v-else class="duration-text">{{ formatMembershipDuration(row.membership_duration) }}</span>
+            <span v-else>{{ formatMembershipDuration(row.cardType.membership_duration) }}</span>
           </template>
         </el-table-column>
 
         <!-- 兑换期限列 -->
-        <el-table-column prop="available_time" label="兑换期限" width="165" align="center">
+        <el-table-column prop="expire_time" label="兑换期限" width="180" align="center">
           <template #default="{ row }">
-            <el-tag v-if="!row.available_time" type="success" size="small" effect="light">
-              <template #default>
-                <div class="tag-content">
-                  <IconifyIconOnline icon="ep:timer" />
-                  <span>永久可用</span>
-                </div>
-              </template>
+            <el-tag v-if="!row.expire_time || row.expire_time === '0000-00-00 00:00:00'" type="success" size="small">
+              <IconifyIconOnline icon="ep:timer" />永久可用
             </el-tag>
-            <div v-else class="time-cell">
-              <span :class="isAvailableExpired(row.available_time) ? 'expired-text' : 'time-text'">
-                <el-icon v-if="isAvailableExpired(row.available_time)" class="warning-icon">
-                  <IconifyIconOnline icon="ep:warning" />
-                </el-icon>
-                {{ formatDateTime(row.available_time) }}
-              </span>
-            </div>
+            <span v-else :class="isAvailableExpired(row.expire_time) ? 'expired-text' : ''">
+              <el-icon v-if="isAvailableExpired(row.expire_time)">
+                <IconifyIconOnline icon="ep:warning" />
+              </el-icon>
+              {{ formatDateTime(row.expire_time) }}
+            </span>
           </template>
         </el-table-column>
 
@@ -222,9 +214,8 @@
         <!-- 操作列 -->
         <el-table-column label="操作" fixed="right" width="140" align="center">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="handleDetail(row)" class="action-btn">
-              <IconifyIconOnline icon="ep:view" />
-              <span>详情</span>
+            <el-button link type="primary" size="small" @click="handleDetail(row)">
+              <IconifyIconOnline icon="ep:view" />详情
             </el-button>
             <el-button 
               link 
@@ -232,10 +223,8 @@
               size="small" 
               @click="handleDelete(row)" 
               :disabled="row.status === 1 || row.status === 2"
-              class="action-btn"
             >
-              <IconifyIconOnline icon="ep:delete" />
-              <span>删除</span>
+              <IconifyIconOnline icon="ep:delete" />删除
             </el-button>
           </template>
         </el-table-column>
@@ -255,6 +244,13 @@
           @current-change="handleCurrentChange"
         />
       </div>
+        </el-tab-pane>
+
+        <!-- 类型管理Tab -->
+        <el-tab-pane label="类型管理" name="cardTypes">
+          <TypeManage />
+        </el-tab-pane>
+      </el-tabs>
     </el-card>
 
     <!-- 生成对话框 -->
@@ -284,13 +280,15 @@ import {
 } from "@/api/cardKey";
 import GenerateDialog from "./cardKey/components/GenerateDialog.vue";
 import DetailDialog from "./cardKey/components/DetailDialog.vue";
+import TypeManage from "./cardKey/components/TypeManage.vue";
 import { IconifyIconOnline } from "@/components/ReIcon";
 
 // 定义响应式数据
+const activeTab = ref("cardKeys");
 const loading = ref(false);
 const tableData = ref<CardKey[]>([]);
 const selectedIds = ref<number[]>([]);
-const typeOptions = ref<string[]>([]);
+const typeOptions = ref<any[]>([]);
 const generateDialogVisible = ref(false);
 const detailDialogVisible = ref(false);
 const currentCardKeyId = ref<number>(0);
@@ -304,9 +302,9 @@ const statsData = reactive({
 
 // 搜索表单
 const searchForm = reactive<CardKeyListParams>({
-  type: "",
+  type_id: undefined,
   status: "",
-  code: "",
+  card_key: "",
   page: 1,
   limit: 5
 });
@@ -378,9 +376,9 @@ const handleSearch = () => {
  * 重置
  */
 const handleReset = () => {
-  searchForm.type = "";
+  searchForm.type_id = undefined;
   searchForm.status = "";
-  searchForm.code = "";
+  searchForm.card_key = "";
   handleSearch();
 };
 
@@ -433,7 +431,7 @@ const handleDelete = async (row: CardKey) => {
 
   try {
     await ElMessageBox.confirm(
-      `确定要删除卡密 ${row.code} 吗？`,
+      `确定要删除卡密 ${row.card_key || row.code} 吗？`,
       "删除确认",
       {
         confirmButtonText: "确定",
@@ -714,55 +712,17 @@ onMounted(() => {
     }
   }
 
-  .time-cell {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-  }
-
   .warning-icon {
     color: #f56c6c;
-    font-size: 14px;
   }
 
-  // Tag内图标间距
-  .tag-content {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  // 操作按钮间距
-  .action-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-  }
 
   .price-text {
     color: #f56c6c;
-    font-weight: 500;
-  }
-
-  .duration-text {
-    color: #606266;
-    font-size: 13px;
-  }
-
-  .time-text {
-    color: #606266;
-    font-size: 12px;
   }
 
   .expired-text {
     color: #f56c6c;
-    font-size: 12px;
-    font-weight: 500;
-  }
-
-  .empty-text {
-    color: #c0c4cc;
   }
 
   // 输入框宽度

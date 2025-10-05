@@ -261,3 +261,19 @@ Route::group('/:version/cardkey', function () {
     Route::get('export', ':version.CardKey/export');                    // 导出卡密
     Route::get('statistics', ':version.CardKey/statistics');            // 获取统计数据
 });
+
+// ============================================
+// 卡密类型管理路由组
+// ============================================
+Route::group('/:version/cardtype', function () {
+    // 查询类型
+    Route::get('list', ':version.CardType/index');                      // 获取类型列表（分页+筛选）
+    Route::get('enabled', ':version.CardType/enabled');                 // 获取启用的类型（用于下拉选择）
+    Route::get('detail/:id', ':version.CardType/detail');               // 获取类型详情
+
+    // 管理类型
+    Route::post('create', ':version.CardType/create');                  // 创建类型
+    Route::put('update/:id', ':version.CardType/update');               // 更新类型
+    Route::delete('delete/:id', ':version.CardType/delete');            // 删除类型
+    Route::post('batchDelete', ':version.CardType/batchDelete');        // 批量删除类型
+});

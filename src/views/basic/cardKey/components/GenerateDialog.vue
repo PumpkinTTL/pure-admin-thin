@@ -30,29 +30,25 @@
       class="generate-form"
     >
       <!-- 卡密类型 -->
-      <el-form-item label="卡密类型" prop="type">
+      <el-form-item label="卡密类型" prop="type_id">
         <el-select
-          v-model="form.type"
-          placeholder="选择或输入类型"
+          v-model="form.type_id"
+          placeholder="选择类型"
           filterable
-          allow-create
+          @change="handleTypeChange"
+          class="type-select"
         >
-          <el-option-group label="常用类型">
-            <el-option
-              v-for="type in presetTypes"
-              :key="type"
-              :label="type"
-              :value="type"
-            />
-          </el-option-group>
-          <el-option-group label="历史类型" v-if="historyTypes.length > 0">
-            <el-option
-              v-for="type in historyTypes"
-              :key="type"
-              :label="type"
-              :value="type"
-            />
-          </el-option-group>
+          <el-option
+            v-for="type in cardTypes"
+            :key="type.id"
+            :label="type.type_name"
+            :value="type.id"
+          >
+            <div class="type-option-content">
+              <div class="type-name">{{ type.type_name }}</div>
+              <div class="type-description" v-if="type.description">{{ type.description }}</div>
+            </div>
+          </el-option>
         </el-select>
       </el-form-item>
 
@@ -68,52 +64,37 @@
         <div class="form-tip">单次最多生成10000个卡密</div>
       </el-form-item>
 
-      <!-- 会员时长 -->
-      <el-form-item label="会员时长" prop="membership_duration">
-        <div class="form-item-content">
-          <div class="button-group">
-            <div 
-              v-for="option in durationOptions" 
-              :key="option.value"
-              :class="['option-btn', { active: durationType === option.value }]"
-              @click="selectDuration(option.value)"
-            >
-              {{ option.label }}
-            </div>
+      <!-- 类型配置信息（选择类型后显示） -->
+      <el-form-item v-if="selectedType">
+        <div class="type-info-card">
+          <div class="type-info-row" v-if="selectedType.price !== null">
+            <span class="info-label">价格</span>
+            <span class="info-value price-value">￥{{ selectedType.price }}</span>
           </div>
-          <div class="form-tip">用户兑换后获得的会员时长</div>
+          <div class="type-info-row" v-if="selectedType.membership_duration !== null">
+            <span class="info-label">会员时长</span>
+            <span class="info-value duration-value">{{ formatDuration(selectedType.membership_duration) }}</span>
+          </div>
+          <div class="type-info-row" v-if="selectedType.available_days !== null">
+            <span class="info-label">有效期</span>
+            <span class="info-value days-value">{{ selectedType.available_days }}天</span>
+          </div>
+          <div class="type-info-empty" v-if="!selectedType.price && selectedType.membership_duration === null && !selectedType.available_days">
+            <IconifyIconOnline icon="ep:info-filled" />
+            <span>此类型无需配置额外字段</span>
+          </div>
         </div>
-        <el-input-number
-          v-if="durationType === 'custom'"
-          v-model="form.membership_duration"
-          :min="1"
-          :max="5256000"
-          :step="1"
-          placeholder="输入分钟数"
-          class="custom-input"
-        >
-          <template #append>分钟</template>
-        </el-input-number>
       </el-form-item>
 
-      <!-- 价格（可选） -->
-      <el-form-item label="价格" prop="price">
-        <el-input-number
-          v-model="form.price"
-          :min="0"
-          :max="999999.99"
-          :precision="2"
-          :step="1"
-          placeholder="选填"
-        >
-          <template #prefix>¥</template>
-        </el-input-number>
-        <div class="form-tip">可选字段，不填表示无价格</div>
-      </el-form-item>
-
-      <!-- 兑换期限（可选） -->
-      <el-form-item label="兑换期限" prop="available_time">
+      <!-- 兑换期限（可选，支持覆盖） -->
+      <el-form-item label="兑换期限" prop="expire_time">
         <div class="form-item-content">
+          <div class="form-tip" v-if="selectedType?.available_days">
+            该类型默认在<strong>{{ selectedType.available_days }}天</strong>内可兑换，可以单独设置覆盖
+          </div>
+          <div class="form-tip" v-else>
+            该类型默认<strong>永久可兑换</strong>，可以单独设置覆盖
+          </div>
           <div class="button-group">
             <div 
               v-for="option in availableOptions" 
@@ -124,11 +105,10 @@
               {{ option.label }}
             </div>
           </div>
-          <div class="form-tip">卡密本身的可兑换截止时间，超过此时间卡密作废</div>
         </div>
         <el-date-picker
           v-if="availableType === 'custom'"
-          v-model="form.available_time"
+          v-model="form.expire_time"
           type="datetime"
           placeholder="选择失效时间"
           format="YYYY-MM-DD HH:mm:ss"
@@ -151,11 +131,9 @@
 
       <!-- 生成预览 -->
       <el-form-item label="生成预览">
-        <div class="preview-box">
-          <div class="preview-content">
-            <IconifyIconOnline icon="ep:info-filled" class="preview-icon" />
-            <span>{{ previewText }}</span>
-          </div>
+        <div class="preview-card">
+          <IconifyIconOnline icon="ep:tickets" class="preview-icon" />
+          <div class="preview-text">{{ previewText }}</div>
         </div>
       </el-form-item>
     </el-form>
@@ -177,11 +155,12 @@ import { ElMessage } from "element-plus";
 import type { FormInstance, FormRules } from "element-plus";
 import {
   batchGenerateCardKey,
-  getCardKeyTypes,
-  CardKeyTypeOptions,
-  formatMembershipDuration,
   type GenerateParams
 } from "@/api/cardKey";
+import {
+  getEnabledCardTypes,
+  type CardType
+} from "@/api/cardType";
 import { message } from "@/utils/message";
 
 defineOptions({
@@ -211,83 +190,102 @@ const dialogVisible = computed({
 
 const formRef = ref<FormInstance>();
 const loading = ref(false);
-const durationType = ref("0"); // 会员时长类型
-const availableType = ref("forever"); // 兑换期限类型
-const presetTypes = ref(CardKeyTypeOptions); // 预设类型
-const historyTypes = ref<string[]>([]); // 历史类型
-
-// 会员时长选项
-const durationOptions = [
-  { label: '永久', value: '0' },
-  { label: '1小时', value: '60' },
-  { label: '1天', value: '1440' },
-  { label: '7天', value: '10080' },
-  { label: '30天', value: '43200' },
-  { label: '自定义', value: 'custom' }
-];
+const availableType = ref("default"); // 兑换期限类型
+const cardTypes = ref<CardType[]>([]); // 卡密类型列表
+const selectedType = ref<CardType | null>(null); // 当前选中的类型
 
 // 兑换期限选项
 const availableOptions = [
-  { label: '永久可用', value: 'forever' },
+  { label: '使用默认', value: 'default' },
   { label: '7天内', value: '7' },
   { label: '30天内', value: '30' },
   { label: '90天内', value: '90' },
+  { label: '永久可用', value: 'forever' },
   { label: '自定义', value: 'custom' }
 ];
 
 // 表单数据
-const form = reactive<GenerateParams>({
-  type: "",
-  count: 100,
-  price: undefined,
-  membership_duration: 0,
-  available_time: undefined,
+const form = reactive<any>({
+  type_id: null,
+  count: 5,
+  expire_time: undefined,
   remark: ""
 });
 
 // 表单验证规则
 const rules = reactive<FormRules>({
-  type: [
-    { required: true, message: "请选择或输入卡密类型", trigger: "blur" }
+  type_id: [
+    { required: true, message: "请选择卡密类型", trigger: "change" }
   ],
   count: [
     { required: true, message: "请输入生成数量", trigger: "blur" },
     { type: "number", min: 1, max: 10000, message: "数量必须在1-10000之间", trigger: "blur" }
-  ],
-  membership_duration: [
-    { required: true, message: "请选择会员时长", trigger: "change" }
   ]
+});
+
+// 计算属性：是否显示会员时长
+const showMembershipDuration = computed(() => {
+  return selectedType.value && selectedType.value.membership_duration !== null;
+});
+
+// 计算属性：是否显示价格
+const showPrice = computed(() => {
+  return selectedType.value && selectedType.value.price !== null;
 });
 
 // 生成预览文本
 const previewText = computed(() => {
-  const type = form.type || "未选择";
-  const count = form.count || 0;
-  const durationText = formatMembershipDuration(form.membership_duration);
-  const priceText = form.price ? `，单价￥${form.price}` : "";
-  const availableText = form.available_time 
-    ? `，必须在${form.available_time}前兑换` 
-    : "，永久可用";
+  if (!selectedType.value) {
+    return "请先选择卡密类型";
+  }
   
-  return `将生成 ${count} 个【${type}】卡密，赠送${durationText}会员${priceText}${availableText}`;
+  const type = selectedType.value.type_name || "未选择";
+  const count = form.count || 0;
+  
+  let text = `将生成 ${count} 个【${type}】卡密`;
+  
+  if (selectedType.value.membership_duration !== null) {
+    const durationText = formatDuration(selectedType.value.membership_duration);
+    text += `，赠送${durationText}会员`;
+  }
+  
+  if (selectedType.value.price !== null) {
+    text += `，单价￥${selectedType.value.price}`;
+  }
+  
+  if (form.expire_time) {
+    text += `，必须在${form.expire_time}前兑换`;
+  } else if (selectedType.value.available_days) {
+    text += `，${selectedType.value.available_days}天内可兑换`;
+  } else {
+    text += `，永久可用`;
+  }
+  
+  return text;
 });
 
 /**
- * 选择会员时长
+ * 类型变化处理
  */
-const selectDuration = (value: string) => {
-  durationType.value = value;
-  handleDurationTypeChange(value);
+const handleTypeChange = (typeId: number) => {
+  selectedType.value = cardTypes.value.find(t => t.id === typeId) || null;
+  // 重置兑换期限
+  availableType.value = "default";
+  form.expire_time = undefined;
 };
 
 /**
- * 会员时长类型变化
+ * 格式化时长
  */
-const handleDurationTypeChange = (value: string) => {
-  if (value === "custom") {
-    form.membership_duration = 60; // 默认1小时
+const formatDuration = (minutes: number): string => {
+  if (minutes === 0) {
+    return "永久";
+  } else if (minutes < 60) {
+    return `${minutes}分钟`;
+  } else if (minutes < 1440) {
+    return `${Math.floor(minutes / 60)}小时`;
   } else {
-    form.membership_duration = parseInt(value);
+    return `${Math.floor(minutes / 1440)}天`;
   }
 };
 
@@ -303,34 +301,33 @@ const selectAvailable = (value: string) => {
  * 兑换期限类型变化
  */
 const handleAvailableTypeChange = (value: string) => {
-  if (value === "forever") {
-    form.available_time = undefined;
+  if (value === "default") {
+    form.expire_time = undefined;
+  } else if (value === "forever") {
+    form.expire_time = null; // 显式设置null表示永久
   } else if (value === "custom") {
     // 自定义，由用户选择日期
-    form.available_time = undefined;
+    form.expire_time = undefined;
   } else {
     // 计算截止时间
     const days = parseInt(value);
     const deadline = new Date();
     deadline.setDate(deadline.getDate() + days);
-    form.available_time = deadline.toISOString().slice(0, 19).replace('T', ' ');
+    form.expire_time = deadline.toISOString().slice(0, 19).replace('T', ' ');
   }
 };
 
 /**
- * 获取历史类型列表
+ * 获取类型列表
  */
-const fetchHistoryTypes = async () => {
+const fetchCardTypes = async () => {
   try {
-    const response = await getCardKeyTypes();
+    const response = await getEnabledCardTypes();
     if (response.code === 200) {
-      // 过滤掉预设类型
-      historyTypes.value = (response.data || []).filter(
-        (type: string) => !presetTypes.value.includes(type)
-      );
+      cardTypes.value = response.data || [];
     }
   } catch (error) {
-    console.error("获取历史类型失败", error);
+    console.error("获取类型列表失败", error);
   }
 };
 
@@ -367,13 +364,11 @@ const handleSubmit = async () => {
  */
 const handleClose = () => {
   formRef.value?.resetFields();
-  durationType.value = "0";
-  availableType.value = "forever";
-  form.type = "";
-  form.count = 100;
-  form.price = undefined;
-  form.membership_duration = 0;
-  form.available_time = undefined;
+  availableType.value = "default";
+  selectedType.value = null;
+  form.type_id = null;
+  form.count = 5;
+  form.expire_time = undefined;
   form.remark = "";
   dialogVisible.value = false;
 };
@@ -383,14 +378,14 @@ watch(
   () => props.visible,
   (val) => {
     if (val) {
-      fetchHistoryTypes();
+      fetchCardTypes();
     }
   }
 );
 
 // 组件挂载
 onMounted(() => {
-  fetchHistoryTypes();
+  fetchCardTypes();
 });
 </script>
 
@@ -480,32 +475,128 @@ onMounted(() => {
     margin-top: 8px;
   }
 
-  .preview-box {
-    width: 100%;
-    padding: 10px 14px;
-    background: linear-gradient(135deg, #e8f4fd 0%, #f0f9ff 100%);
-    border-left: 3px solid #409eff;
-    border-radius: 4px;
-    transition: all 0.3s ease;
+  // 类型选择下拉框样式
+  .type-select {
+    :deep(.el-select-dropdown__item) {
+      height: auto;
+      padding: 8px 12px;
+    }
+  }
 
-    &:hover {
-      background: linear-gradient(135deg, #d9ecff 0%, #e8f4fd 100%);
-      box-shadow: 0 2px 6px rgba(64, 158, 255, 0.12);
+  .type-option-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .type-name {
+      font-size: 14px;
+      color: #303133;
+      font-weight: 500;
     }
 
-    .preview-content {
+    .type-description {
+      font-size: 12px;
+      color: #909399;
+      line-height: 1.4;
+    }
+  }
+
+  // 类型配置信息卡片 - 精致紧凑
+  .type-info-card {
+    width: 100%;
+    padding: 10px 12px;
+    background: linear-gradient(135deg, #fafbfc 0%, #f5f7fa 100%);
+    border: 1px solid #e4e7ed;
+    border-radius: 6px;
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+
+    .type-info-row {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      background: white;
+      border-radius: 4px;
+      border: 1px solid #e8eaed;
+      gap: 6px;
+      transition: all 0.2s;
+
+      &:hover {
+        border-color: #d0d3d9;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      }
+
+      .info-label {
+        font-size: 12px;
+        color: #909399;
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        
+        &:before {
+          content: '•';
+          color: #409eff;
+          font-size: 14px;
+        }
+      }
+
+      .info-value {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+        
+        &.price-value {
+          color: #ff6b6b;
+          font-size: 14px;
+        }
+        
+        &.duration-value {
+          color: #4a90e2;
+        }
+        
+        &.days-value {
+          color: #8b7be8;
+        }
+      }
+    }
+
+    .type-info-empty {
       display: flex;
       align-items: center;
-      gap: 8px;
-      color: #606266;
-      font-size: 13px;
-      line-height: 1.5;
+      gap: 6px;
+      font-size: 12px;
+      color: #909399;
+      justify-content: center;
+      padding: 4px 0;
+      width: 100%;
+    }
+  }
 
-      .preview-icon {
-        color: #409eff;
-        font-size: 16px;
-        flex-shrink: 0;
-      }
+  // 生成预览卡片
+  .preview-card {
+    width: 100%;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, #fff9f0 0%, #fff4e6 100%);
+    border: 1px solid #ffe7ba;
+    border-radius: 8px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+
+    .preview-icon {
+      color: #fa8c16;
+      font-size: 20px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .preview-text {
+      flex: 1;
+      font-size: 13px;
+      color: #595959;
+      line-height: 1.7;
     }
   }
 }
