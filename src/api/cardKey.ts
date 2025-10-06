@@ -196,7 +196,7 @@ export const deleteCardKey = (id: number) => {
  * @returns Promise
  */
 export const batchDeleteCardKey = (ids: number[]) => {
-  return http.request<any>("post", "/api/v1/cardkey/batch-delete", { data: { ids } });
+  return http.request<any>("post", "/api/v1/cardkey/batchDelete", { data: { ids } });
 };
 
 /**
