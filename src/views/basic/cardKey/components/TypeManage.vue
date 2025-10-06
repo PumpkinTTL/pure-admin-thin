@@ -224,9 +224,10 @@
                 :min="1"
                 placeholder="输入时长"
                 controls-position="right"
-                style="width: 150px"
+                size="small"
+                style="width: 130px"
               />
-              <el-select v-model="durationUnit" style="width: 100px; margin-left: 8px">
+              <el-select v-model="durationUnit" size="small" style="width: 85px">
                 <el-option label="分钟" value="minute" />
                 <el-option label="小时" value="hour" />
                 <el-option label="天" value="day" />
@@ -249,9 +250,10 @@
                 :min="1"
                 placeholder="输入天数"
                 controls-position="right"
-                style="width: 150px"
+                size="small"
+                style="width: 130px"
               />
-              <span style="margin-left: 8px; color: #64748b">天</span>
+              <span class="unit-label">天</span>
             </div>
           </div>
         </el-form-item>
@@ -704,6 +706,11 @@ const formatDuration = (minutes: number): string => {
 onMounted(() => {
   fetchList();
 });
+
+// 暴露方法给父组件
+defineExpose({
+  fetchList
+});
 </script>
 
 <style scoped lang="scss">
@@ -833,22 +840,86 @@ onMounted(() => {
     margin-top: 4px;
   }
 
-  // 时长输入组件
+  // 时长输入组件 - 和谐一体设计
   .duration-input-group {
     .duration-mode {
       margin-bottom: 12px;
+      
+      :deep(.el-radio-button) {
+        .el-radio-button__inner {
+          padding: 5px 12px;
+          font-size: 12px;
+          border-color: #e2e8f0;
+          background: #fff;
+          color: #64748b;
+          transition: all 0.2s ease;
+        }
+        
+        &:first-child .el-radio-button__inner {
+          border-radius: 6px 0 0 6px;
+        }
+        
+        &:last-child .el-radio-button__inner {
+          border-radius: 0 6px 6px 0;
+        }
+
+        &.is-active .el-radio-button__inner {
+          background: #3b82f6;
+          border-color: #3b82f6;
+          color: white;
+        }
+        
+        &:hover:not(.is-active) .el-radio-button__inner {
+          border-color: #cbd5e1;
+          background: #f8fafc;
+        }
+      }
     }
 
     .duration-custom {
       display: flex;
       align-items: center;
-      margin-top: 12px;
+      gap: 8px;
+      padding: 10px 12px;
+      background: #fafbfc;
+      border-radius: 6px;
+      border: 1px solid #e5e7eb;
+
+      :deep(.el-input-number) {
+        .el-input__wrapper {
+          background: white;
+          transition: all 0.2s ease;
+          
+          &.is-focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+          }
+        }
+      }
+
+      :deep(.el-select) {
+        .el-input__wrapper {
+          background: white;
+          transition: all 0.2s ease;
+        }
+      }
 
       .duration-result {
-        margin-left: 12px;
+        flex-shrink: 0;
+        padding: 4px 10px;
+        background: #eff6ff;
         color: #3b82f6;
         font-weight: 500;
-        font-size: 13px;
+        font-size: 12px;
+        border-radius: 4px;
+        border: 1px solid #bfdbfe;
+      }
+
+      .unit-label {
+        flex-shrink: 0;
+        color: #64748b;
+        font-weight: 500;
+        font-size: 12px;
       }
     }
   }

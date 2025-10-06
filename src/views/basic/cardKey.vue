@@ -54,7 +54,7 @@
     <!-- 主内容卡片 -->
     <el-card class="main-card" shadow="never">
       <!-- Tab切换 -->
-      <el-tabs v-model="activeTab" class="card-key-tabs">
+      <el-tabs v-model="activeTab" class="card-key-tabs" @tab-change="handleTabChange">
         <!-- 卡密列表Tab -->
         <el-tab-pane label="卡密列表" name="cardKeys">
       <!-- 搜索和操作栏 -->
@@ -242,7 +242,7 @@
 
         <!-- 类型管理Tab -->
         <el-tab-pane label="类型管理" name="cardTypes">
-          <TypeManage />
+          <TypeManage ref="typeManageRef" />
         </el-tab-pane>
       </el-tabs>
     </el-card>
@@ -256,7 +256,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, watch } from "vue";
 import { ElMessageBox } from "element-plus";
 import { message } from "@/utils/message";
 import {
@@ -286,6 +286,7 @@ const typeOptions = ref<any[]>([]);
 const generateDialogVisible = ref(false);
 const detailDialogVisible = ref(false);
 const currentCardKeyId = ref<number>(0);
+const typeManageRef = ref<any>(null);
 
 // 统计数据
 const statsData = reactive({
@@ -562,6 +563,22 @@ const handleCopyCode = async (code: string) => {
     document.execCommand("copy");
     document.body.removeChild(textarea);
     message("复制成功", { type: "success" });
+  }
+};
+
+/**
+ * Tab切换处理
+ */
+const handleTabChange = (tabName: string) => {
+  if (tabName === 'cardKeys') {
+    // 切换到卡密列表时刷新数据
+    fetchList();
+    fetchTypes();
+  } else if (tabName === 'cardTypes') {
+    // 切换到类型管理时刷新数据
+    if (typeManageRef.value && typeof typeManageRef.value.fetchList === 'function') {
+      typeManageRef.value.fetchList();
+    }
   }
 };
 
