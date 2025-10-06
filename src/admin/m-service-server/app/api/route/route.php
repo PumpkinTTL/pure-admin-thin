@@ -240,6 +240,7 @@ Route::group('/:version/theme', function () {
 Route::group('/:version/cardkey', function () {
     // 生成卡密
     Route::post('generate', ':version.CardKey/generate');               // 生成单个卡密
+    Route::post('batch-delete', ':version.CardKey/batchDelete');        // 批量删除卡密（必须在batch之前）
     Route::post('batch', ':version.CardKey/batchGenerate');             // 批量生成卡密
 
     // 查询卡密
@@ -255,7 +256,6 @@ Route::group('/:version/cardkey', function () {
 
     // 删除卡密
     Route::delete('delete/:id', ':version.CardKey/delete');             // 删除单个卡密
-    Route::post('batch-delete', ':version.CardKey/batchDelete');        // 批量删除卡密
 
     // 导出和统计
     Route::get('export', ':version.CardKey/export');                    // 导出卡密
