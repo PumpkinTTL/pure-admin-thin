@@ -121,10 +121,9 @@
       <el-table 
         :data="tableData" 
         v-loading="loading" 
-        style="width: 100%; margin-top: 16px"
+        class="modern-table"
         @selection-change="handleSelectionChange" 
-        :header-cell-style="{ background: '#f5f7fa', color: '#606266' }"
-        stripe>
+        :header-cell-style="{ background: '#f8fafc', color: '#475569', fontWeight: '500' }">
         <el-table-column type="selection" width="45" align="center" fixed />
         <el-table-column prop="id" label="ID" width="60" align="center" />
 
@@ -132,7 +131,7 @@
         <el-table-column prop="card_key" label="卡密码" min-width="180" align="center">
           <template #default="{ row }">
             <div class="code-cell">
-              <el-tag type="" effect="light" class="code-tag">
+              <el-tag effect="light" class="code-tag">
                 {{ row.card_key || row.code }}
               </el-tag>
               <el-tooltip content="复制" placement="top">
@@ -145,20 +144,18 @@
         </el-table-column>
 
         <!-- 类型列 -->
-        <el-table-column prop="type" label="类型" width="110" align="center">
+        <el-table-column prop="type" label="类型" min-width="110" align="center">
           <template #default="{ row }">
-            <el-tag type="" size="small" effect="light">
-              {{ row.cardType?.type_name || row.type || '-' }}
-            </el-tag>
+            <span class="type-text">{{ row.cardType?.type_name || row.type || '-' }}</span>
           </template>
         </el-table-column>
 
         <!-- 状态列 -->
-        <el-table-column prop="status" label="状态" width="85" align="center">
+        <el-table-column prop="status" label="状态" width="90" align="center">
           <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)" size="small" effect="light">
+            <span :class="['status-badge', 'status-' + row.status]">
               {{ getStatusText(row.status) }}
-            </el-tag>
+            </span>
           </template>
         </el-table-column>
 
@@ -171,40 +168,37 @@
         </el-table-column>
 
         <!-- 会员时长列 -->
-        <el-table-column prop="membership_duration" label="赠送时长" width="130" align="center">
+        <el-table-column prop="membership_duration" label="赠送时长" min-width="120" align="center">
           <template #default="{ row }">
-            <span v-if="row.cardType?.membership_duration === null || row.cardType?.membership_duration === undefined">-</span>
-            <el-tag v-else-if="row.cardType?.membership_duration === 0" type="success" size="small">
-              <IconifyIconOnline icon="ep:trophy" />永久
-            </el-tag>
-            <span v-else>{{ formatMembershipDuration(row.cardType.membership_duration) }}</span>
+            <span v-if="row.cardType?.membership_duration === null || row.cardType?.membership_duration === undefined" class="empty-text">-</span>
+            <span v-else-if="row.cardType?.membership_duration === 0" class="duration-badge">
+              永久
+            </span>
+            <span v-else class="duration-text">{{ formatMembershipDuration(row.cardType.membership_duration) }}</span>
           </template>
         </el-table-column>
 
         <!-- 兑换期限列 -->
-        <el-table-column prop="expire_time" label="兑换期限" width="180" align="center">
+        <el-table-column prop="expire_time" label="兑换期限" min-width="160" align="center">
           <template #default="{ row }">
-            <el-tag v-if="!row.expire_time || row.expire_time === '0000-00-00 00:00:00'" type="success" size="small">
-              <IconifyIconOnline icon="ep:timer" />永久可用
-            </el-tag>
-            <span v-else :class="isAvailableExpired(row.expire_time) ? 'expired-text' : ''">
-              <el-icon v-if="isAvailableExpired(row.expire_time)">
-                <IconifyIconOnline icon="ep:warning" />
-              </el-icon>
+            <span v-if="!row.expire_time || row.expire_time === '0000-00-00 00:00:00'" class="permanent-badge">
+              永久可用
+            </span>
+            <span v-else :class="isAvailableExpired(row.expire_time) ? 'expired-text' : 'time-text'">
               {{ formatDateTime(row.expire_time) }}
             </span>
           </template>
         </el-table-column>
 
         <!-- 创建时间列 -->
-        <el-table-column prop="create_time" label="创建时间" width="155" align="center">
+        <el-table-column prop="create_time" label="创建时间" min-width="155" align="center">
           <template #default="{ row }">
             <span class="time-text">{{ row.create_time }}</span>
           </template>
         </el-table-column>
 
         <!-- 使用时间列 -->
-        <el-table-column prop="use_time" label="使用时间" width="155" align="center">
+        <el-table-column prop="use_time" label="使用时间" min-width="155" align="center">
           <template #default="{ row }">
             <span v-if="row.use_time" class="time-text">{{ row.use_time }}</span>
             <span v-else class="empty-text">-</span>
@@ -212,7 +206,7 @@
         </el-table-column>
 
         <!-- 操作列 -->
-        <el-table-column label="操作" fixed="right" width="140" align="center">
+        <el-table-column label="操作" fixed="right" min-width="150" align="center">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="handleDetail(row)">
               <IconifyIconOnline icon="ep:view" />详情
@@ -681,6 +675,42 @@ onMounted(() => {
     }
   }
 
+  // 现代化表格样式
+  .modern-table {
+    margin-top: 16px;
+    border-radius: 8px;
+    overflow: hidden;
+
+    :deep(.el-table__inner-wrapper) {
+      &::before {
+        display: none;
+      }
+    }
+
+    :deep(.el-table__body) {
+      tr {
+        transition: background-color 0.2s ease;
+        
+        &:hover {
+          background-color: #f8fafc !important;
+        }
+      }
+
+      td {
+        border-bottom: 1px solid #f1f5f9;
+        padding: 12px 0;
+      }
+    }
+
+    :deep(.el-table__header) {
+      th {
+        border-bottom: 1px solid #e2e8f0;
+        padding: 14px 0;
+        font-size: 13px;
+      }
+    }
+  }
+
   // 表格样式增强
   .code-cell {
     display: flex;
@@ -689,40 +719,111 @@ onMounted(() => {
     gap: 8px;
 
     .code-tag {
-      font-family: "Courier New", monospace;
+      font-family: "Consolas", "Monaco", monospace;
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 500;
       letter-spacing: 0.5px;
-      padding: 5px 12px;
-      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-      border: 1px solid #fbbf24;
-      color: #92400e;
+      padding: 4px 10px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      color: #475569;
+      border-radius: 4px;
     }
 
     .copy-icon {
       cursor: pointer;
-      color: #909399;
+      color: #94a3b8;
       font-size: 16px;
-      transition: all 0.3s ease;
+      transition: all 0.2s ease;
 
       &:hover {
-        color: #409eff;
-        transform: scale(1.15);
+        color: #3b82f6;
+        transform: scale(1.1);
       }
     }
   }
 
-  .warning-icon {
-    color: #f56c6c;
+  // 状态标记
+  .status-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    
+    &.status-0 {
+      background: #e0f2fe;
+      color: #0284c7;
+    }
+    
+    &.status-1 {
+      background: #f0fdf4;
+      color: #16a34a;
+    }
+    
+    &.status-2 {
+      background: #fef2f2;
+      color: #dc2626;
+    }
   }
 
+  // 类型文本
+  .type-text {
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 500;
+  }
 
+  // 时长标记
+  .duration-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    background: #f0fdf4;
+    color: #16a34a;
+  }
+
+  .duration-text {
+    color: #475569;
+    font-size: 13px;
+  }
+
+  // 永久标记
+  .permanent-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    background: #f0fdf4;
+    color: #16a34a;
+  }
+
+  // 价格文本
   .price-text {
-    color: #f56c6c;
+    color: #ef4444;
+    font-weight: 600;
+    font-size: 13px;
   }
 
+  // 过期文本
   .expired-text {
-    color: #f56c6c;
+    color: #ef4444;
+    font-size: 13px;
+  }
+
+  // 时间文本
+  .time-text {
+    color: #64748b;
+    font-size: 13px;
+  }
+
+  // 空值文本
+  .empty-text {
+    color: #cbd5e1;
+    font-size: 13px;
   }
 
   // 输入框宽度

@@ -74,7 +74,7 @@ const testRouter = {
       }
     },
     {
-      path: "/basic/card-key",
+      path: "/basic/cardKey",
       name: "CardKey",
       component: "/src/views/basic/cardKey.vue",
       meta: {

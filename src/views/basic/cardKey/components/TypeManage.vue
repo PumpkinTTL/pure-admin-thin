@@ -53,10 +53,9 @@
     <el-table
       :data="tableData"
       v-loading="loading"
-      style="width: 100%"
+      class="modern-table"
       @selection-change="handleSelectionChange"
-      :header-cell-style="{ background: '#f5f7fa', color: '#606266' }"
-      stripe
+      :header-cell-style="{ background: '#f8fafc', color: '#475569', fontWeight: '500' }"
     >
       <el-table-column type="selection" width="45" align="center" />
       <el-table-column prop="id" label="ID" width="60" align="center" />
@@ -64,12 +63,16 @@
       <!-- 类型名称 -->
       <el-table-column prop="type_name" label="类型名称" min-width="120" align="center">
         <template #default="{ row }">
-          <el-tag type="primary" effect="light">{{ row.type_name }}</el-tag>
+          <span class="type-name">{{ row.type_name }}</span>
         </template>
       </el-table-column>
 
       <!-- 类型编码 -->
-      <el-table-column prop="type_code" label="类型编码" min-width="140" align="center" />
+      <el-table-column prop="type_code" label="类型编码" min-width="140" align="center">
+        <template #default="{ row }">
+          <span class="type-code">{{ row.type_code }}</span>
+        </template>
+      </el-table-column>
 
       <!-- 描述 -->
       <el-table-column
@@ -80,29 +83,27 @@
         show-overflow-tooltip
       >
         <template #default="{ row }">
-          <span v-if="row.description">{{ row.description }}</span>
+          <span v-if="row.description" class="desc-text">{{ row.description }}</span>
           <span v-else class="empty-text">-</span>
         </template>
       </el-table-column>
 
       <!-- 价格 -->
-      <el-table-column prop="price" label="价格" width="90" align="center">
+      <el-table-column prop="price" label="价格" width="100" align="center">
         <template #default="{ row }">
           <span v-if="row.price !== null" class="price-text">¥{{ row.price }}</span>
-          <el-tag v-else type="info" size="small" effect="plain">不需要</el-tag>
+          <span v-else class="no-need-badge">不需要</span>
         </template>
       </el-table-column>
 
       <!-- 会员时长 -->
-      <el-table-column prop="membership_duration" label="会员时长" width="130" align="center">
+      <el-table-column prop="membership_duration" label="会员时长" width="120" align="center">
         <template #default="{ row }">
           <template v-if="row.membership_duration === null">
-            <el-tag type="info" size="small" effect="plain">不需要</el-tag>
+            <span class="no-need-badge">不需要</span>
           </template>
           <template v-else-if="row.membership_duration === 0">
-            <el-tag type="success" size="small" effect="light">
-              <IconifyIconOnline icon="ep:trophy" />永久
-            </el-tag>
+            <span class="permanent-badge">永久</span>
           </template>
           <template v-else>
             <span class="duration-text">{{ formatDuration(row.membership_duration) }}</span>
@@ -111,21 +112,23 @@
       </el-table-column>
 
       <!-- 可兑换天数 -->
-      <el-table-column prop="available_days" label="可兑换天数" width="130" align="center">
+      <el-table-column prop="available_days" label="可兑换天数" width="120" align="center">
         <template #default="{ row }">
           <template v-if="row.available_days === null">
-            <el-tag type="success" size="small" effect="light">
-              <IconifyIconOnline icon="ep:timer" />永久
-            </el-tag>
+            <span class="permanent-badge">永久</span>
           </template>
           <template v-else>
-            <span class="duration-text">{{ row.available_days }}天</span>
+            <span class="days-text">{{ row.available_days }}天</span>
           </template>
         </template>
       </el-table-column>
 
       <!-- 排序 -->
-      <el-table-column prop="sort_order" label="排序" width="70" align="center" />
+      <el-table-column prop="sort_order" label="排序" width="70" align="center">
+        <template #default="{ row }">
+          <span class="sort-text">{{ row.sort_order }}</span>
+        </template>
+      </el-table-column>
 
       <!-- 状态 -->
       <el-table-column prop="status" label="状态" width="80" align="center">
@@ -209,25 +212,48 @@
         </el-form-item>
 
         <el-form-item label="会员时长">
-          <el-input-number
-            v-model="formData.membership_duration"
-            :min="0"
-            placeholder="单位：分钟，0=永久"
-            style="width: 100%"
-            controls-position="right"
-          />
-          <div class="form-tip">留空=不需要，0=永久会员，43200=30天</div>
+          <div class="duration-input-group">
+            <el-radio-group v-model="durationMode" class="duration-mode">
+              <el-radio-button :value="'none'">不需要</el-radio-button>
+              <el-radio-button :value="'permanent'">永久</el-radio-button>
+              <el-radio-button :value="'custom'">自定义</el-radio-button>
+            </el-radio-group>
+            <div v-if="durationMode === 'custom'" class="duration-custom">
+              <el-input-number
+                v-model="durationValue"
+                :min="1"
+                placeholder="输入时长"
+                controls-position="right"
+                style="width: 150px"
+              />
+              <el-select v-model="durationUnit" style="width: 100px; margin-left: 8px">
+                <el-option label="分钟" value="minute" />
+                <el-option label="小时" value="hour" />
+                <el-option label="天" value="day" />
+                <el-option label="月" value="month" />
+              </el-select>
+              <span class="duration-result">≈ {{ calculateDuration() }}</span>
+            </div>
+          </div>
         </el-form-item>
 
         <el-form-item label="可兑换天数">
-          <el-input-number
-            v-model="formData.available_days"
-            :min="1"
-            placeholder="生成后多少天内可兑换"
-            style="width: 100%"
-            controls-position="right"
-          />
-          <div class="form-tip">留空表示永久可兑换</div>
+          <div class="duration-input-group">
+            <el-radio-group v-model="availableMode" class="duration-mode">
+              <el-radio-button :value="'permanent'">永久</el-radio-button>
+              <el-radio-button :value="'custom'">自定义</el-radio-button>
+            </el-radio-group>
+            <div v-if="availableMode === 'custom'" class="duration-custom">
+              <el-input-number
+                v-model="availableValue"
+                :min="1"
+                placeholder="输入天数"
+                controls-position="right"
+                style="width: 150px"
+              />
+              <span style="margin-left: 8px; color: #64748b">天</span>
+            </div>
+          </div>
         </el-form-item>
 
         <el-form-item label="排序">
@@ -257,7 +283,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, watch } from "vue";
 import { ElMessageBox, type FormInstance, type FormRules } from "element-plus";
 import { message } from "@/utils/message";
 import {
@@ -309,11 +335,86 @@ const formData = reactive<CardTypeFormData>({
 
 const currentEditId = ref<number>();
 
+// 会员时长辅助输入
+const durationMode = ref<'none' | 'permanent' | 'custom'>('none');
+const durationValue = ref<number>(1);
+const durationUnit = ref<'minute' | 'hour' | 'day' | 'month'>('day');
+
+// 可兑换天数辅助输入
+const availableMode = ref<'permanent' | 'custom'>('permanent');
+const availableValue = ref<number>(30);
+
 // 表单验证规则
 const rules: FormRules = {
   type_name: [{ required: true, message: "请输入类型名称", trigger: "blur" }],
   type_code: [{ required: true, message: "请输入类型编码", trigger: "blur" }]
 };
+
+/**
+ * 计算会员时长（转换为分钟）
+ */
+const calculateMinutes = (): number => {
+  if (!durationValue.value) return 0;
+  
+  const unitMap = {
+    minute: 1,
+    hour: 60,
+    day: 1440, // 60 * 24
+    month: 43200 // 60 * 24 * 30
+  };
+  
+  return durationValue.value * unitMap[durationUnit.value];
+};
+
+/**
+ * 计算显示的时长描述
+ */
+const calculateDuration = (): string => {
+  const minutes = calculateMinutes();
+  if (minutes < 60) {
+    return `${minutes}分钟`;
+  } else if (minutes < 1440) {
+    return `${Math.floor(minutes / 60)}小时`;
+  } else if (minutes < 43200) {
+    return `${Math.floor(minutes / 1440)}天`;
+  } else {
+    return `${Math.floor(minutes / 43200)}个月`;
+  }
+};
+
+// 监听会员时长模式变化
+watch(durationMode, (newMode) => {
+  if (newMode === 'none') {
+    formData.membership_duration = null;
+  } else if (newMode === 'permanent') {
+    formData.membership_duration = 0;
+  } else {
+    formData.membership_duration = calculateMinutes();
+  }
+});
+
+// 监听自定义时长变化
+watch([durationValue, durationUnit], () => {
+  if (durationMode.value === 'custom') {
+    formData.membership_duration = calculateMinutes();
+  }
+});
+
+// 监听可兑换天数模式变化
+watch(availableMode, (newMode) => {
+  if (newMode === 'permanent') {
+    formData.available_days = null;
+  } else {
+    formData.available_days = availableValue.value;
+  }
+});
+
+// 监听可兑换天数值变化
+watch(availableValue, (newValue) => {
+  if (availableMode.value === 'custom') {
+    formData.available_days = newValue;
+  }
+});
 
 /**
  * 获取列表
@@ -382,6 +483,37 @@ const handleEdit = (row: CardType) => {
     sort_order: row.sort_order,
     status: row.status
   });
+
+  // 初始化会员时长辅助输入
+  if (row.membership_duration === null) {
+    durationMode.value = 'none';
+  } else if (row.membership_duration === 0) {
+    durationMode.value = 'permanent';
+  } else {
+    durationMode.value = 'custom';
+    // 智能识别单位
+    if (row.membership_duration % 43200 === 0) {
+      durationValue.value = row.membership_duration / 43200;
+      durationUnit.value = 'month';
+    } else if (row.membership_duration % 1440 === 0) {
+      durationValue.value = row.membership_duration / 1440;
+      durationUnit.value = 'day';
+    } else if (row.membership_duration % 60 === 0) {
+      durationValue.value = row.membership_duration / 60;
+      durationUnit.value = 'hour';
+    } else {
+      durationValue.value = row.membership_duration;
+      durationUnit.value = 'minute';
+    }
+  }
+
+  // 初始化可兑换天数辅助输入
+  if (row.available_days === null) {
+    availableMode.value = 'permanent';
+  } else {
+    availableMode.value = 'custom';
+    availableValue.value = row.available_days;
+  }
 
   dialogVisible.value = true;
 };
@@ -546,6 +678,13 @@ const resetForm = () => {
     status: 1
   });
   currentEditId.value = undefined;
+  
+  // 重置辅助输入
+  durationMode.value = 'none';
+  durationValue.value = 1;
+  durationUnit.value = 'day';
+  availableMode.value = 'permanent';
+  availableValue.value = 30;
 };
 
 /**
@@ -575,26 +714,144 @@ onMounted(() => {
     gap: 8px;
   }
 
-  .empty-text {
-    color: #c0c4cc;
+  // 现代化表格样式
+  .modern-table {
+    border-radius: 8px;
+    overflow: hidden;
+
+    :deep(.el-table__inner-wrapper) {
+      &::before {
+        display: none;
+      }
+    }
+
+    :deep(.el-table__body) {
+      tr {
+        transition: background-color 0.2s ease;
+        
+        &:hover {
+          background-color: #f8fafc !important;
+        }
+      }
+
+      td {
+        border-bottom: 1px solid #f1f5f9;
+        padding: 12px 0;
+      }
+    }
+
+    :deep(.el-table__header) {
+      th {
+        border-bottom: 1px solid #e2e8f0;
+        padding: 14px 0;
+        font-size: 13px;
+      }
+    }
   }
 
+  // 类型名称
+  .type-name {
+    color: #1e293b;
+    font-weight: 600;
+    font-size: 13px;
+  }
+
+  // 类型编码
+  .type-code {
+    font-family: "Consolas", "Monaco", monospace;
+    font-size: 12px;
+    color: #64748b;
+    background: #f1f5f9;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  // 描述文本
+  .desc-text {
+    color: #64748b;
+    font-size: 13px;
+  }
+
+  // 价格文本
   .price-text {
-    color: #f56c6c;
-    font-weight: 500;
+    color: #ef4444;
+    font-weight: 600;
+    font-size: 13px;
   }
 
+  // 不需要徽章
+  .no-need-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    background: #f1f5f9;
+    color: #94a3b8;
+  }
+
+  // 永久徽章
+  .permanent-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    background: #f0fdf4;
+    color: #16a34a;
+  }
+
+  // 时长文本
   .duration-text {
-    color: #409eff;
+    color: #3b82f6;
     font-weight: 500;
+    font-size: 13px;
   }
 
+  // 天数文本
+  .days-text {
+    color: #64748b;
+    font-size: 13px;
+  }
+
+  // 排序文本
+  .sort-text {
+    color: #94a3b8;
+    font-size: 13px;
+  }
+
+  // 空值文本
+  .empty-text {
+    color: #cbd5e1;
+    font-size: 13px;
+  }
+
+  // 表单提示
   .form-tip {
     font-size: 12px;
     color: #909399;
     margin-top: 4px;
   }
 
+  // 时长输入组件
+  .duration-input-group {
+    .duration-mode {
+      margin-bottom: 12px;
+    }
+
+    .duration-custom {
+      display: flex;
+      align-items: center;
+      margin-top: 12px;
+
+      .duration-result {
+        margin-left: 12px;
+        color: #3b82f6;
+        font-weight: 500;
+        font-size: 13px;
+      }
+    }
+  }
 }
 </style>
 
