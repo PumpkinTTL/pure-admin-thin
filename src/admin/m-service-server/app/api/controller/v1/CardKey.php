@@ -220,9 +220,8 @@ class CardKey extends BaseController
         $result = $this->service->verify($cardKey);
         
         return json([
-            'code' => $result['valid'] ? 200 : 400,
+            'code' => $result['success'] ? 200 : 400,
             'message' => $result['message'] ?? '验证完成',
-            'valid' => $result['valid'],
             'data' => $result['data'] ?? null
         ]);
     }

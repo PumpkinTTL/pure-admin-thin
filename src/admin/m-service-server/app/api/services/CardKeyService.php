@@ -302,8 +302,30 @@ class CardKeyService
                 ];
             }
 
-            // 调用工具类禁用
-            return CardKeyUtil::disableCode($cardKey->card_key, $userId, $reason);
+            if ($cardKey->status == CardKey::STATUS_DISABLED) {
+                return [
+                    'success' => false,
+                    'message' => '卡密已经被禁用'
+                ];
+            }
+
+            // 更新为禁用状态
+            $cardKey->status = CardKey::STATUS_DISABLED;
+            $cardKey->save();
+
+            // 记录禁用日志
+            CardKeyLog::create([
+                'card_key_id' => $cardKey->id,
+                'user_id' => $userId,
+                'action' => 'disable',
+                'remark' => $reason,
+                'create_time' => date('Y-m-d H:i:s')
+            ]);
+
+            return [
+                'success' => true,
+                'message' => '禁用成功'
+            ];
         } catch (\Exception $e) {
             return [
                 'success' => false,

@@ -116,6 +116,71 @@
         </el-col>
       </el-row>
 
+      <!-- 测试操作区域 -->
+      <el-card class="test-area" shadow="never">
+        <template #header>
+          <div class="test-area-header">
+            <span class="test-area-title">
+              <IconifyIconOnline icon="ep:experiment" />
+              测试操作区域
+            </span>
+            <span class="selected-count">已选择 {{ selectedIds.length }} 张卡密</span>
+          </div>
+        </template>
+        
+        <div class="test-buttons">
+          <el-button 
+            type="primary" 
+            size="small" 
+            @click="handleTestUse"
+            :disabled="selectedIds.length !== 1"
+          >
+            <IconifyIconOnline icon="ep:check" />
+            模拟使用
+          </el-button>
+          
+          <el-button 
+            type="warning" 
+            size="small" 
+            @click="handleTestVerify"
+            :disabled="selectedIds.length !== 1"
+          >
+            <IconifyIconOnline icon="ep:search" />
+            验证卡密
+          </el-button>
+          
+          <el-button 
+            type="danger" 
+            size="small" 
+            @click="handleTestDisable"
+            :disabled="selectedIds.length === 0"
+          >
+            <IconifyIconOnline icon="ep:close" />
+            禁用卡密
+          </el-button>
+          
+          <el-button 
+            type="info" 
+            size="small" 
+            @click="handleTestReset"
+            :disabled="selectedIds.length === 0"
+          >
+            <IconifyIconOnline icon="ep:refresh" />
+            重置状态
+          </el-button>
+          
+          <el-button 
+            type="success" 
+            size="small" 
+            @click="handleBatchTest"
+            :disabled="selectedIds.length === 0"
+          >
+            <IconifyIconOnline icon="ep:magic-stick" />
+            批量测试
+          </el-button>
+        </div>
+      </el-card>
+
       <!-- 数据表格 -->
       <!-- 数据表格 -->
       <el-table 
@@ -132,10 +197,10 @@
           <template #default="{ row }">
             <div class="code-cell">
               <el-tag effect="light" class="code-tag">
-                {{ row.card_key || row.code }}
+                {{ row.card_key }}
               </el-tag>
               <el-tooltip content="复制" placement="top">
-                <el-icon class="copy-icon" @click="handleCopyCode(row.card_key || row.code)">
+                <el-icon class="copy-icon" @click="handleCopyCode(row.card_key)">
                   <IconifyIconOnline icon="ep:document-copy" />
                 </el-icon>
               </el-tooltip>
@@ -265,12 +330,17 @@ import {
   batchDeleteCardKey,
   exportCardKeys,
   getCardKeyTypes,
+  verifyCardKey,
+  useCardKey,
+  disableCardKey,
   CardKeyStatus,
   CardKeyStatusMap,
   CardKeyStatusTypeMap,
   formatMembershipDuration,
   type CardKey,
-  type CardKeyListParams
+  type CardKeyListParams,
+  type UseCardKeyParams,
+  type DisableCardKeyParams
 } from "@/api/cardKey";
 import GenerateDialog from "./cardKey/components/GenerateDialog.vue";
 import DetailDialog from "./cardKey/components/DetailDialog.vue";
@@ -426,7 +496,7 @@ const handleDelete = async (row: CardKey) => {
 
   try {
     await ElMessageBox.confirm(
-      `确定要删除卡密 ${row.card_key || row.code} 吗？`,
+      `确定要删除卡密 ${row.card_key} 吗？`,
       "删除确认",
       {
         confirmButtonText: "确定",
@@ -578,6 +648,235 @@ const handleTabChange = (tabName: string) => {
     // 切换到类型管理时刷新数据
     if (typeManageRef.value && typeof typeManageRef.value.fetchList === 'function') {
       typeManageRef.value.fetchList();
+    }
+  }
+};
+
+/**
+ * 获取选中的卡密对象
+ */
+const getSelectedCardKey = (): CardKey | null => {
+  if (selectedIds.value.length !== 1) return null;
+  return tableData.value.find(item => item.id === selectedIds.value[0]) || null;
+};
+
+/**
+ * 测试：模拟使用卡密
+ */
+const handleTestUse = async () => {
+  const cardKey = getSelectedCardKey();
+  console.log('=== 模拟使用：选中的卡密对象 ===', cardKey);
+  console.log('=== card_key字段 ===', cardKey?.card_key);
+  
+  if (!cardKey) {
+    message("请选择一张卡密", { type: "warning" });
+    return;
+  }
+
+  if (!cardKey.card_key) {
+    message("卡密码不能为空，请检查数据", { type: "error" });
+    return;
+  }
+
+  if (cardKey.status !== CardKeyStatus.UNUSED) {
+    message("只能使用未使用状态的卡密", { type: "warning" });
+    return;
+  }
+
+  try {
+    await ElMessageBox.prompt("请输入测试用户ID（默认为1）", "模拟使用卡密", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      inputValue: "1",
+      inputPattern: /^\d+$/,
+      inputErrorMessage: "请输入有效的用户ID"
+    }).then(async ({ value }) => {
+      const params: UseCardKeyParams = {
+        card_key: cardKey.card_key,
+        user_id: parseInt(value),
+        remark: "测试使用"
+      };
+
+      const response = await useCardKey(params);
+      if (response.code === 200) {
+        message("使用成功！", { type: "success" });
+        fetchList();
+      } else {
+        message(response.message || "使用失败", { type: "error" });
+      }
+    });
+  } catch (error) {
+    if (error !== "cancel") {
+      message("操作失败", { type: "error" });
+    }
+  }
+};
+
+/**
+ * 测试：验证卡密
+ */
+const handleTestVerify = async () => {
+  const cardKey = getSelectedCardKey();
+  console.log('=== 验证卡密：选中的卡密对象 ===', cardKey);
+  console.log('=== card_key字段 ===', cardKey?.card_key);
+  
+  if (!cardKey) {
+    message("请选择一张卡密", { type: "warning" });
+    return;
+  }
+
+  if (!cardKey.card_key) {
+    message("卡密码不能为空，请检查数据", { type: "error" });
+    return;
+  }
+
+  try {
+    const response = await verifyCardKey(cardKey.card_key);
+    if (response.code === 200) {
+      const data = response.data;
+      ElMessageBox.alert(
+        `
+          <div style="line-height: 2;">
+            <p><strong>卡密码：</strong>${data.card_key}</p>
+            <p><strong>类型：</strong>${data.cardType?.type_name || '-'}</p>
+            <p><strong>状态：</strong>${CardKeyStatusMap[data.status]}</p>
+            <p><strong>价格：</strong>￥${data.cardType?.price || 0}</p>
+            <p><strong>会员时长：</strong>${formatMembershipDuration(data.cardType?.membership_duration || 0)}</p>
+            <p><strong>兑换期限：</strong>${data.expire_time || '永久可用'}</p>
+          </div>
+        `,
+        "卡密验证成功",
+        {
+          dangerouslyUseHTMLString: true,
+          confirmButtonText: "关闭"
+        }
+      );
+    } else {
+      message(response.message || "验证失败", { type: "error" });
+    }
+  } catch (error) {
+    message("验证失败", { type: "error" });
+  }
+};
+
+/**
+ * 测试：禁用卡密
+ */
+const handleTestDisable = async () => {
+  if (selectedIds.value.length === 0) {
+    message("请选择要禁用的卡密", { type: "warning" });
+    return;
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确定要禁用选中的 ${selectedIds.value.length} 张卡密吗？`,
+      "禁用确认",
+      {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning"
+      }
+    );
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const id of selectedIds.value) {
+      try {
+        const params: DisableCardKeyParams = {
+          user_id: 1,
+          reason: "测试禁用"
+        };
+        const response = await disableCardKey(id, params);
+        if (response.code === 200) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      } catch (error) {
+        failCount++;
+      }
+    }
+
+    message(`禁用完成！成功 ${successCount} 张，失败 ${failCount} 张`, {
+      type: failCount === 0 ? "success" : "warning"
+    });
+
+    fetchList();
+  } catch (error) {
+    if (error !== "cancel") {
+      message("操作失败", { type: "error" });
+    }
+  }
+};
+
+/**
+ * 测试：重置状态（将卡密重置为未使用状态）
+ */
+const handleTestReset = async () => {
+  message("重置功能需要后端支持，当前API未实现", { type: "info" });
+};
+
+/**
+ * 测试：批量测试
+ */
+const handleBatchTest = async () => {
+  if (selectedIds.value.length === 0) {
+    message("请选择要测试的卡密", { type: "warning" });
+    return;
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `将模拟使用选中的 ${selectedIds.value.length} 张卡密（仅处理未使用状态），是否继续？`,
+      "批量测试",
+      {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning"
+      }
+    );
+
+    let successCount = 0;
+    let skipCount = 0;
+    let failCount = 0;
+
+    for (const id of selectedIds.value) {
+      const cardKey = tableData.value.find(item => item.id === id);
+      if (!cardKey) continue;
+
+      if (cardKey.status !== CardKeyStatus.UNUSED) {
+        skipCount++;
+        continue;
+      }
+
+      try {
+        const params: UseCardKeyParams = {
+          card_key: cardKey.card_key,
+          user_id: 1,
+          remark: "批量测试"
+        };
+        const response = await useCardKey(params);
+        if (response.code === 200) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      } catch (error) {
+        failCount++;
+      }
+    }
+
+    message(
+      `测试完成！成功 ${successCount} 张，跳过 ${skipCount} 张，失败 ${failCount} 张`,
+      { type: failCount === 0 ? "success" : "warning" }
+    );
+
+    fetchList();
+  } catch (error) {
+    if (error !== "cancel") {
+      message("操作失败", { type: "error" });
     }
   }
 };
@@ -858,6 +1157,60 @@ onMounted(() => {
     @media (max-width: 1200px) {
       justify-content: flex-start;
       margin-top: 8px;
+    }
+  }
+
+  // 测试操作区域
+  .test-area {
+    margin-top: 16px;
+    margin-bottom: 16px;
+    border-radius: 8px;
+    border: 2px dashed #e2e8f0;
+    background: #fafbfc;
+
+    :deep(.el-card__header) {
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      border-bottom: 1px solid #e2e8f0;
+      padding: 12px 20px;
+    }
+
+    :deep(.el-card__body) {
+      padding: 16px 20px;
+    }
+
+    .test-area-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      .test-area-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #475569;
+
+        .iconify {
+          font-size: 18px;
+          color: #3b82f6;
+        }
+      }
+
+      .selected-count {
+        font-size: 12px;
+        color: #64748b;
+        background: white;
+        padding: 4px 12px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+      }
+    }
+
+    .test-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
     }
   }
 

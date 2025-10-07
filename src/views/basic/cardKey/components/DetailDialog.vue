@@ -39,7 +39,7 @@
           <el-descriptions-item label="卡密码" :span="2">
             <div class="code-display">
               <el-text class="code-text" size="large" tag="b">
-                {{ detail.card_key || detail.code }}
+                {{ detail.card_key }}
               </el-text>
               <el-button
                 link
@@ -252,7 +252,7 @@ const handleCopyCode = async () => {
   }
 
   try {
-    await copy(detail.value.card_key || detail.value.code);
+    await copy(detail.value.card_key);
     message("复制成功", { type: "success" });
   } catch (error) {
     message("复制失败", { type: "error" });

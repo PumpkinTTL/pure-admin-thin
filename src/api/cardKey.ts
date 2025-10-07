@@ -41,10 +41,6 @@ export interface CardKey {
   membership_duration_text?: string;
   username?: string;
   nickname?: string;
-  
-  // 向后兼容字段
-  code?: string;  // = card_key
-  type?: string;  // = cardType.type_name
 }
 
 /**
@@ -76,7 +72,7 @@ export interface CardKeyListParams {
  * 使用卡密参数类型
  */
 export interface UseCardKeyParams {
-  code: string;
+  card_key: string;  // 使用 card_key 字段与后端保持一致
   user_id: number;
   remark?: string;
 }
@@ -202,11 +198,11 @@ export const batchDeleteCardKey = (ids: number[]) => {
 /**
  * 验证卡密
  *
- * @param code 卡密码
+ * @param cardKey 卡密码
  * @returns Promise
  */
-export const verifyCardKey = (code: string) => {
-  return http.request<any>("post", "/api/v1/cardkey/verify", { data: { code } });
+export const verifyCardKey = (cardKey: string) => {
+  return http.request<any>("post", "/api/v1/cardkey/verify", { data: { card_key: cardKey } });
 };
 
 /**
