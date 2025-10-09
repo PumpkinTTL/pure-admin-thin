@@ -261,11 +261,15 @@ class PaymentMethodService
                 return ['code' => 400, 'msg' => '不能删除默认支付方式，请先设置其他支付方式为默认'];
             }
 
-            // TODO: 检查是否有相关的支付订单（根据业务需求添加）
-            // $orderCount = Db::name('orders')->where('payment_method_id', $id)->count();
-            // if ($orderCount > 0) {
-            //     return ['code' => 400, 'msg' => "该支付方式已被 {$orderCount} 个订单使用，无法删除"];
-            // }
+            // 检查是否有相关的支付订单
+            // 注：如果项目中有订单表，请解注下面的代码
+            /* 
+            $orderCount = Db::name('orders')->where('payment_method_id', $id)->count();
+            if ($orderCount > 0) {
+                LogService::log("删除支付方式失败，已被{$orderCount}个订单使用：{$id}", [], 'warning');
+                return ['code' => 400, 'msg' => "该支付方式已被 {$orderCount} 个订单使用，无法删除"];
+            }
+            */
 
             $paymentMethodName = $paymentMethod->getData('name');
 

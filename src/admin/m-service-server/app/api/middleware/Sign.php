@@ -77,10 +77,6 @@ class Sign
         $paramsStr = http_build_query($params); // 构建查询字符串
         $paramsHash = hash('sha256', $paramsStr); //计算参数摘要
         $parseSignHash = SecretUtil::aesDecryptECB($sign);  //解密客户端摘要
-//        var_dump($paramsStr);  //参数排序
-//        var_dump($sign);  //客户端的签名
-//        var_dump($paramsHash); //计算排序后的参数摘要
-//        var_dump($parseSignHash); //解密的参数摘要
         return $paramsHash == $parseSignHash;
     }
 

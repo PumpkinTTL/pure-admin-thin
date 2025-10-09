@@ -12,6 +12,7 @@
 namespace app\api\services;
 
 use app\api\model\CardType;
+use app\api\model\CardKey;
 
 class CardTypeService
 {
@@ -208,14 +209,14 @@ class CardTypeService
                 ];
             }
 
-            // TODO: 检查是否有卡密正在使用此类型
-            // $cardKeyCount = CardKey::where('type_id', $id)->count();
-            // if ($cardKeyCount > 0) {
-            //     return [
-            //         'success' => false,
-            //         'message' => "有{$cardKeyCount}个卡密正在使用此类型，不允许删除"
-            //     ];
-            // }
+            // 检查是否有卡密正在使用此类型
+            $cardKeyCount = CardKey::where('type_id', $id)->count();
+            if ($cardKeyCount > 0) {
+                return [
+                    'success' => false,
+                    'message' => "有{$cardKeyCount}个卡密正在使用此类型，不允许删除"
+                ];
+            }
 
             $type->delete();
 
@@ -240,7 +241,14 @@ class CardTypeService
     public function batchDelete(array $ids): array
     {
         try {
-            // TODO: 检查是否有卡密正在使用这些类型
+            // 检查是否有卡密正在使用这些类型
+            $cardKeyCount = CardKey::whereIn('type_id', $ids)->count();
+            if ($cardKeyCount > 0) {
+                return [
+                    'success' => false,
+                    'message' => "有{$cardKeyCount}个卡密正在使用这些类型，不允许删除"
+                ];
+            }
             
             $count = CardType::batchDelete($ids);
 
