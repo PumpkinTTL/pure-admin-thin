@@ -158,16 +158,19 @@
     </el-table>
 
     <!-- 分页 -->
-    <el-pagination
-      v-model:current-page="pagination.page"
-      v-model:page-size="pagination.limit"
-      :total="pagination.total"
-      :page-sizes="[10, 20, 50, 100]"
-      layout="total, sizes, prev, pager, next, jumper"
-      @size-change="fetchList"
-      @current-change="fetchList"
-      style="margin-top: 16px; justify-content: center"
-    />
+    <div class="pagination-wrapper">
+      <el-pagination
+        v-model:current-page="pagination.page"
+        v-model:page-size="pagination.limit"
+        :total="pagination.total"
+        :page-sizes="[5, 10, 20, 50, 100]"
+        :background="true"
+        layout="total, sizes, prev, pager, next, jumper"
+        size="small"
+        @size-change="fetchList"
+        @current-change="fetchList"
+      />
+    </div>
 
     <!-- 新增/编辑对话框 -->
     <el-dialog
@@ -312,7 +315,7 @@ const selectedIds = ref<number[]>([]);
 // 分页
 const pagination = reactive({
   page: 1,
-  limit: 10,
+  limit: 5,
   total: 0
 });
 

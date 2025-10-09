@@ -269,6 +269,16 @@ export const getCardKeyLogs = (id: number, params?: { page?: number; limit?: num
 };
 
 /**
+ * 获取所有使用日志
+ *
+ * @param params 查询参数
+ * @returns Promise
+ */
+export const getAllCardKeyLogs = (params?: CardKeyListParams) => {
+  return http.request<any>("get", "/api/v1/cardkey/allLogs", { params });
+};
+
+/**
  * 卡密状态枚举
  */
 export enum CardKeyStatus {

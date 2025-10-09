@@ -302,6 +302,14 @@ class CardKeyService
                 ];
             }
 
+            // 已使用的卡密不能禁用
+            if ($cardKey->status == CardKey::STATUS_USED) {
+                return [
+                    'success' => false,
+                    'message' => '已使用的卡密不能禁用'
+                ];
+            }
+
             if ($cardKey->status == CardKey::STATUS_DISABLED) {
                 return [
                     'success' => false,
@@ -391,6 +399,29 @@ class CardKeyService
             return [
                 'success' => false,
                 'message' => '获取记录失败：' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * 获取所有使用日志
+     * 
+     * @param array $params 查询参数
+     * @return array
+     */
+    public function getAllLogs(array $params = []): array
+    {
+        try {
+            $result = CardKeyLog::getList($params);
+
+            return [
+                'success' => true,
+                'data' => $result
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => '获取日志失败：' . $e->getMessage()
             ];
         }
     }

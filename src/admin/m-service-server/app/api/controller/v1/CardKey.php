@@ -395,5 +395,28 @@ class CardKey extends BaseController
             'data' => $result['data'] ?? null
         ]);
     }
+    
+    /**
+     * 获取所有使用日志
+     * 
+     * GET /api/v1/cardkey/allLogs
+     * 
+     * @param Request $request
+     * @return Json
+     */
+    public function allLogs(Request $request): Json
+    {
+        // 获取查询参数
+        $params = $request->get();
+        
+        // 调用服务获取所有日志
+        $result = $this->service->getAllLogs($params);
+        
+        return json([
+            'code' => $result['success'] ? 200 : 400,
+            'message' => $result['message'] ?? ($result['success'] ? '获取成功' : '获取失败'),
+            'data' => $result['data'] ?? null
+        ]);
+    }
 }
 

@@ -248,6 +248,7 @@ Route::group('/:version/cardkey', function () {
     Route::get('detail/:id', ':version.CardKey/detail');                // 获取卡密详情
     Route::get('types', ':version.CardKey/getTypes');                   // 获取类型列表
     Route::get('logs/:id', ':version.CardKey/logs');                    // 获取使用记录
+    Route::get('allLogs', ':version.CardKey/allLogs');                  // 获取所有使用日志
 
     // 操作卡密
     Route::post('verify', ':version.CardKey/verify');                   // 验证卡密

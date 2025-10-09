@@ -14,17 +14,17 @@
   <el-dialog
     v-model="dialogVisible"
     title="卡密详情"
-    width="650px"
+    width="700px"
     :close-on-click-modal="false"
     @close="handleClose"
     class="detail-dialog"
   >
     <div v-loading="loading" class="detail-container">
-      <!-- 基本信息 -->
-      <div class="info-section">
-        <div class="section-header">
-          <span class="section-title">基本信息</span>
-          <el-tag :type="getStatusType(detail.status)" size="small">
+      <!-- 头部信息卡片 -->
+      <div class="card-header-info">
+        <div class="card-title-row">
+          <span class="card-title">基本信息</span>
+          <el-tag :type="getStatusType(detail.status)" size="small" effect="plain">
             {{ getStatusText(detail.status) }}
           </el-tag>
         </div>
@@ -92,41 +92,36 @@
 
       <!-- 使用记录 -->
       <div class="logs-section" v-if="logs.length > 0">
-        <div class="section-header">
-          <span class="section-title">使用记录</span>
+        <div class="card-title-row">
+          <span class="card-title">使用记录</span>
           <el-badge :value="logs.length" type="primary" />
         </div>
 
-        <el-timeline>
-          <el-timeline-item
-            v-for="log in logs"
-            :key="log.id"
-            :timestamp="log.create_time"
-            placement="top"
-            :type="getLogType(log.action)"
+        <div class="logs-list">
+          <div 
+            v-for="log in logs" 
+            :key="log.id" 
+            class="log-item"
           >
-            <el-card shadow="hover">
-              <div class="log-item">
-                <div class="log-header">
-                  <el-tag :type="getLogType(log.action)" size="small">
-                    {{ log.action }}
-                  </el-tag>
-                  <span class="log-user">
-                    {{ log.username || log.nickname || `用户ID: ${log.user_id}` }}
-                  </span>
-                </div>
-                <div class="log-content" v-if="log.remark">
-                  <el-text type="info">{{ log.remark }}</el-text>
-                </div>
-                <div class="log-meta">
-                  <el-text size="small" type="info">
-                    IP: {{ log.ip || "未知" }}
-                  </el-text>
-                </div>
+            <div class="log-time">{{ log.create_time }}</div>
+            <div class="log-content">
+              <div class="log-header">
+                <el-tag :type="getLogType(log.action)" size="small" effect="plain">
+                  {{ log.action }}
+                </el-tag>
+                <span class="log-user">
+                  {{ log.username || log.nickname || `用户ID: ${log.user_id}` }}
+                </span>
               </div>
-            </el-card>
-          </el-timeline-item>
-        </el-timeline>
+              <div class="log-remark" v-if="log.remark">
+                {{ log.remark }}
+              </div>
+              <div class="log-meta">
+                <span>IP: {{ log.ip || "未知" }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- 空状态 -->
@@ -142,7 +137,7 @@
         <el-button @click="handleClose" size="default">关闭</el-button>
         <el-button
           type="danger"
-          :disabled="detail.status === 1 || detail.status === 2"
+          :disabled="detail.status !== 0"
           @click="handleDisable"
           size="default"
         >
@@ -353,59 +348,110 @@ watch(
 <style scoped lang="scss">
 .detail-dialog {
   :deep(.el-dialog__header) {
-    padding: 20px 20px 10px;
-    border-bottom: 1px solid #ebeef5;
+    padding: 20px 24px;
+    border-bottom: none;
+    background: #ffffff;
   }
 
   :deep(.el-dialog__body) {
-    padding: 20px;
+    padding: 0 24px 24px;
+    max-height: 75vh;
+    overflow-y: auto;
+    background: #f8fafc;
   }
 
   :deep(.el-dialog__footer) {
-    padding: 12px 20px 20px;
-    border-top: 1px solid #ebeef5;
+    padding: 16px 24px;
+    border-top: 1px solid #e5e7eb;
+    background: #ffffff;
   }
 }
 
 .detail-container {
-  .info-section,
+  // 卡片头部
+  .card-header-info,
   .logs-section {
-    margin-bottom: 18px;
-    padding: 16px;
-    background: #f5f7fa;
-    border-radius: 8px;
-    border: 1px solid #ebeef5;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e5e7eb;
 
     &:last-child {
       margin-bottom: 0;
     }
   }
 
-  .section-header {
+  // 统一的标题样式
+  .card-title-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 14px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid #e4e7ed;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #f1f5f9;
 
-    .section-title {
+    .card-title {
       font-size: 15px;
       font-weight: 600;
-      color: #303133;
+      color: #0f172a;
+      position: relative;
+      padding-left: 12px;
+      
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 4px;
+        height: 16px;
+        background: linear-gradient(to bottom, #3b82f6, #60a5fa);
+        border-radius: 2px;
+      }
+    }
+  }
+
+  // descriptions 样式
+  :deep(.el-descriptions) {
+    .el-descriptions__label {
+      font-size: 13px;
+      color: #64748b;
+      font-weight: 500;
+      padding: 10px 16px;
+      background: #f8fafc;
+      border-right: 2px solid #e5e7eb;
+    }
+
+    .el-descriptions__content {
+      font-size: 13px;
+      color: #0f172a;
+      padding: 10px 16px;
+      font-weight: 500;
+    }
+
+    .el-descriptions__cell {
+      border-color: #f1f5f9;
+    }
+    
+    .el-descriptions__body {
+      border-radius: 8px;
+      overflow: hidden;
     }
   }
 
   .code-display {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 
     .code-text {
-      font-family: "Courier New", monospace;
-      letter-spacing: 1px;
-      color: var(--el-color-primary);
+      font-family: "Consolas", "Monaco", "Courier New", monospace;
+      letter-spacing: 0.5px;
+      color: #3b82f6;
       font-weight: 600;
+      font-size: 14px;
     }
   }
 
@@ -413,31 +459,78 @@ watch(
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    font-size: 12px;
+  }
+
+  // 使用记录列表
+  .logs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
   }
 
   .log-item {
-    .log-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 10px;
-
-      .log-user {
-        font-weight: 500;
-        color: #606266;
-      }
+    display: flex;
+    gap: 16px;
+    padding: 14px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border-left: 3px solid #e5e7eb;
+    transition: all 0.2s ease;
+    
+    &:hover {
+      background: #f1f5f9;
+      border-left-color: #3b82f6;
+      box-shadow: 0 2px 6px rgba(59, 130, 246, 0.08);
     }
-
-    .log-content {
-      margin-bottom: 10px;
-      padding: 8px 12px;
-      background: #fafafa;
-      border-radius: 4px;
-    }
-
-    .log-meta {
+    
+    .log-time {
+      flex-shrink: 0;
+      width: 140px;
       font-size: 12px;
-      color: #909399;
+      color: #64748b;
+      font-weight: 500;
+      line-height: 24px;
+    }
+    
+    .log-content {
+      flex: 1;
+      
+      .log-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+
+        .log-user {
+          font-weight: 600;
+          color: #0f172a;
+          font-size: 13px;
+        }
+      }
+
+      .log-remark {
+        margin-bottom: 6px;
+        padding: 8px 12px;
+        background: #ffffff;
+        border-radius: 6px;
+        font-size: 12px;
+        color: #475569;
+        line-height: 1.5;
+      }
+
+      .log-meta {
+        font-size: 11px;
+        color: #94a3b8;
+        
+        span {
+          &::before {
+            content: '•';
+            margin-right: 6px;
+            color: #cbd5e1;
+          }
+        }
+      }
     }
   }
 }
@@ -460,24 +553,112 @@ watch(
     :deep(.el-descriptions) {
       .el-descriptions__label {
         width: 80px;
+        font-size: 12px;
+        padding: 6px 10px;
       }
+      
+      .el-descriptions__content {
+        font-size: 12px;
+        padding: 6px 10px;
+      }
+    }
+    
+    .info-section,
+    .logs-section {
+      padding: 10px;
     }
   }
 }
 
 // 暗黑模式适配
 html.dark {
+  .detail-dialog {
+    :deep(.el-dialog__header) {
+      background: linear-gradient(to bottom, #1f2937, #111827);
+      border-bottom-color: #374151;
+    }
+    
+    :deep(.el-dialog__footer) {
+      background: #1f2937;
+      border-top-color: #374151;
+    }
+  }
+  
   .detail-container {
     .info-section,
     .logs-section {
-      background: var(--el-fill-color-light);
+      background: #1f2937;
+      border-color: #374151;
     }
 
     .section-header {
-      border-bottom-color: var(--el-border-color);
+      border-bottom-color: #374151;
 
       .section-title {
-        color: var(--el-text-color-primary);
+        color: #f9fafb;
+        
+        &::before {
+          background: linear-gradient(to bottom, #60a5fa, #3b82f6);
+        }
+      }
+    }
+    
+    :deep(.el-descriptions) {
+      .el-descriptions__label {
+        background: #111827;
+        color: #9ca3af;
+      }
+      
+      .el-descriptions__content {
+        color: #f9fafb;
+      }
+      
+      .el-descriptions__cell {
+        border-color: #374151;
+      }
+    }
+    
+    .code-display {
+      .code-text {
+        color: #60a5fa;
+      }
+    }
+    
+    :deep(.el-timeline) {
+      .el-timeline-item__tail {
+        border-left-color: #4b5563;
+      }
+      
+      .el-card {
+        background: #111827;
+        border-color: #374151;
+        
+        &:hover {
+          border-color: #60a5fa;
+          box-shadow: 0 2px 8px rgba(96, 165, 250, 0.2);
+        }
+      }
+    }
+    
+    .log-item {
+      .log-header {
+        .log-user {
+          color: #f9fafb;
+        }
+      }
+      
+      .log-content {
+        background: #111827;
+        border-left-color: #4b5563;
+        color: #e5e7eb;
+      }
+      
+      .log-meta {
+        color: #6b7280;
+        
+        &::before {
+          color: #4b5563;
+        }
       }
     }
   }

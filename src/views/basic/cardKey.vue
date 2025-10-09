@@ -309,6 +309,78 @@
         <el-tab-pane label="类型管理" name="cardTypes">
           <TypeManage ref="typeManageRef" />
         </el-tab-pane>
+        
+        <!-- 使用日志Tab -->
+        <el-tab-pane label="使用日志" name="usageLogs">
+          <div class="logs-container">
+            <!-- 日志表格 -->
+            <el-table 
+              :data="logsData" 
+              v-loading="logsLoading" 
+              class="modern-table logs-table"
+              :header-cell-style="{ background: '#f8fafc', color: '#475569', fontWeight: '500' }">
+              <el-table-column prop="id" label="ID" width="70" align="center" />
+              <el-table-column prop="card_key" label="卡密码" min-width="180" align="center">
+                <template #default="{ row }">
+                  <el-tag effect="plain" class="code-tag" size="small">
+                    {{ row.cardKey?.card_key || '-' }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="action" label="操作" width="90" align="center">
+                <template #default="{ row }">
+                  <el-tag :type="getLogActionType(row.action)" size="small" effect="plain">
+                    {{ row.action }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="user" label="用户" min-width="140" align="center">
+                <template #default="{ row }">
+                  <div class="user-info">
+                    <IconifyIconOnline icon="ep:user" class="user-icon" />
+                    <span>{{ row.username || row.nickname || `ID: ${row.user_id}` }}</span>
+                  </div>
+                </template>
+              </el-table-column>
+              <el-table-column prop="ip" label="IP地址" width="140" align="center">
+                <template #default="{ row }">
+                  <div class="ip-info">
+                    <IconifyIconOnline icon="ep:location" class="ip-icon" />
+                    <span>{{ row.ip || '-' }}</span>
+                  </div>
+                </template>
+              </el-table-column>
+              <el-table-column prop="remark" label="备注" min-width="180" align="center" show-overflow-tooltip>
+                <template #default="{ row }">
+                  <span class="remark-text">{{ row.remark || '-' }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column prop="create_time" label="时间" width="165" align="center">
+                <template #default="{ row }">
+                  <div class="time-info">
+                    <IconifyIconOnline icon="ep:clock" class="time-icon" />
+                    <span>{{ row.create_time }}</span>
+                  </div>
+                </template>
+              </el-table-column>
+            </el-table>
+
+            <!-- 分页 -->
+            <div class="pagination-wrapper">
+              <el-pagination
+                v-model:current-page="logsPagination.currentPage"
+                v-model:page-size="logsPagination.pageSize"
+                :page-sizes="logsPagination.pageSizes"
+                :background="true"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="logsPagination.total"
+                size="small"
+                @size-change="handleLogsSizeChange"
+                @current-change="handleLogsCurrentChange"
+              />
+            </div>
+          </div>
+        </el-tab-pane>
       </el-tabs>
     </el-card>
 
@@ -333,6 +405,7 @@ import {
   verifyCardKey,
   useCardKey,
   disableCardKey,
+  getAllCardKeyLogs,
   CardKeyStatus,
   CardKeyStatusMap,
   CardKeyStatusTypeMap,
@@ -380,6 +453,16 @@ const pagination = reactive({
   pageSize: 5,
   currentPage: 1,
   pageSizes: [5, 10, 20, 30, 50]
+});
+
+// 日志数据
+const logsData = ref<any[]>([]);
+const logsLoading = ref(false);
+const logsPagination = reactive({
+  total: 0,
+  pageSize: 5,
+  currentPage: 1,
+  pageSizes: [5, 10, 20, 50, 100]
 });
 
 /**
@@ -649,6 +732,9 @@ const handleTabChange = (tabName: string) => {
     if (typeManageRef.value && typeof typeManageRef.value.fetchList === 'function') {
       typeManageRef.value.fetchList();
     }
+  } else if (tabName === 'usageLogs') {
+    // 切换到使用日志时刷新数据
+    fetchLogs();
   }
 };
 
@@ -879,6 +965,65 @@ const handleBatchTest = async () => {
       message("操作失败", { type: "error" });
     }
   }
+};
+
+/**
+ * 获取使用日志列表
+ */
+const fetchLogs = async () => {
+  logsLoading.value = true;
+  try {
+    const params = {
+      page: logsPagination.currentPage,
+      limit: logsPagination.pageSize
+    };
+    const response = await getAllCardKeyLogs(params);
+
+    if (response.code === 200) {
+      logsData.value = response.data.list || [];
+      logsPagination.total = response.data.total || 0;
+    } else {
+      message(response.message || "获取日志失败", { type: "error" });
+    }
+  } catch (error) {
+    console.error("获取日志错误:", error);
+    message("获取日志失败", { type: "error" });
+  } finally {
+    logsLoading.value = false;
+  }
+};
+
+/**
+ * 日志分页大小变化
+ */
+const handleLogsSizeChange = (size: number) => {
+  logsPagination.pageSize = size;
+  fetchLogs();
+};
+
+/**
+ * 日志当前页变化
+ */
+const handleLogsCurrentChange = (page: number) => {
+  logsPagination.currentPage = page;
+  fetchLogs();
+};
+
+/**
+ * 获取日志操作类型
+ */
+const getLogActionType = (action: string): string => {
+  const typeMap: Record<string, string> = {
+    "使用": "success",
+    "use": "success",
+    "验证": "info",
+    "verify": "info",
+    "禁用": "danger",
+    "disable": "danger",
+    "启用": "success",
+    "enable": "success"
+  };
+  return typeMap[action] || "info";
 };
 
 // 组件挂载时获取数据
@@ -1136,10 +1281,37 @@ onMounted(() => {
     font-size: 13px;
   }
 
-  // 空值文本
+  // 空文本
   .empty-text {
-    color: #cbd5e1;
+    color: #94a3b8;
     font-size: 13px;
+  }
+  
+  // 使用日志表格样式
+  .logs-table {
+    .user-info,
+    .ip-info,
+    .time-info {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #475569;
+      
+      .user-icon,
+      .ip-icon,
+      .time-icon {
+        font-size: 14px;
+        color: #94a3b8;
+      }
+    }
+    
+    .remark-text {
+      font-size: 13px;
+      color: #64748b;
+      line-height: 1.4;
+    }
   }
 
   // 输入框宽度
