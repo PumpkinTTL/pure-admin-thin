@@ -14,7 +14,10 @@ namespace app\api\services;
 use app\api\model\CardKey;
 use app\api\model\CardType;
 use app\api\model\CardKeyLog;
+use app\api\model\users;
+use app\api\model\premium;
 use utils\CardKeyUtil;
+use think\facade\Db;
 
 class CardKeyService
 {
@@ -243,41 +246,172 @@ class CardKeyService
      */
     public function use(string $cardKey, int $userId, array $extra = []): array
     {
+        // 开启事务，确保数据一致性
+        Db::startTrans();
+        
         try {
-            // 验证卡密
+            // 1. 验证卡密
             $verifyResult = CardKeyUtil::verify($cardKey);
             if (!$verifyResult['success']) {
+                Db::rollback();
                 return $verifyResult;
             }
 
             $cardKeyModel = $verifyResult['data'];
             
-            // 更新为已使用状态
+            // 2. 二次验证状态（防止并发问题）
+            if ($cardKeyModel->status !== CardKey::STATUS_UNUSED) {
+                Db::rollback();
+                return [
+                    'success' => false,
+                    'message' => '卡密已被使用或禁用'
+                ];
+            }
+            
+            // 3. 更新卡密为已使用状态
             $cardKeyModel->status = CardKey::STATUS_USED;
             $cardKeyModel->user_id = $userId;
             $cardKeyModel->use_time = date('Y-m-d H:i:s');
             $cardKeyModel->save();
             
-            // 记录使用日志
+            // 4. 处理会员时长逻辑（核心功能）
+            $cardType = $cardKeyModel->cardType;
+            $membershipInfo = null;
+            
+            if ($cardType && $cardType->membership_duration !== null) {
+                // 调用会员时长处理方法
+                $membershipResult = $this->processUserMembership($userId, $cardType->membership_duration, $cardType->type_name);
+                
+                if (!$membershipResult['success']) {
+                    // 如果会员处理失败，回滚所有操作
+                    Db::rollback();
+                    return $membershipResult;
+                }
+                
+                $membershipInfo = $membershipResult['data'];
+            }
+            
+            // 5. 记录使用日志
+            $logRemark = $extra['remark'] ?? '';
+            if ($membershipInfo) {
+                $logRemark .= ($logRemark ? ' | ' : '') . "会员到期时间: {$membershipInfo['expiration_time']}";
+            }
+            
             CardKeyLog::create([
                 'card_key_id' => $cardKeyModel->id,
                 'user_id' => $userId,
                 'action' => 'use',
                 'ip' => $extra['ip'] ?? '',
                 'user_agent' => $extra['user_agent'] ?? '',
-                'remark' => $extra['remark'] ?? '',
+                'remark' => $logRemark,
                 'create_time' => date('Y-m-d H:i:s')
             ]);
             
+            // 提交事务
+            Db::commit();
+            
             return [
                 'success' => true,
-                'message' => '使用成功',
-                'data' => $cardKeyModel
+                'message' => '使用成功' . ($membershipInfo ? '，会员已开通' : ''),
+                'data' => [
+                    'card_key' => $cardKeyModel,
+                    'membership_info' => $membershipInfo
+                ]
+            ];
+        } catch (\Exception $e) {
+            // 回滚事务
+            Db::rollback();
+            
+            return [
+                'success' => false,
+                'message' => '使用失败：' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * 处理用户会员时长
+     * 
+     * @param int $userId 用户ID
+     * @param int $durationMinutes 会员时长（分钟）
+     * @param string $typeName 卡密类型名称
+     * @return array
+     */
+    private function processUserMembership(int $userId, int $durationMinutes, string $typeName = ''): array
+    {
+        try {
+            // 获取用户模型
+            $user = users::find($userId);
+            if (!$user) {
+                return [
+                    'success' => false,
+                    'message' => '用户不存在'
+                ];
+            }
+            
+            // 获取或创建会员信息
+            $premium = $user->premium;
+            $isNewPremium = false;
+            
+            if (!$premium) {
+                $premium = new premium();
+                $premium->user_id = $userId;
+                $premium->create_time = date('Y-m-d H:i:s');
+                $isNewPremium = true;
+            }
+            
+            // 0 = 永久会员
+            if ($durationMinutes === 0) {
+                $premium->expiration_time = '2080-01-01 00:00:00'; // 使用项目约定的永久会员时间
+                $premium->remark = $typeName ?: '永久会员';
+            } else {
+                // 计算到期时间
+                $currentExpireTime = $premium->expiration_time;
+                
+                // 检查当前会员是否为永久会员
+                if ($currentExpireTime && strpos($currentExpireTime, '2080-01-01') !== false) {
+                    // 已经是永久会员，不需要累加
+                    return [
+                        'success' => true,
+                        'message' => '用户已是永久会员',
+                        'data' => [
+                            'is_permanent' => true,
+                            'expiration_time' => $currentExpireTime,
+                            'remark' => $premium->remark
+                        ]
+                    ];
+                }
+                
+                // 判断是否需要累加时长
+                if ($currentExpireTime && strtotime($currentExpireTime) > time()) {
+                    // 如果当前会员未过期，在现有时间基础上累加
+                    $newExpireTime = date('Y-m-d H:i:s', strtotime($currentExpireTime) + ($durationMinutes * 60));
+                } else {
+                    // 如果当前会员已过期或没有会员，从现在开始计算
+                    $newExpireTime = date('Y-m-d H:i:s', time() + ($durationMinutes * 60));
+                }
+                
+                $premium->expiration_time = $newExpireTime;
+                $premium->remark = $typeName ?: $premium->remark ?: '普通会员';
+            }
+            
+            // 保存会员信息
+            $premium->save();
+            
+            return [
+                'success' => true,
+                'message' => $isNewPremium ? '会员开通成功' : '会员时长续期成功',
+                'data' => [
+                    'is_permanent' => $durationMinutes === 0,
+                    'expiration_time' => $premium->expiration_time,
+                    'remark' => $premium->remark,
+                    'is_new' => $isNewPremium
+                ]
             ];
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => '使用失败：' . $e->getMessage()
+                'message' => '会员处理失败：' . $e->getMessage()
             ];
         }
     }
