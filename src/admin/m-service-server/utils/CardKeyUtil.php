@@ -338,19 +338,91 @@ class CardKeyUtil
     public static function getStatistics(): array
     {
         try {
+            // 基础统计
             $total = CardKey::count();
             $unused = CardKey::where('status', CardKey::STATUS_UNUSED)->count();
             $used = CardKey::where('status', CardKey::STATUS_USED)->count();
             $disabled = CardKey::where('status', CardKey::STATUS_DISABLED)->count();
+            
+            // 过期统计（未使用且已过期）
+            $expired = CardKey::where('status', CardKey::STATUS_UNUSED)
+                ->where('expire_time', '<', date('Y-m-d H:i:s'))
+                ->where('expire_time', '<>', '0000-00-00 00:00:00')
+                ->whereNotNull('expire_time')
+                ->count();
+            
+            // 按类型统计
+            $byType = CardKey::field('type_id, COUNT(*) as count')
+                ->with('cardType')
+                ->group('type_id')
+                ->select();
+            
+            $typeStats = [];
+            foreach ($byType as $item) {
+                $typeStats[] = [
+                    'type_id' => $item->type_id,
+                    'type_name' => $item->cardType ? $item->cardType->type_name : '未知类型',
+                    'count' => $item->count,
+                    'unused_count' => CardKey::where('type_id', $item->type_id)
+                        ->where('status', CardKey::STATUS_UNUSED)
+                        ->count(),
+                    'used_count' => CardKey::where('type_id', $item->type_id)
+                        ->where('status', CardKey::STATUS_USED)
+                        ->count(),
+                    'disabled_count' => CardKey::where('type_id', $item->type_id)
+                        ->where('status', CardKey::STATUS_DISABLED)
+                        ->count()
+                ];
+            }
+            
+            // 今日统计
+            $todayStart = date('Y-m-d 00:00:00');
+            $todayEnd = date('Y-m-d 23:59:59');
+            $todayCreated = CardKey::whereBetween('create_time', [$todayStart, $todayEnd])->count();
+            $todayUsed = CardKey::where('status', CardKey::STATUS_USED)
+                ->whereBetween('use_time', [$todayStart, $todayEnd])
+                ->count();
+            
+            // 本周统计
+            $weekStart = date('Y-m-d 00:00:00', strtotime('this week'));
+            $weekEnd = date('Y-m-d 23:59:59');
+            $weekCreated = CardKey::whereBetween('create_time', [$weekStart, $weekEnd])->count();
+            $weekUsed = CardKey::where('status', CardKey::STATUS_USED)
+                ->whereBetween('use_time', [$weekStart, $weekEnd])
+                ->count();
+            
+            // 本月统计
+            $monthStart = date('Y-m-01 00:00:00');
+            $monthEnd = date('Y-m-d 23:59:59');
+            $monthCreated = CardKey::whereBetween('create_time', [$monthStart, $monthEnd])->count();
+            $monthUsed = CardKey::where('status', CardKey::STATUS_USED)
+                ->whereBetween('use_time', [$monthStart, $monthEnd])
+                ->count();
 
             return [
                 'success' => true,
                 'data' => [
-                    'total' => $total,
-                    'unused' => $unused,
-                    'used' => $used,
-                    'disabled' => $disabled,
-                    'usage_rate' => $total > 0 ? round($used / $total * 100, 2) : 0
+                    'overview' => [
+                        'total' => $total,
+                        'unused' => $unused,
+                        'used' => $used,
+                        'disabled' => $disabled,
+                        'expired' => $expired,
+                        'usage_rate' => $total > 0 ? round($used / $total * 100, 2) : 0
+                    ],
+                    'by_type' => $typeStats,
+                    'today' => [
+                        'created' => $todayCreated,
+                        'used' => $todayUsed
+                    ],
+                    'week' => [
+                        'created' => $weekCreated,
+                        'used' => $weekUsed
+                    ],
+                    'month' => [
+                        'created' => $monthCreated,
+                        'used' => $monthUsed
+                    ]
                 ]
             ];
         } catch (\Exception $e) {

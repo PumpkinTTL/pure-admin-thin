@@ -373,6 +373,64 @@ class CardKey extends BaseController
     }
 
     /**
+     * 重置卡密状态（测试环境）
+     * 
+     * POST /api/v1/cardkey/reset/:id
+     * 
+     * @param Request $request
+     * @param int $id
+     * @return Json
+     */
+    public function reset(Request $request, int $id): Json
+    {
+        // 获取操作者ID和原因
+        $userId = $request->post('user_id', 1); // 默认为1（测试）
+        $reason = $request->post('reason', '测试重置');
+        
+        // 调用服务重置
+        $result = $this->service->reset($id, $userId, $reason);
+        
+        return json([
+            'code' => $result['success'] ? 200 : 400,
+            'message' => $result['message'] ?? ($result['success'] ? '重置成功' : '重置失败')
+        ]);
+    }
+    
+    /**
+     * 批量重置卡密状态（测试环境）
+     * 
+     * POST /api/v1/cardkey/batchReset
+     * 
+     * @param Request $request
+     * @return Json
+     */
+    public function batchReset(Request $request): Json
+    {
+        // 获取ID数组
+        $ids = $request->post('ids', []);
+        
+        if (empty($ids) || !is_array($ids)) {
+            return json([
+                'code' => 400,
+                'message' => '请选择要重置的卡密'
+            ]);
+        }
+        
+        // 获取操作者ID和原因
+        $userId = $request->post('user_id', 1);
+        $reason = $request->post('reason', '批量测试重置');
+        
+        // 调用服务批量重置
+        $result = $this->service->batchReset($ids, $userId, $reason);
+        
+        return json([
+            'code' => $result['success'] ? 200 : 400,
+            'message' => $result['message'] ?? '批量重置完成',
+            'data' => $result['data'] ?? null
+        ]);
+    }
+
+    /**
      * 获取使用记录
      * 
      * GET /api/v1/cardkey/logs/:id

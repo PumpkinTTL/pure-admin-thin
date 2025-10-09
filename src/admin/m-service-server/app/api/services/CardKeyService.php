@@ -528,6 +528,106 @@ class CardKeyService
     }
 
     /**
+     * 重置卡密状态（测试环境使用）
+     * 
+     * 将已使用或禁用的卡密重置为未使用状态
+     * 注意：此功能仅用于测试环境，生产环境请禁用
+     * 
+     * @param int $id 卡密ID
+     * @param int $userId 操作者ID
+     * @param string $reason 重置原因
+     * @return array
+     */
+    public function reset(int $id, int $userId, string $reason = ''): array
+    {
+        try {
+            $cardKey = CardKey::find($id);
+
+            if (!$cardKey) {
+                return [
+                    'success' => false,
+                    'message' => '卡密不存在'
+                ];
+            }
+
+            // 已经是未使用状态
+            if ($cardKey->status == CardKey::STATUS_UNUSED) {
+                return [
+                    'success' => false,
+                    'message' => '卡密已经是未使用状态'
+                ];
+            }
+
+            // 重置为未使用状态
+            $cardKey->status = CardKey::STATUS_UNUSED;
+            $cardKey->user_id = null;
+            $cardKey->use_time = null;
+            $cardKey->save();
+
+            // 记录重置日志
+            CardKeyLog::create([
+                'card_key_id' => $cardKey->id,
+                'user_id' => $userId,
+                'action' => 'reset',
+                'remark' => $reason ?: '测试重置',
+                'create_time' => date('Y-m-d H:i:s')
+            ]);
+
+            return [
+                'success' => true,
+                'message' => '重置成功'
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => '重置失败：' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * 批量重置卡密状态（测试环境使用）
+     * 
+     * @param array $ids 卡密ID数组
+     * @param int $userId 操作者ID
+     * @param string $reason 重置原因
+     * @return array
+     */
+    public function batchReset(array $ids, int $userId, string $reason = ''): array
+    {
+        try {
+            $successCount = 0;
+            $failCount = 0;
+            $errors = [];
+
+            foreach ($ids as $id) {
+                $result = $this->reset($id, $userId, $reason);
+                if ($result['success']) {
+                    $successCount++;
+                } else {
+                    $failCount++;
+                    $errors[] = "ID {$id}: {$result['message']}";
+                }
+            }
+
+            return [
+                'success' => $failCount === 0,
+                'message' => "成功重置{$successCount}个卡密" . ($failCount > 0 ? "，失败{$failCount}个" : ''),
+                'data' => [
+                    'success_count' => $successCount,
+                    'fail_count' => $failCount,
+                    'errors' => $errors
+                ]
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => '批量重置失败：' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
      * 获取使用记录
      * 
      * @param int $cardKeyId 卡密ID

@@ -254,6 +254,8 @@ Route::group('/:version/cardkey', function () {
     Route::post('verify', ':version.CardKey/verify');                   // 验证卡密
     Route::post('use', ':version.CardKey/use');                         // 使用卡密
     Route::post('disable/:id', ':version.CardKey/disable');             // 禁用卡密
+    Route::post('reset/:id', ':version.CardKey/reset');                 // 重置卡密（测试环境）
+    Route::post('batchReset', ':version.CardKey/batchReset');           // 批量重置（测试环境）
 
     // 删除卡密
     Route::delete('delete/:id', ':version.CardKey/delete');             // 删除单个卡密
