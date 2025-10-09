@@ -19,8 +19,8 @@
     <el-row :gutter="20">
       <el-col :span="12">
         <el-form-item label="文章分类" prop="category_id">
-          <el-select v-model="form.category_id" placeholder="请选择分类" clearable>
-            <el-option v-for="item in categoriesList" :key="item.id" :label="item.name" :value="item.id" />
+          <el-select v-model="form.category_id" placeholder="请选择分类" clearable :loading="categoryLoading">
+            <el-option v-for="item in categoryOptions" :key="item.id" :label="item.name" :value="item.id" />
           </el-select>
         </el-form-item>
       </el-col>
@@ -36,7 +36,7 @@
         <el-form-item label="文章标签" prop="tags">
           <el-select v-model="selectedTags" multiple filterable placeholder="请选择标签" style="width: 100%"
             :loading="tagsLoading">
-            <el-option v-for="item in categoriesList" :key="item.id" :label="item.name" :value="item.id" />
+            <el-option v-for="item in tagOptions" :key="item.id" :label="item.name" :value="item.id" />
           </el-select>
         </el-form-item>
       </el-col>
@@ -226,6 +226,10 @@ const props = defineProps({
   formData: {
     type: Object,
     default: () => ({})
+  },
+  categoriesList: {
+    type: Array,
+    default: () => []
   }
 })
 
@@ -236,19 +240,51 @@ const loading = ref(false)
 const submitting = ref(false)
 const aiLoading = ref(false)
 
-// 标签相关
+// 分类和标签相关
 const selectedTags = ref([])
-const categoriesList = ref([])
-const tagsLoading = ref(false)
+const categoriesListInternal = ref([]) // 内部分类数据存储
+const categoryLoading = ref(false) // 分类加载状态
+const tagsLoading = ref(false) // 标签加载状态
+
+// 计算属性：优先使用props传入的分类数据，否则使用内部请求的数据
+const categoriesList = computed(() => {
+  return props.categoriesList && props.categoriesList.length > 0 
+    ? props.categoriesList 
+    : categoriesListInternal.value
+})
+
+// 计算属性：文章分类选项（只显示大类别，parent_id === 0）
+const categoryOptions = computed(() => {
+  const list = categoriesList.value || []
+  return list.filter(item => item.parent_id === 0)
+})
+
+// 计算属性：文章标签选项（只显示标签，parent_id !== 0）
+const tagOptions = computed(() => {
+  const list = categoriesList.value || []
+  return list.filter(item => item.parent_id !== 0)
+})
 
 // 获取分类列表（包含可作为标签的分类）
+// 只在props没有提供分类数据时才请求
 const fetchCategories = async () => {
+  // 如果props已经传入分类数据，则不需要请求
+  if (props.categoriesList && props.categoriesList.length > 0) {
+    console.log('使用父组件传入的分类数据，跳过请求')
+    // 如果是编辑模式，设置已选标签
+    if (props.formData?.tags?.length) {
+      selectedTags.value = props.formData.tags.map(tag => tag.pivot.category_id)
+    }
+    return
+  }
+
   try {
+    categoryLoading.value = true
     tagsLoading.value = true
     const res: any = await getCategoryList({ page_size: 200 }) // 获取更多数据
     if (res && res.code === 200 && res.data) {
       // 新的API返回格式：res.data.list
-      categoriesList.value = res.data.list || res.data
+      categoriesListInternal.value = res.data.list || res.data
 
       // 如果是编辑模式，设置已选标签
       if (props.formData?.tags?.length) {
@@ -258,15 +294,16 @@ const fetchCategories = async () => {
   } catch (error) {
     console.error('获取分类/标签列表失败:', error)
     // 如果获取失败，提供一些默认数据以便测试
-    if (categoriesList.value.length === 0) {
-      categoriesList.value = [
-        { id: 1, name: '技术' },
-        { id: 2, name: '生活' },
-        { id: 3, name: '科技' }
+    if (categoriesListInternal.value.length === 0) {
+      categoriesListInternal.value = [
+        { id: 1, name: '技术', parent_id: 0 },
+        { id: 2, name: '生活', parent_id: 0 },
+        { id: 3, name: 'Vue', parent_id: 1 }
       ]
     }
     message('获取分类/标签列表失败，已使用默认数据', { type: 'warning' })
   } finally {
+    categoryLoading.value = false
     tagsLoading.value = false
   }
 }

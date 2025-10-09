@@ -18,7 +18,7 @@
 
               <el-col :xs="12" :sm="12" :md="8" :lg="4" :xl="4" class="search-item">
                 <el-select v-model="searchForm.category_id" placeholder="分类" style="width: 100%" :size="buttonSize"
-                  clearable>
+                  clearable :loading="categoryLoading">
                   <el-option v-for="item in categoriesList" :key="item.id" :label="item.name" :value="item.id" />
                 </el-select>
               </el-col>
@@ -312,7 +312,7 @@
     <el-dialog v-model="showAddOrEditModal" :title="currentArticle.id ? '编辑文章' : '新增文章'" fullscreen
       :close-on-click-modal="false" :close-on-press-escape="false" @close="handleClose"
       class="article-fullscreen-dialog">
-      <AddOrEdit v-if="showAddOrEditModal" :form-data="currentArticle" @submit-success="handleSubmitSuccess"
+      <AddOrEdit v-if="showAddOrEditModal" :form-data="currentArticle" :categories-list="categoriesList" @submit-success="handleSubmitSuccess"
         @cancel="handleClose" @close="handleClose" />
     </el-dialog>
 
@@ -420,6 +420,7 @@ const selectedRecycleBinRows = ref([])
 
 // 分类列表
 const categoriesList = ref([])
+const categoryLoading = ref(false) // 分类加载状态
 
 // 状态选项
 const statusOptions = {
@@ -573,6 +574,7 @@ const handleRecycleBinSelectionChange = (selection: any[]) => {
  */
 const fetchCategoryList = async () => {
   try {
+    categoryLoading.value = true
     const res: any = await getCategoryList({ page_size: 200 }) // 获取更多数据
     if (res.code === 200 && res.data) {
       // 新的API返回格式：res.data.list
@@ -587,6 +589,8 @@ const fetchCategoryList = async () => {
     console.error('获取分类列表出错:', err)
     message('获取分类列表出错，将使用默认分类数据', { type: 'warning' })
     return []
+  } finally {
+    categoryLoading.value = false
   }
 }
 
