@@ -357,6 +357,23 @@ class CardKeyService
                 $premium = new premium();
                 $premium->user_id = $userId;
                 $premium->create_time = date('Y-m-d H:i:s');
+                
+                // 生成会员ID（5位数字）
+                $premiumId = \utils\NumUtil::generateNumberCode(1, 5);
+                
+                // 确保ID不重复
+                $maxAttempts = 10;
+                $attempts = 0;
+                while (premium::where('id', $premiumId)->find() && $attempts < $maxAttempts) {
+                    $premiumId = \utils\NumUtil::generateNumberCode(1, 5);
+                    $attempts++;
+                }
+                
+                if ($attempts >= $maxAttempts) {
+                    throw new \Exception('无法生成唯一的会员ID，请稍后重试');
+                }
+                
+                $premium->id = $premiumId;
                 $isNewPremium = true;
             }
             
