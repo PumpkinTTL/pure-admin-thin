@@ -34,9 +34,12 @@ class UserService
         $hidden = ['phone', 'email', 'password', 'ip_address', 'delete_time', 'create_time', 'update_time'];
         // 密码登录
         if ($action == 'pwd') {
-            // 查询用户信息带角色和权限
+            // 查询用户信息带角色、权限和会员信息
             $res = users::with([
                 'roles.permissions' => function ($query) {
+                },
+                'premium' => function ($query) {
+                    $query->field(['id', 'user_id', 'expiration_time', 'remark']);
                 }
             ])->where('id|email|phone', $account)->where('password', hash('sha256', $password))->hidden($hidden)->find();
 
