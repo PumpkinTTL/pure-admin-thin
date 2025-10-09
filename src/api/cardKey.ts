@@ -227,6 +227,17 @@ export const disableCardKey = (id: number, data: DisableCardKeyParams) => {
 };
 
 /**
+ * 批量禁用卡密
+ *
+ * @param ids 卡密ID数组
+ * @param data 禁用参数
+ * @returns Promise
+ */
+export const batchDisableCardKey = (ids: number[], data: DisableCardKeyParams) => {
+  return http.request<any>("post", "/api/v1/cardkey/batchDisable", { data: { ids, ...data } });
+};
+
+/**
  * 导出卡密
  *
  * @param params 筛选参数

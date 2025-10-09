@@ -494,6 +494,70 @@ class CardKeyService
     }
 
     /**
+     * 批量禁用卡密
+     * 
+     * @param array $ids 卡密ID数组
+     * @param int $userId 操作者ID
+     * @param string $reason 禁用原因
+     * @return array
+     */
+    public function batchDisable(array $ids, int $userId, string $reason = ''): array
+    {
+        try {
+            $successCount = 0;
+            $failCount = 0;
+            $usedCount = 0;
+            $disabledCount = 0;
+            $errors = [];
+
+            foreach ($ids as $id) {
+                $result = $this->disable($id, $userId, $reason);
+                if ($result['success']) {
+                    $successCount++;
+                } else {
+                    $failCount++;
+                    // 记录具体的失败原因
+                    if (strpos($result['message'], '已使用') !== false) {
+                        $usedCount++;
+                    } elseif (strpos($result['message'], '已经被禁用') !== false) {
+                        $disabledCount++;
+                    }
+                    $errors[] = "ID {$id}: {$result['message']}";
+                }
+            }
+
+            // 构建详细的消息
+            $message = "禁用完成！";
+            if ($successCount > 0) {
+                $message .= "成功禁用 {$successCount} 张卡密";
+            }
+            if ($usedCount > 0) {
+                $message .= ($successCount > 0 ? "，" : "") . "{$usedCount} 张卡密已使用无法禁用";
+            }
+            if ($disabledCount > 0) {
+                $message .= ($successCount > 0 || $usedCount > 0 ? "，" : "") . "{$disabledCount} 张卡密已被禁用";
+            }
+
+            return [
+                'success' => $successCount > 0,
+                'message' => $message,
+                'data' => [
+                    'success_count' => $successCount,
+                    'fail_count' => $failCount,
+                    'used_count' => $usedCount,
+                    'disabled_count' => $disabledCount,
+                    'errors' => $errors
+                ]
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => '批量禁用失败：' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
      * 导出卡密
      * 
      * @param array $params 筛选参数

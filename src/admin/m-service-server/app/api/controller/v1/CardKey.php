@@ -303,6 +303,40 @@ class CardKey extends BaseController
     }
 
     /**
+     * 批量禁用卡密
+     * 
+     * POST /api/v1/cardkey/batchDisable
+     * 
+     * @param Request $request
+     * @return Json
+     */
+    public function batchDisable(Request $request): Json
+    {
+        // 获取ID数组
+        $ids = $request->post('ids', []);
+        
+        if (empty($ids) || !is_array($ids)) {
+            return json([
+                'code' => 400,
+                'message' => '请选择要禁用的卡密'
+            ]);
+        }
+        
+        // 获取操作者ID和原因
+        $userId = $request->post('user_id', 1);
+        $reason = $request->post('reason', '批量禁用');
+        
+        // 调用服务批量禁用
+        $result = $this->service->batchDisable($ids, $userId, $reason);
+        
+        return json([
+            'code' => $result['success'] ? 200 : 400,
+            'message' => $result['message'] ?? '批量禁用完成',
+            'data' => $result['data'] ?? null
+        ]);
+    }
+
+    /**
      * 导出卡密
      * 
      * GET /api/v1/cardkey/export

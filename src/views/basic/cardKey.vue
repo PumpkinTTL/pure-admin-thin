@@ -160,16 +160,6 @@
           </el-button>
           
           <el-button 
-            type="info" 
-            size="small" 
-            @click="handleTestReset"
-            :disabled="selectedIds.length === 0"
-          >
-            <IconifyIconOnline icon="ep:refresh" />
-            重置状态
-          </el-button>
-          
-          <el-button 
             type="success" 
             size="small" 
             @click="handleBatchTest"
@@ -405,6 +395,7 @@ import {
   verifyCardKey,
   useCardKey,
   disableCardKey,
+  batchDisableCardKey,
   getAllCardKeyLogs,
   CardKeyStatus,
   CardKeyStatusMap,
@@ -856,38 +847,50 @@ const handleTestDisable = async () => {
 
   try {
     await ElMessageBox.confirm(
-      `确定要禁用选中的 ${selectedIds.value.length} 张卡密吗？`,
+      `确定要禁用选中的 ${selectedIds.value.length} 张卡密吗？<br/><span style="color: #909399; font-size: 12px;">注：已使用的卡密无法禁用</span>`,
       "禁用确认",
       {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
-        type: "warning"
+        type: "warning",
+        dangerouslyUseHTMLString: true
       }
     );
 
-    let successCount = 0;
-    let failCount = 0;
-
-    for (const id of selectedIds.value) {
-      try {
-        const params: DisableCardKeyParams = {
-          user_id: 1,
-          reason: "测试禁用"
-        };
-        const response = await disableCardKey(id, params);
-        if (response.code === 200) {
-          successCount++;
-        } else {
-          failCount++;
-        }
-      } catch (error) {
-        failCount++;
+    // 调用批量禁用API
+    const params: DisableCardKeyParams = {
+      user_id: 1,
+      reason: "测试禁用"
+    };
+    const response = await batchDisableCardKey(selectedIds.value, params);
+    
+    if (response.code === 200) {
+      const data = response.data;
+      // 构建详细消息
+      let detailMessage = '';
+      if (data.success_count > 0) {
+        detailMessage += `成功禁用 <strong style="color: #67c23a;">${data.success_count}</strong> 张卡密`;
       }
+      if (data.used_count > 0) {
+        detailMessage += (detailMessage ? '<br/>' : '') + `<strong style="color: #f56c6c;">${data.used_count}</strong> 张卡密已使用无法禁用`;
+      }
+      if (data.disabled_count > 0) {
+        detailMessage += (detailMessage ? '<br/>' : '') + `<strong style="color: #909399;">${data.disabled_count}</strong> 张卡密已被禁用`;
+      }
+      
+      // 显示结果对话框
+      await ElMessageBox.alert(
+        `<div style="line-height: 2;">${detailMessage}</div>`,
+        "禁用完成",
+        {
+          confirmButtonText: "关闭",
+          dangerouslyUseHTMLString: true,
+          type: data.success_count > 0 ? "success" : "warning"
+        }
+      );
+    } else {
+      message(response.message || "禁用失败", { type: "error" });
     }
-
-    message(`禁用完成！成功 ${successCount} 张，失败 ${failCount} 张`, {
-      type: failCount === 0 ? "success" : "warning"
-    });
 
     fetchList();
   } catch (error) {
@@ -895,13 +898,6 @@ const handleTestDisable = async () => {
       message("操作失败", { type: "error" });
     }
   }
-};
-
-/**
- * 测试：重置状态（将卡密重置为未使用状态）
- */
-const handleTestReset = async () => {
-  message("重置功能需要后端支持，当前API未实现", { type: "info" });
 };
 
 /**
