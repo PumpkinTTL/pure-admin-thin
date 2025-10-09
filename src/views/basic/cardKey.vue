@@ -761,7 +761,7 @@ const handleTestUse = async () => {
   }
 
   try {
-    await ElMessageBox.prompt("请输入测试用户ID（默认为1）", "模拟使用卡密", {
+    await ElMessageBox.prompt("请输入用户ID（默认为1）", "模拟使用卡密", {
       confirmButtonText: "确定",
       cancelButtonText: "取消",
       inputValue: "1",
@@ -771,7 +771,7 @@ const handleTestUse = async () => {
       const params: UseCardKeyParams = {
         card_key: cardKey.card_key,
         user_id: parseInt(value),
-        remark: "测试使用"
+        remark: `管理员ID: ${value} 使用`
       };
 
       const response = await useCardKey(params);
@@ -860,7 +860,7 @@ const handleTestDisable = async () => {
     // 调用批量禁用API
     const params: DisableCardKeyParams = {
       user_id: 1,
-      reason: "测试禁用"
+      reason: "管理员禁用"
     };
     const response = await batchDisableCardKey(selectedIds.value, params);
     
@@ -937,7 +937,7 @@ const handleBatchTest = async () => {
         const params: UseCardKeyParams = {
           card_key: cardKey.card_key,
           user_id: 1,
-          remark: "批量测试"
+          remark: "管理员ID: 1 批量使用"
         };
         const response = await useCardKey(params);
         if (response.code === 200) {
