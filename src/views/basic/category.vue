@@ -1,9 +1,5 @@
 <template>
   <div class="categories-container">
-    <el-dialog v-model="showAddOrEditMoadl" title="添加/修改分类" :before-close="handleClose">
-      <!-- v-if 触发组件的销毁 -->
-      <AddOrEdit v-if="showAddOrEditMoadl" :formData="currentCategory" @submit-success="handleSubmitSuccess" />
-    </el-dialog>
     <el-card>
       <template #header>
         <el-row :gutter="16">
@@ -61,9 +57,21 @@
           <el-button :size="buttonSize" :icon="Refresh" @click="handleRefresh">
             刷新
           </el-button>
-          <el-button :size="buttonSize" :icon="Download">
-            导出
-          </el-button>
+          <el-dropdown :size="buttonSize" @command="handleExportCommand">
+            <el-button :size="buttonSize" :icon="Download">
+              导出<el-icon class="el-icon--right"><arrow-down /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="selected" :disabled="selectedRows.length === 0">
+                  导出选中 ({{ selectedRows.length }})
+                </el-dropdown-item>
+                <el-dropdown-item command="all">
+                  导出全部 ({{ filteredData.length }})
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </div>
       </div>
 
@@ -129,8 +137,8 @@
 
     <!-- 新增/编辑对话框 -->
     <el-dialog v-model="showAddOrEditMoadl" :title="currentCategory.id ? '编辑分类' : '新增分类'" width="60%"
-      :close-on-click-modal="false">
-      <AddOrEdit :formData="currentCategory" @submit-success="handleSubmitSuccess" />
+      :close-on-click-modal="false" @close="handleDialogClose">
+      <AddOrEdit v-if="showAddOrEditMoadl" :formData="currentCategory" @submit-success="handleSubmitSuccess" />
     </el-dialog>
 
     <!-- 回收站对话框 -->
@@ -192,7 +200,8 @@ import {
   RefreshLeft,
   CirclePlus,
   Refresh,
-  Download
+  Download,
+  ArrowDown
 } from "@element-plus/icons-vue";
 import { ref, reactive, onMounted, computed } from "vue";
 // 获取store实例
@@ -245,7 +254,6 @@ const pageConfig = ref({
   total: 0
 });
 
-const tableData = ref([]); // 当前页的服务器数据
 const allServerData = ref([]); // 所有服务器数据缓存
 const filteredData = ref([]); // 搜索过滤后的数据
 
@@ -352,20 +360,6 @@ function handleDelete(index, row) {
   });
 }
 
-const handleClose = (done: () => void) => {
-  ElMessageBox.confirm("退出将不会保存已输入的数据?", "系统提示", {
-    confirmButtonText: "确定",
-    cancelButtonText: "我再想想",
-    type: "warning"
-  })
-    .then(() => {
-      currentCategory.value = {};
-      done();
-    })
-    .catch(() => {
-      message("好的伙计,你现在可以继续编辑了!", { type: "success" });
-    });
-};
 
 // 状态切换处理
 const handleStatusChange = async (row: any) => {
@@ -731,7 +725,80 @@ async function initData() {
 
 const handleSubmitSuccess = () => {
   showAddOrEditMoadl.value = false
+  currentCategory.value = {}; // 清空当前分类数据
   initData();
+}
+
+// 对话框关闭时清空数据
+const handleDialogClose = () => {
+  currentCategory.value = {};
+  globalStore.setCurrentEditID(null);
+}
+
+// 导出命令处理
+const handleExportCommand = (command: string) => {
+  if (command === 'selected') {
+    handleExportSelected();
+  } else if (command === 'all') {
+    handleExportAll();
+  }
+}
+
+// 导出选中的数据
+const handleExportSelected = () => {
+  if (selectedRows.value.length === 0) {
+    message('请先选择要导出的数据', { type: 'warning' });
+    return;
+  }
+  
+  exportData(selectedRows.value, '选中');
+}
+
+// 导出全部数据
+const handleExportAll = () => {
+  if (filteredData.value.length === 0) {
+    message('没有数据可导出', { type: 'warning' });
+    return;
+  }
+  
+  exportData(filteredData.value, '全部');
+}
+
+// 通用导出函数
+const exportData = (dataToExport: any[], exportType: string) => {
+  try {
+    // 准备CSV数据
+    const headers = ['ID', '分类名称', '分类层级', '类型', '描述', '排序', '状态', '创建时间', '创建者'];
+    const csvContent = [
+      headers.join(','),
+      ...dataToExport.map(item => [
+        item.id,
+        `"${item.name || ''}"`,
+        item.parent_id === 0 ? '大类别' : '标签',
+        `"${item.type || ''}"`,
+        `"${(item.description || '').replace(/"/g, '""')}"`, // 转义双引号
+        item.sort_order || 0,
+        item.status ? '启用' : '禁用',
+        item.create_time || '',
+        `"${item.author?.username || ''}"`
+      ].join(','))
+    ].join('\n');
+    
+    // 创建并下载CSV文件
+    const BOM = '\uFEFF'; // 添加BOM以支持中文
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `分类数据_${exportType}_${new Date().getTime()}.csv`;
+    link.click();
+    window.URL.revokeObjectURL(url);
+    
+    message(`导出${exportType}成功，共 ${dataToExport.length} 条数据`, { type: 'success' });
+  } catch (error) {
+    console.error('导出失败:', error);
+    message('导出失败', { type: 'error' });
+  }
 }
 
 // 页面加载

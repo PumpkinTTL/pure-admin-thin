@@ -44,15 +44,6 @@
         </el-col>
       </el-row>
 
-      <el-row :gutter="20">
-
-        <el-col :xs="24" :sm="12">
-          <el-form-item label="状态">
-            <el-switch v-model="form.status" inline-prompt active-text="显示" inactive-text="隐藏" />
-          </el-form-item>
-        </el-col>
-      </el-row>
-
       <el-row>
         <el-col :span="24">
           <el-form-item label="SEO标题" prop="meta_title">
@@ -129,8 +120,9 @@
 import { reactive, ref, defineEmits, defineProps, onMounted } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { message } from '@/utils/message'
-import { objectIsEqual, generateSerialNumbers } from '@/utils/dataUtil'
+import { objectIsEqual } from '@/utils/dataUtil'
 import { updateCategoryR, createCategoryR } from '@/api/category'
+import { useUserStoreHook } from '@/store/modules/user'
 interface CategoryForm {
   name: string
   slug: string
@@ -144,7 +136,7 @@ interface CategoryForm {
   meta_keywords: string
   meta_description: string,
   user_id: number,
-  id: any
+  id?: any // 可选，编辑时才有
 }
 
 const showLoading = ref(false)
@@ -165,6 +157,9 @@ const props = defineProps({
   }
 })
 
+// 获取用户store
+const userStore = useUserStoreHook()
+
 const formRef = ref<FormInstance>()
 const submitting = ref(false)
 const form = reactive<CategoryForm>({
@@ -179,7 +174,7 @@ const form = reactive<CategoryForm>({
   meta_title: '',
   meta_keywords: '',
   meta_description: '',
-  user_id: 7709,
+  user_id: userStore.id || 0, // 从store获取当前登录用户ID
   id: null
 })
 // 不再需要加载大类别列表，因为只有两个固定选项
@@ -224,14 +219,17 @@ const submitForm = async (formEl: FormInstance | undefined) => {
       if (res.code != 200) return message(res.msg, { type: 'error' })
       message(res.msg, { type: 'success' })
     } else {
-
-      form.id = generateSerialNumbers(1, 5)
-      console.log(form);
-      const res: any = await createCategoryR(form)
+      // 新增逻辑 - ID由后端自动生成，不需要前端设置
+      // 确保使用最新的用户ID
+      form.user_id = userStore.id || 0
+      
+      // 复制表单数据，移除id字段（由后端生成）
+      const { id, ...formData } = form
+      console.log('提交新增分类:', formData);
+      
+      const res: any = await createCategoryR(formData)
       if (res.code != 200) return message(res.msg, { type: 'error' })
       message(res.msg, { type: 'success' })
-
-
     }
 
     emits('submit-success')
