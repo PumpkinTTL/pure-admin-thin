@@ -146,13 +146,41 @@ class category extends BaseController
     }
 
     /**
-     * 恢复分类
+     * 恢复分类（支持单个和批量）
      */
     public function restore()
     {
-        $id = request()->param('id');
-        $result = categoryService::restoreCategory($id);
-        return json($result);
+        $params = request()->param();
+        
+        // 获取要恢复的ID（支持单个ID或ID数组）
+        $ids = [];
+        if (isset($params['id'])) {
+            $ids = is_array($params['id']) ? $params['id'] : [$params['id']];
+        } elseif (isset($params['ids'])) {
+            $ids = is_array($params['ids']) ? $params['ids'] : [$params['ids']];
+        }
+        
+        if (empty($ids)) {
+            return json([
+                'code' => 400,
+                'msg' => '请提供要恢复的分类ID'
+            ]);
+        }
+        
+        // 判断是单个还是批量
+        if (count($ids) === 1) {
+            // 单个恢复
+            $result = categoryService::restoreCategory($ids[0]);
+            return json($result);
+        } else {
+            // 批量恢复
+            $result = categoryService::batchRestoreCategory($ids);
+            return json([
+                'code' => $result['success'] ? 200 : 500,
+                'msg' => $result['message'],
+                'data' => $result['data'] ?? null
+            ]);
+        }
     }
 
     /**

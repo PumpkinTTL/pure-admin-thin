@@ -240,6 +240,15 @@ class categoryService
                     LogService::log("物理删除分类失败，ID不存在：{$id}", [], 'warning');
                     return ['code' => 404, 'msg' => '分类不存在'];
                 }
+                
+                // 物理删除前也需要检查关联
+                $checkResult = self::checkCategoryRelations($id);
+                if (!$checkResult['can_delete']) {
+                    return [
+                        'code' => 400,
+                        'msg' => $checkResult['message']
+                    ];
+                }
 
                 // 记录分类名称（在删除前）
                 $categoryName = $category->getData('name');
@@ -258,6 +267,15 @@ class categoryService
                 if (!$category) {
                     LogService::log("软删除分类失败，ID不存在：{$id}", [], 'warning');
                     return ['code' => 404, 'msg' => '分类不存在'];
+                }
+                
+                // 软删除前检查关联
+                $checkResult = self::checkCategoryRelations($id);
+                if (!$checkResult['can_delete']) {
+                    return [
+                        'code' => 400,
+                        'msg' => $checkResult['message']
+                    ];
                 }
 
                 // 记录分类名称（在删除前）
@@ -307,6 +325,90 @@ class categoryService
     }
 
     /**
+     * 批量恢复分类
+     * @param array $ids 分类ID数组
+     * @return array
+     */
+    public static function batchRestoreCategory(array $ids): array
+    {
+        try {
+            Db::startTrans();
+
+            $successCount = 0;
+            $failedIds = [];
+            $results = [];
+
+            foreach ($ids as $id) {
+                try {
+                    $result = self::restoreCategory($id);
+
+                    if ($result['code'] === 200) {
+                        $successCount++;
+                        $results[] = ['id' => $id, 'status' => 'success'];
+                    } else {
+                        $failedIds[] = $id;
+                        $results[] = ['id' => $id, 'status' => 'failed', 'message' => $result['msg']];
+                    }
+                } catch (\Exception $e) {
+                    $failedIds[] = $id;
+                    $results[] = ['id' => $id, 'status' => 'failed', 'message' => $e->getMessage()];
+                }
+            }
+
+            Db::commit();
+
+            $totalCount = count($ids);
+
+            if ($successCount === $totalCount) {
+                return [
+                    'success' => true,
+                    'message' => "批量恢复成功，共处理 {$totalCount} 个分类",
+                    'data' => [
+                        'total' => $totalCount,
+                        'success' => $successCount,
+                        'failed' => count($failedIds),
+                        'results' => $results
+                    ]
+                ];
+            } elseif ($successCount > 0) {
+                return [
+                    'success' => true,
+                    'message' => "批量恢复部分成功，成功 {$successCount} 个，失败 " . count($failedIds) . " 个",
+                    'data' => [
+                        'total' => $totalCount,
+                        'success' => $successCount,
+                        'failed' => count($failedIds),
+                        'failed_ids' => $failedIds,
+                        'results' => $results
+                    ]
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'message' => "批量恢复失败，所有分类都处理失败",
+                    'data' => [
+                        'total' => $totalCount,
+                        'success' => 0,
+                        'failed' => count($failedIds),
+                        'failed_ids' => $failedIds,
+                        'results' => $results
+                    ]
+                ];
+            }
+
+        } catch (\Exception $e) {
+            Db::rollback();
+            LogService::error($e);
+
+            return [
+                'success' => false,
+                'message' => '批量恢复失败: ' . $e->getMessage(),
+                'data' => null
+            ];
+        }
+    }
+
+    /**
      * 获取已删除的分类列表
      * @param array $params 查询参数
      * @return array
@@ -320,6 +422,54 @@ class categoryService
         } catch (\Exception $e) {
             LogService::error($e);
             return [];
+        }
+    }
+
+    /**
+     * 检查分类关联关系
+     * @param int $id 分类ID
+     * @return array
+     */
+    private static function checkCategoryRelations(int $id): array
+    {
+        try {
+            // 检查是否有文章使用此分类
+            $articleCount = \app\api\model\article::where('category_id', $id)->count();
+            if ($articleCount > 0) {
+                return [
+                    'can_delete' => false,
+                    'message' => "该分类下有 {$articleCount} 篇文章，无法删除"
+                ];
+            }
+            
+            // 检查是否有资源使用此分类
+            $resourceCount = \app\api\model\resource::where('category_id', $id)->count();
+            if ($resourceCount > 0) {
+                return [
+                    'can_delete' => false,
+                    'message' => "该分类下有 {$resourceCount} 个资源，无法删除"
+                ];
+            }
+            
+            // 检查是否有子分类
+            $childCount = categoryModel::where('parent_id', $id)->count();
+            if ($childCount > 0) {
+                return [
+                    'can_delete' => false,
+                    'message' => "该分类下有 {$childCount} 个子分类，无法删除"
+                ];
+            }
+            
+            return [
+                'can_delete' => true,
+                'message' => '可以删除'
+            ];
+        } catch (\Exception $e) {
+            LogService::error($e);
+            return [
+                'can_delete' => false,
+                'message' => '检查关联关系失败：' . $e->getMessage()
+            ];
         }
     }
 
