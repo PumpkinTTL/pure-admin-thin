@@ -57,7 +57,9 @@ Route::group('/:version/article', function () {
     //    客户端
     Route::rule('getArticleList', ':version.article/getArticleList');
     Route::rule('selectArticleById', ':version.article/selectArticleById');
-});
+})->middleware([
+    app\api\middleware\ArticleAuth::class
+]);
 // 评论组
 Route::group('/:version/comments', function () {
     Route::rule('getCommentsByArticleId', ':version.comments/getCommentsByArticleId');

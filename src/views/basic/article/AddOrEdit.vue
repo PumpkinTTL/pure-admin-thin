@@ -451,9 +451,10 @@ const handleImageUpload = async (files: File[], callback: (urls: string[]) => vo
         })
         // 从API响应中获取第一个文件的URL
         return result.data && result.data.length > 0 ? result.data[0].url : null
-      } catch (error) {
+      } catch (error: any) {
         console.error('图片上传失败:', error)
-        message(`图片 "${file.name}" 上传失败: ${error.message}`, { type: 'error' })
+        const errorMsg = error.response?.data?.msg || error.message || '上传失败';
+        message(`图片 "${file.name}" 上传失败: ${errorMsg}`, { type: 'error' })
         return null
       }
     })
@@ -464,10 +465,13 @@ const handleImageUpload = async (files: File[], callback: (urls: string[]) => vo
     if (successUrls.length > 0) {
       callback(successUrls)
       message(`成功上传 ${successUrls.length} 张图片`, { type: 'success' })
+    } else if (files.length > 0) {
+      message('所有图片上传失败，请检查图片格式和大小', { type: 'error' })
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('批量图片上传失败:', error)
-    message('图片上传失败: ' + error.message, { type: 'error' })
+    const errorMsg = error.response?.data?.msg || error.message || '图片上传失败';
+    message(errorMsg, { type: 'error' })
   }
 }
 
@@ -540,6 +544,11 @@ const generateAiSummary = async () => {
     return;
   }
 
+  if (form.content.length < 50) {
+    message('文章内容过短，请输入至少50个字符后再生成摘要', { type: 'warning' });
+    return;
+  }
+
   try {
     aiLoading.value = true;
 
@@ -554,8 +563,11 @@ const generateAiSummary = async () => {
 ${form.content}`;
 
     // 调用DeepSeek API生成摘要
-    // const summary = await request(prompt);
     const summary = await request(prompt);
+
+    if (!summary || summary.trim() === '') {
+      throw new Error('AI返回的摘要为空');
+    }
 
     // 将AI摘要设置到表单
     form.ai_summary = summary;
@@ -567,9 +579,10 @@ ${form.content}`;
     userEditedSummary.value = false;
 
     message('AI智能摘要生成成功', { type: 'success' });
-  } catch (error) {
+  } catch (error: any) {
     console.error('生成AI摘要失败:', error);
-    message('生成AI摘要失败，请稍后重试', { type: 'error' });
+    const errorMsg = error.response?.data?.msg || error.message || '生成AI摘要失败';
+    message(`${errorMsg}，请稍后重试`, { type: 'error' });
   } finally {
     aiLoading.value = false;
   }
@@ -689,9 +702,20 @@ const handleSubmit = async () => {
     message('操作成功', { type: 'success' });
     emit('submit-success');
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('表单提交失败:', error);
-    message('表单验证失败，请检查填写的内容', { type: 'error' });
+    // 更详细的错误信息
+    let errorMsg = '表单验证失败';
+    
+    if (error.response?.data?.msg) {
+      errorMsg = error.response.data.msg;
+    } else if (error.message) {
+      errorMsg = error.message;
+    } else if (typeof error === 'string') {
+      errorMsg = error;
+    }
+    
+    message(errorMsg, { type: 'error' });
   } finally {
     submitting.value = false;
   }

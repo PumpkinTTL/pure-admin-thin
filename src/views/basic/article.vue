@@ -123,7 +123,7 @@
               </el-button>
             </el-tooltip>
             <el-tooltip content="刷新数据" placement="top">
-              <el-button size="small" @click="() => initTableData(1, true)" type="info">
+              <el-button size="small" @click="fetchArticleList" type="info">
                 <el-icon>
                   <Refresh />
                 </el-icon>
@@ -142,7 +142,7 @@
         </div>
       </div>
 
-      <el-table :data="computedPagedData" style="width: 100%" v-loading="tableLoading" :fit="true"
+    <el-table :data="tableData" style="width: 100%" v-loading="tableLoading" :fit="true"
         class="article-table modern-flat-table" size="default" @selection-change="handleSelectionChange"
         :show-header="true" element-loading-text="正在加载文章数据..." element-loading-background="rgba(255, 255, 255, 0.8)"
         :empty-text="getEmptyText()" :key="pageConfig.current_page">
@@ -302,7 +302,7 @@
 
       <div class="pagination-container">
         <el-pagination v-model:current-page="pageConfig.current_page" v-model:page-size="pageConfig.page_size"
-          :page-sizes="[2, 5, 10, 15, 20]" :background="true" layout="total, sizes, prev, pager, next, jumper"
+          :page-sizes="[10, 20, 30, 50, 100]" :background="true" layout="total, sizes, prev, pager, next, jumper"
           :total="pageConfig.total" @size-change="handleSizeChange" @current-change="handleCurrentChange"
           size="small" />
       </div>
@@ -438,9 +438,7 @@ const searchForm = reactive({
   status: null,
   is_top: null,
   author_id: null,
-  delete_status: '',
-  page: 1,
-  page_size: 200  // 后端每次请求200条数据
+  delete_status: ''
 })
 
 // 排序配置
@@ -449,7 +447,7 @@ const sortEnabled = ref(true); // 默认启用排序
 // 分页配置
 const pageConfig = ref({
   current_page: 1,
-  page_size: 2,    // 前端每页显示2条
+  page_size: 10,    // 每页显示10条
   disabled: false,
   background: true,
   layout: "total, sizes, prev, pager, next, jumper",
@@ -530,32 +528,16 @@ const formatTime = (timeString) => {
   }
 }
 
-// 计算分页数据 - 从服务器数据中进行本地分页
-const computedPagedData = computed(() => {
-  const start = (pageConfig.value.current_page - 1) * pageConfig.value.page_size
-  const end = start + pageConfig.value.page_size
-  const result = serverData.value.slice(start, end)
-  console.log('计算分页数据:', {
-    当前页: pageConfig.value.current_page,
-    每页条数: pageConfig.value.page_size,
-    开始索引: start,
-    结束索引: end,
-    总数据量: serverData.value.length,
-    返回数据量: result.length
-  })
-  return result
-})
-
-// 为了兼容现有代码，保持tableData指向服务器数据
-const tableData = computed(() => serverData.value)
+// 表格数据直接使用服务器返回的数据
+const tableData = ref([])
 
 // 搜索文章 - 主动搜索时向服务器发送请求
 const handleSearch = () => {
   console.log('执行搜索，搜索条件:', searchForm);
   // 重置到第一页
   pageConfig.value.current_page = 1;
-  // 强制刷新数据
-  initTableData(1, true);
+  // 获取数据
+  fetchArticleList();
 }
 
 // 表格选择变化处理
@@ -598,13 +580,7 @@ const fetchCategoryList = async () => {
 const resetSearch = () => {
   // 重置所有搜索条件
   Object.keys(searchForm).forEach(key => {
-    if (key === 'page') {
-      searchForm[key] = 1;
-    } else if (key === 'page_size') {
-      searchForm[key] = pageConfig.value.page_size;
-    } else {
-      searchForm[key] = null;
-    }
+    searchForm[key] = null;
   });
 
   // 清空特定字段
@@ -615,8 +591,11 @@ const resetSearch = () => {
   // 重置排序为默认
   sortEnabled.value = true;
 
+  // 重置到第一页
+  pageConfig.value.current_page = 1;
+
   // 重新加载数据
-  initTableData(1, true);
+  fetchArticleList();
 };
 
 // 添加文章
@@ -666,17 +645,15 @@ const handleDelete = (row, isRealDelete = false) => {
       const res: any = await deleteArticle(row.id, isRealDelete);
       if (res.code === 200) {
         message(`${actionText}成功`, { type: 'success' });
-        // 强制清空所有缓存并重新加载数据
-        serverData.value = [];
-        serverPage.value = 0;
-        serverTotal.value = 0;
-        await initTableData(1, true);
+        // 重新加载数据
+        await fetchArticleList();
       } else {
         message(res.msg || `${actionText}失败`, { type: 'error' });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(`${actionText}文章错误:`, error);
-      message(`${actionText}失败，请稍后重试`, { type: 'error' });
+      const errorMsg = error.response?.data?.msg || error.message || `${actionText}失败`;
+      message(`${errorMsg}，请稍后重试`, { type: 'error' });
     }
   }).catch(() => { });
 };
@@ -768,11 +745,8 @@ const batchDeleteArticles = async (isRealDelete) => {
   // 显示结果
   if (success > 0) {
     message(`成功删除 ${success} 条记录`, { type: 'success' });
-    // 强制清空所有缓存并重新加载数据
-    serverData.value = [];
-    serverPage.value = 0;
-    serverTotal.value = 0;
-    await initTableData(1, true);
+    // 重新加载数据
+    await fetchArticleList();
     selectedRows.value = [];
   }
 
@@ -793,17 +767,17 @@ const toggleTopStatus = async (row) => {
 
     if (res.code === 200) {
       message(`文章"${row.title}"${newStatus === 1 ? '已设为置顶' : '已取消置顶'}`, { type: 'success' });
-      // 强制清空所有缓存并重新加载数据
-      serverData.value = [];
-      serverPage.value = 0;
-      serverTotal.value = 0;
-      await initTableData(1, true);
+      // 重新加载数据
+      await fetchArticleList();
     } else {
-      message(res.msg || '操作失败', { type: 'error' });
+      const errorMsg = res.msg || '操作失败';
+      message(errorMsg, { type: 'error' });
+      console.error('API错误:', res);
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('更新文章置顶状态错误:', error);
-    message('操作失败，请稍后重试', { type: 'error' });
+    const errorMsg = error.response?.data?.msg || error.message || '操作失败，请稍后重试';
+    message(errorMsg, { type: 'error' });
   }
 };
 
@@ -819,17 +793,17 @@ const toggleRecommendStatus = async (row) => {
 
     if (res.code === 200) {
       message(`文章"${row.title}"${newStatus === 1 ? '已设为推荐' : '已取消推荐'}`, { type: 'success' });
-      // 强制清空所有缓存并重新加载数据
-      serverData.value = [];
-      serverPage.value = 0;
-      serverTotal.value = 0;
-      await initTableData(1, true);
+      // 重新加载数据
+      await fetchArticleList();
     } else {
-      message(res.msg || '操作失败', { type: 'error' });
+      const errorMsg = res.msg || '操作失败';
+      message(errorMsg, { type: 'error' });
+      console.error('API错误:', res);
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('更新文章推荐状态错误:', error);
-    message('操作失败，请稍后重试', { type: 'error' });
+    const errorMsg = error.response?.data?.msg || error.message || '操作失败，请稍后重试';
+    message(errorMsg, { type: 'error' });
   }
 };
 
@@ -841,8 +815,8 @@ const handleClose = () => {
 // 提交成功处理
 const handleSubmitSuccess = () => {
   showAddOrEditModal.value = false
-  // 强制刷新数据
-  initTableData(1, true)
+  // 刷新数据
+  fetchArticleList()
 }
 
 // 显示回收站
@@ -865,9 +839,10 @@ const fetchRecycleBinData = async () => {
     } else {
       message(res.msg || '获取回收站数据失败', { type: 'error' })
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('获取回收站数据错误:', error)
-    message('获取回收站数据失败，请稍后重试', { type: 'error' })
+    const errorMsg = error.response?.data?.msg || error.message || '获取回收站数据失败';
+    message(`${errorMsg}，请稍后重试`, { type: 'error' })
   } finally {
     recycleBinLoading.value = false
   }
@@ -890,14 +865,15 @@ const handleRestore = async (row: any) => {
     if (res.code === 200) {
       message('文章恢复成功', { type: 'success' })
       fetchRecycleBinData()
-      initTableData(1, true) // 刷新主表格
+      fetchArticleList() // 刷新主表格
     } else {
       message(res.msg || '恢复失败', { type: 'error' })
     }
   } catch (error: any) {
     if (error !== 'cancel') {
       console.error('恢复文章错误:', error)
-      message('恢复失败，请稍后重试', { type: 'error' })
+      const errorMsg = error.response?.data?.msg || error.message || '恢复失败';
+      message(`${errorMsg}，请稍后重试`, { type: 'error' })
     }
   }
 }
@@ -967,7 +943,8 @@ const handlePermanentDelete = async (row: any) => {
   } catch (error: any) {
     if (error !== 'cancel') {
       console.error('永久删除文章错误:', error)
-      message('删除失败，请稍后重试', { type: 'error' })
+      const errorMsg = error.response?.data?.msg || error.message || '删除失败';
+      message(`${errorMsg}，请稍后重试`, { type: 'error' })
     }
   }
 }
@@ -995,12 +972,13 @@ const handleBatchRestore = async () => {
 
     message('批量恢复成功', { type: 'success' })
     fetchRecycleBinData()
-    initTableData(1, true) // 刷新主表格
+    fetchArticleList() // 刷新主表格
     selectedRecycleBinRows.value = []
   } catch (error: any) {
     if (error !== 'cancel') {
       console.error('批量恢复错误:', error)
-      message('批量恢复失败，请稍后重试', { type: 'error' })
+      const errorMsg = error.response?.data?.msg || error.message || '批量恢复失败';
+      message(`${errorMsg}，请稍后重试`, { type: 'error' })
     }
   }
 }
@@ -1066,56 +1044,28 @@ const handleBatchPermanentDelete = async () => {
   } catch (error: any) {
     if (error !== 'cancel') {
       console.error('批量永久删除错误:', error)
-      message('批量删除失败，请稍后重试', { type: 'error' })
+      const errorMsg = error.response?.data?.msg || error.message || '批量删除失败';
+      message(`${errorMsg}，请稍后重试`, { type: 'error' })
     }
   }
 }
 
 // 分页大小变化
 const handleSizeChange = (val: number) => {
-  console.log('=== 分页大小变化 ===')
-  console.log('新的每页条数:', val)
-  console.log('重置到第1页')
-
+  console.log('分页大小变化:', val)
   // v-model 已经自动更新了 pageConfig.value.page_size
-  // 这里只需要重置页码
+  // 重置到第一页
   pageConfig.value.current_page = 1
-
-  // 检查是否需要重新加载数据
-  const totalNeeded = val // 第一页需要的数据量
-  const currentLoaded = serverData.value.length
-
-  console.log('需要数据量:', totalNeeded, '已加载数据量:', currentLoaded)
-
-  if (totalNeeded > currentLoaded) {
-    console.log('→ 需要从服务器加载更多数据')
-    initTableData(1, false)
-  } else {
-    console.log('→ 使用本地缓存数据')
-  }
+  // 重新获取数据
+  fetchArticleList()
 }
 
 // 页码变化
 const handleCurrentChange = (val: number) => {
-  console.log('=== 页码变化 ===')
-  console.log('新页码:', val)
-  console.log('每页条数:', pageConfig.value.page_size)
-
+  console.log('页码变化:', val)
   // v-model 已经自动更新了 pageConfig.value.current_page
-  // computed 属性会自动重新计算
-
-  // 检查是否需要重新加载数据
-  const totalNeeded = val * pageConfig.value.page_size
-  const currentLoaded = serverData.value.length
-
-  console.log('需要数据量:', totalNeeded, '已加载数据量:', currentLoaded)
-
-  if (totalNeeded > currentLoaded) {
-    console.log('→ 需要从服务器加载更多数据')
-    initTableData(val, false)
-  } else {
-    console.log('→ 使用本地缓存数据，分页生效')
-  }
+  // 重新获取数据
+  fetchArticleList()
 }
 
 // 获取摘要文本，优先使用AI摘要，其次是手动摘要，最后是内容截取
@@ -1262,40 +1212,15 @@ const loadDefaultUserOptions = async () => {
   }
 };
 
-// 服务器数据缓存
-const serverData = ref([])
-const serverPage = ref(1)
-const serverTotal = ref(0)
-const serverPageSize = 200 // 服务器每次请求200条
-
-// 初始化表格数据
-const initTableData = async (page = 1, forceRefresh = false) => {
-  // 如果指定了页码，更新当前页码
-  if (page !== pageConfig.value.current_page) {
-    pageConfig.value.current_page = page;
-  }
-
-  // 计算需要的服务器页码
-  const neededServerPage = Math.ceil((pageConfig.value.current_page * pageConfig.value.page_size) / serverPageSize);
-
-  // 如果是强制刷新，清空缓存
-  if (forceRefresh) {
-    serverData.value = [];
-    serverPage.value = 0;
-  }
-
-  // 如果不是强制刷新且已有数据，且当前服务器页已加载，则无需重新请求
-  if (!forceRefresh && serverData.value.length > 0 && neededServerPage <= serverPage.value) {
-    return;
-  }
-
+// 获取文章列表
+const fetchArticleList = async () => {
   tableLoading.value = true;
 
   try {
-    // 构建基础参数
+    // 构建请求参数
     const params: Record<string, any> = {
-      page: neededServerPage,
-      page_size: serverPageSize
+      page: pageConfig.value.current_page,
+      page_size: pageConfig.value.page_size
     };
 
     // 添加搜索条件（过滤空值）
@@ -1303,9 +1228,7 @@ const initTableData = async (page = 1, forceRefresh = false) => {
       if (
         searchForm[key] !== null &&
         searchForm[key] !== undefined &&
-        searchForm[key] !== '' &&
-        key !== 'page' &&
-        key !== 'page_size'
+        searchForm[key] !== ''
       ) {
         params[key] = searchForm[key];
       }
@@ -1314,36 +1237,35 @@ const initTableData = async (page = 1, forceRefresh = false) => {
     // 添加排序参数
     params.sort = sortEnabled.value;
 
-    console.log('向服务器发送请求参数:', params);
+    console.log('请求参数:', params);
 
     const res: any = await getArticleList(params);
+    
     if (res.code === 200) {
       if (res.data && typeof res.data === 'object') {
-        // 更新服务器数据缓存
-        serverData.value = res.data.list || [];
-        serverPage.value = neededServerPage;
+        // 更新表格数据
+        tableData.value = res.data.list || [];
 
         // 更新总数
         if (res.data.pagination) {
-          serverTotal.value = res.data.pagination.total || 0;
-          pageConfig.value.total = serverTotal.value;
+          pageConfig.value.total = res.data.pagination.total || 0;
         }
       } else {
-        serverData.value = [];
-        serverTotal.value = 0;
+        tableData.value = [];
         pageConfig.value.total = 0;
       }
     } else {
-      message(res.msg || '获取文章列表失败', { type: 'error' });
-      serverData.value = [];
-      serverTotal.value = 0;
+      const errorMsg = res.msg || '获取文章列表失败';
+      message(errorMsg, { type: 'error' });
+      console.error('API错误:', res);
+      tableData.value = [];
       pageConfig.value.total = 0;
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('获取文章列表错误:', error);
-    message('获取文章列表失败，请稍后重试', { type: 'error' });
-    serverData.value = [];
-    serverTotal.value = 0;
+    const errorMsg = error.response?.data?.msg || error.message || '获取文章列表失败，请稍后重试';
+    message(errorMsg, { type: 'error' });
+    tableData.value = [];
     pageConfig.value.total = 0;
   } finally {
     tableLoading.value = false;
@@ -1389,9 +1311,10 @@ const handleStatusChange = (row: any, status: number) => {
       } else {
         message(res.msg || '操作失败', { type: 'error' });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('更新文章状态错误:', error);
-      message('操作失败，请稍后重试', { type: 'error' });
+      const errorMsg = error.response?.data?.msg || error.message || '操作失败';
+      message(`${errorMsg}，请稍后重试`, { type: 'error' });
     }
   }).catch(() => {
     message('已取消操作', { type: 'info' });
@@ -1401,10 +1324,10 @@ const handleStatusChange = (row: any, status: number) => {
 onMounted(() => {
   // 先获取分类列表，然后初始化文章数据
   fetchCategoryList().then(() => {
-    initTableData()
+    fetchArticleList()
   }).catch(() => {
     // 即使获取分类失败，也继续加载文章数据
-    initTableData()
+    fetchArticleList()
   });
 });
 </script>

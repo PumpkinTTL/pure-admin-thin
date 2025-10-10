@@ -3,4 +3,5 @@
 return [
     'app\api\middleware\LogMiddleware',
     'api_log' => app\api\middleware\ApiLogMiddleware::class,
+
 ];
