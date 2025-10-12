@@ -54,7 +54,7 @@ class UserService
             $payloads['id'] = $res['id'];
             $payloads['platform'] = 'Web';
             $payloads['fingerprint'] = $fingerprint;
-            $expireTime = time() + 60 * 11;
+            $expireTime = time() + 60 * 120; // Token有效期：120分钟
             // JWT生成
             $token = JWTUtil::generateToken($payloads, $expireTime);
             // 保存到redis
