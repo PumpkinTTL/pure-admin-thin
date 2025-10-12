@@ -43,10 +43,12 @@
       <el-col :span="12">
         <el-form-item label="文章状态" prop="status">
           <el-select v-model="form.status" placeholder="请选择状态">
-            <el-option label="草稿" :value="0" />
-            <el-option label="已发布" :value="1" />
-            <el-option label="待审核" :value="2" />
-            <el-option label="已下架" :value="3" />
+            <el-option 
+              v-for="option in ARTICLE_STATUS_OPTIONS" 
+              :key="option.value" 
+              :label="option.label" 
+              :value="option.value" 
+            />
           </el-select>
         </el-form-item>
       </el-col>
@@ -86,7 +88,7 @@
           <div class="elegant-cover-uploader">
             <!-- 封面预览区 -->
             <el-upload class="cover-preview" :auto-upload="false" :show-file-list="false" :on-change="handleCoverChange"
-              :before-upload="beforeCoverUpload" accept="image/jpeg,image/png,image/gif,image/webp">
+              :before-upload="beforeCoverUpload" :accept="COVER_UPLOAD_CONFIG.acceptFormats.join(',')">
               <div class="preview-container">
                 <el-image v-if="coverUrl || form.cover_image" :src="coverUrl || form.cover_image" fit="cover"
                   class="cover-img" @error="handleCoverError" />
@@ -108,8 +110,8 @@
             <div class="controls">
               <!-- 格式提示信息 -->
               <div class="tip">
-                支持jpg、png、gif、webp等格式，≤5M<br>
-                推荐尺寸：1200×675px (16:9)
+                支持jpg、png、gif、webp等格式，≤{{ COVER_UPLOAD_CONFIG.maxSize }}M<br>
+                推荐尺寸：{{ COVER_UPLOAD_CONFIG.recommendedSize }}
               </div>
 
               <!-- 操作区域 -->
@@ -155,30 +157,30 @@
           <MdEditor 
             ref="editorRef"
             v-model="form.content" 
-            height="500px" 
-            :language="editorLanguage" 
-            :theme="editorTheme"
-            :preview-theme="previewTheme" 
-            :code-theme="codeTheme" 
-            :toolbars="editorToolbars"
+            :height="EDITOR_CONFIG.height" 
+            :language="EDITOR_CONFIG.language" 
+            :theme="EDITOR_CONFIG.theme"
+            :preview-theme="EDITOR_CONFIG.previewTheme" 
+            :code-theme="EDITOR_CONFIG.codeTheme" 
+            :toolbars="EDITOR_TOOLBARS"
             :toolbars-exclude="[]"
-            :footers="editorFooters" 
-            :scroll-auto="true" 
-            :auto-focus="false" 
-            :auto-detect-code="true" 
-            :tab-width="2"
-            :show-code-row-number="true" 
-            :preview-only="false" 
-            :html-preview="true" 
-            :no-mermaid="false"
-            :no-katex="false" 
-            :no-highlight="false" 
-            :no-link-ref="false" 
-            :no-img-zoom-in="false" 
+            :footers="EDITOR_FOOTERS" 
+            :scroll-auto="EDITOR_CONFIG.scrollAuto" 
+            :auto-focus="EDITOR_CONFIG.autoFocus" 
+            :auto-detect-code="EDITOR_CONFIG.autoDetectCode" 
+            :tab-width="EDITOR_CONFIG.tabWidth"
+            :show-code-row-number="EDITOR_CONFIG.showCodeRowNumber" 
+            :preview-only="EDITOR_CONFIG.previewOnly" 
+            :html-preview="EDITOR_CONFIG.htmlPreview" 
+            :no-mermaid="EDITOR_CONFIG.noMermaid"
+            :no-katex="EDITOR_CONFIG.noKatex" 
+            :no-highlight="EDITOR_CONFIG.noHighlight" 
+            :no-link-ref="EDITOR_CONFIG.noLinkRef" 
+            :no-img-zoom-in="EDITOR_CONFIG.noImgZoomIn" 
             :sanitize="sanitizeConfig"
-            :max-length="50000" 
-            :auto-save="true" 
-            :placeholder="editorPlaceholder" 
+            :max-length="EDITOR_CONFIG.maxLength" 
+            :auto-save="EDITOR_CONFIG.autoSave" 
+            :placeholder="EDITOR_CONFIG.placeholder" 
             @change="handleContentChange"
             @onUploadImg="handleImageUpload" 
             @onSave="handleEditorSave" 
@@ -203,7 +205,7 @@
       <el-col :span="24">
         <el-form-item label="文章摘要" prop="description">
           <el-input v-model="form.description" type="textarea" :rows="3" placeholder="根据文章内容自动生成，也可手动编辑"
-            maxlength="255" show-word-limit />
+            :maxlength="SUMMARY_CONFIG.manual" show-word-limit />
         </el-form-item>
       </el-col>
     </el-row>
@@ -212,8 +214,8 @@
       <el-col :span="24">
         <el-form-item label="AI智能摘要">
           <div class="ai-summary-container">
-            <el-input v-model="form.ai_summary" type="textarea" :rows="2" placeholder="AI生成的摘要将显示在这里，不超过200个字符"
-              maxlength="200" show-word-limit :disabled="true" />
+            <el-input v-model="form.ai_summary" type="textarea" :rows="2" :placeholder="`AI生成的摘要将显示在这里，不超过${SUMMARY_CONFIG.ai}个字符`"
+              :maxlength="SUMMARY_CONFIG.ai" show-word-limit :disabled="true" />
             <div class="action-buttons">
               <el-button type="primary" @click="generateAiSummary" :loading="aiLoading" class="ai-button">
                 <div class="ai-button-content">
@@ -270,6 +272,17 @@ import { request, wenxinRequest } from '@/api/openai'
 import { ElMessage } from 'element-plus'
 import { generateSerialNumbers } from '@/utils/dataUtil'
 import { useUserStoreHook } from '@/store/modules/user'
+// 导入工具函数和常量
+import { countWords, calculateReadTime, generateSummary } from '@/utils/text'
+import {
+  ARTICLE_STATUS_OPTIONS,
+  EDITOR_CONFIG,
+  EDITOR_TOOLBARS,
+  EDITOR_FOOTERS,
+  COVER_UPLOAD_CONFIG,
+  MIN_CONTENT_LENGTH,
+  SUMMARY_CONFIG
+} from '@/constants/article'
 const props = defineProps({
   formData: {
     type: Object,
@@ -402,15 +415,15 @@ const handleCoverChange = (file) => {
 
 // 验证封面图片
 const beforeCoverUpload = (file) => {
-  const isValidFormat = /\.(jpe?g|png|gif|webp)$/i.test(file.name)
-  const isLt5M = file.size / 1024 / 1024 < 5
+  const isValidFormat = COVER_UPLOAD_CONFIG.acceptExtensions.test(file.name)
+  const isLt5M = file.size / 1024 / 1024 < COVER_UPLOAD_CONFIG.maxSize
 
   if (!isValidFormat) {
     message('上传封面图片格式不正确！', { type: 'error' })
     return false
   }
   if (!isLt5M) {
-    message('上传封面图片大小不能超过 5MB！', { type: 'error' })
+    message(`上传封面图片大小不能超过 ${COVER_UPLOAD_CONFIG.maxSize}MB！`, { type: 'error' })
     return false
   }
   return true
@@ -427,15 +440,6 @@ const clearCoverFile = () => {
 const handleCoverError = () => {
   message('封面图片加载失败', { type: 'warning' })
 }
-
-// 编辑器完整配置
-const editorLanguage = ref('zh-CN') // 编辑器语言
-const editorTheme = ref('light') // 编辑器主题：light/dark
-const previewTheme = ref('default') // 预览主题：default/github/vuepress/mk-cute/smart-blue/cyanosis
-const codeTheme = ref('atom') // 代码主题：atom/a11y/github/gradient/kimbie/paraiso/qtcreator/stackoverflow
-
-// 编辑器占位符
-const editorPlaceholder = ref('请输入文章内容，支持Markdown语法...')
 
 /**
  * md-editor-v3 的 sanitize 配置
@@ -554,52 +558,6 @@ const insertAudio = () => {
 }
 
 
-// 编辑器工具栏配置（完整版）
-const editorToolbars = [
-  // 文本格式化
-  'bold', 'underline', 'italic', 'strikeThrough', '-',
-  // 标题和引用
-  'title', 'sub', 'sup', 'quote', '-',
-  // 列表和任务
-  'unorderedList', 'orderedList', 'task', '-',
-  // 代码和链接
-  'codeRow', 'code', 'link', '-',
-  // 媒体插入
-  'image', 'table', 'mermaid', 'katex', '-',
-  // 自定义按钮：视频和音频（索引 0 和 1）
-  0, 1, '-',
-  // 操作按钮
-  'revoke', 'next', 'save', '-',
-  // 视图控制
-  '=', 'pageFullscreen', 'fullscreen', 'preview', 'htmlPreview', 'catalog'
-]
-
-// 编辑器底部工具栏
-const editorFooters = [
-  'markdownTotal', '=', 'scrollSwitch'
-]
-
-// 编辑器快捷键配置
-const editorShortcuts = {
-  bold: 'Ctrl+B',
-  italic: 'Ctrl+I',
-  underline: 'Ctrl+U',
-  strikeThrough: 'Ctrl+Shift+S',
-  title: 'Ctrl+H',
-  quote: 'Ctrl+Q',
-  unorderedList: 'Ctrl+L',
-  orderedList: 'Ctrl+Shift+L',
-  code: 'Ctrl+K',
-  codeRow: 'Ctrl+Shift+K',
-  link: 'Ctrl+Shift+L',
-  image: 'Ctrl+Shift+I',
-  table: 'Ctrl+T',
-  save: 'Ctrl+S',
-  revoke: 'Ctrl+Z',
-  next: 'Ctrl+Y',
-  fullscreen: 'F11',
-  preview: 'Ctrl+P'
-}
 
 // 处理编辑器图片上传
 const handleImageUpload = async (files: File[], callback: (urls: string[]) => void) => {
@@ -667,18 +625,13 @@ const handleGetCatalog = (list: any[]) => {
 }
 
 // 内容变化时计算字数和阅读时间，并自动生成摘要
-const handleContentChange = (content) => {
-  // 移除Markdown标记后计算字数
-  const plainText = content.replace(/(?:!\[(.*?)\]\((.*?)\))|(?:\[(.*?)\]\((.*?)\))|(?:\*\*(.*?)\*\*)|(?:\*(.*?)\*)|(?:__(.*?)__)|(?:_(.*?)_)|(?:~~(.*?)~~)|(?:`(.*?)`)|(?:```([\s\S]*?)```)|(?:#+ )|(?:- )|(?:\d+\. )|(?:\|)|(?:-{3,})|(?:>{1,})/g, '$1$3$5$6$7$8$9$10$11');
+const handleContentChange = (content: string) => {
+  // 使用工具函数计算字数和阅读时间
+  form.word_count = countWords(content);
+  form.read_time = calculateReadTime(content);
 
-  const wordCount = plainText.replace(/\s+/g, '').length;
-  form.word_count = wordCount;
-
-  // 假设阅读速度为每分钟300字
-  form.read_time = Math.max(1, Math.ceil(wordCount / 300));
-
-  // 文章内容变化且内容超过50字时，自动生成摘要
-  if (content.length > 50 && !userEditedSummary.value) {
+  // 文章内容超过最小长度且用户未手动编辑摘要时，自动生成摘要
+  if (content.length > MIN_CONTENT_LENGTH.summary && !userEditedSummary.value) {
     autoGenerateSummary(content);
   }
 }
@@ -692,17 +645,9 @@ watch(() => form.description, () => {
 }, { immediate: false });
 
 // 自动生成摘要（简单版，不调用API）
-const autoGenerateSummary = (content) => {
-  // 简单提取前100个字符作为摘要
-  const plainText = content.replace(/(?:!\[(.*?)\]\((.*?)\))|(?:\[(.*?)\]\((.*?)\))|(?:\*\*(.*?)\*\*)|(?:\*(.*?)\*)|(?:__(.*?)__)|(?:_(.*?)_)|(?:~~(.*?)~~)|(?:`(.*?)`)|(?:```([\s\S]*?)```)|(?:#+ )|(?:- )|(?:\d+\. )|(?:\|)|(?:-{3,})|(?:>{1,})/g, '$1$3$5$6$7$8$9$10$11').trim();
-
-  if (plainText.length > 0) {
-    // 提取第一段落或前100个字符
-    const firstParagraph = plainText.split('\n\n')[0];
-    form.description = firstParagraph.length > 100
-      ? firstParagraph.substring(0, 100) + '...'
-      : firstParagraph;
-  }
+const autoGenerateSummary = (content: string) => {
+  // 使用工具函数生成摘要
+  form.description = generateSummary(content, SUMMARY_CONFIG.auto);
 }
 
 // 生成AI摘要
@@ -712,8 +657,8 @@ const generateAiSummary = async () => {
     return;
   }
 
-  if (form.content.length < 50) {
-    message('文章内容过短，请输入至少50个字符后再生成摘要', { type: 'warning' });
+  if (form.content.length < MIN_CONTENT_LENGTH.aiSummary) {
+    message(`文章内容过短，请输入至少${MIN_CONTENT_LENGTH.aiSummary}个字符后再生成摘要`, { type: 'warning' });
     return;
   }
 
@@ -722,7 +667,7 @@ const generateAiSummary = async () => {
 
     // 准备提示词
     const prompt = `请基于以下文章内容，生成一个高质量的摘要，要求：
-1. 摘要字数控制在200字以内
+1. 摘要字数控制在${SUMMARY_CONFIG.ai}字以内
 2. 准确提炼文章核心观点
 3. 保留文章主要信息点
 4. 语言简洁、流畅、有吸引力
