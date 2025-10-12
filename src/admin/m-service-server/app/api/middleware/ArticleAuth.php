@@ -16,7 +16,6 @@ class ArticleAuth
       // 去掉 "Bearer " 前缀，获取纯 token
       $token = trim(str_replace(['Bearer ', 'bearer '], '', $authHeader));
       $parseToken =  JWTUtil::verifyToken($token);
-      var_dump($parseToken['code'] == 200);
     }
     return $next($request);
   }

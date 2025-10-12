@@ -139,24 +139,81 @@
     <el-row>
       <el-col :span="24">
         <el-form-item label="文章内容" prop="content">
-          <MdEditor v-model="form.content" height="500px" :language="editorLanguage" :theme="editorTheme"
-            :preview-theme="previewTheme" :code-theme="codeTheme" :toolbars="editorToolbars" :toolbars-exclude="[]"
-            :footers="editorFooters" :scroll-auto="true" :auto-focus="false" :auto-detect-code="true" :tab-width="2"
-            :show-code-row-number="true" :preview-only="false" :html-preview="true" :no-mermaid="false"
-            :no-katex="false" :no-highlight="false" :no-link-ref="false" :no-img-zoom-in="false" :sanitize-html="true"
-            :max-length="50000" :auto-save="true" :placeholder="editorPlaceholder" @change="handleContentChange"
-            @onUploadImg="handleImageUpload" @onSave="handleEditorSave" @onFocus="handleEditorFocus"
-            @onBlur="handleEditorBlur" @onGetCatalog="handleGetCatalog" />
+          <!-- 快捷插入按钮 -->
+          <div class="quick-insert-buttons" style="margin-bottom: 8px;">
+            <el-button size="small" @click="insertVideo">
+              <el-icon><VideoPlay /></el-icon>
+              插入视频
+            </el-button>
+            <el-button size="small" @click="insertAudio">
+              <el-icon><Mic /></el-icon>
+              插入音频
+            </el-button>
+            <el-tag type="info" size="small" style="margin-left: 8px;">支持B站、YouTube、直链等</el-tag>
+          </div>
+          
+          <MdEditor 
+            ref="editorRef"
+            v-model="form.content" 
+            height="500px" 
+            :language="editorLanguage" 
+            :theme="editorTheme"
+            :preview-theme="previewTheme" 
+            :code-theme="codeTheme" 
+            :toolbars="editorToolbars"
+            :toolbars-exclude="[]"
+            :footers="editorFooters" 
+            :scroll-auto="true" 
+            :auto-focus="false" 
+            :auto-detect-code="true" 
+            :tab-width="2"
+            :show-code-row-number="true" 
+            :preview-only="false" 
+            :html-preview="true" 
+            :no-mermaid="false"
+            :no-katex="false" 
+            :no-highlight="false" 
+            :no-link-ref="false" 
+            :no-img-zoom-in="false" 
+            :sanitize="sanitizeConfig"
+            :max-length="50000" 
+            :auto-save="true" 
+            :placeholder="editorPlaceholder" 
+            @change="handleContentChange"
+            @onUploadImg="handleImageUpload" 
+            @onSave="handleEditorSave" 
+            @onFocus="handleEditorFocus"
+            @onBlur="handleEditorBlur" 
+            @onGetCatalog="handleGetCatalog"
+          >
+            <template #defToolbars>
+              <button class="md-editor-toolbar-item custom-toolbar-btn" @click="insertVideo" title="插入视频">
+                <el-icon :size="16"><VideoPlay /></el-icon>
+              </button>
+              <button class="md-editor-toolbar-item custom-toolbar-btn" @click="insertAudio" title="插入音频">
+                <el-icon :size="16"><Mic /></el-icon>
+              </button>
+            </template>
+          </MdEditor>
         </el-form-item>
       </el-col>
     </el-row>
 
-    <el-row>
+    <el-row :gutter="20">
       <el-col :span="24">
         <el-form-item label="文章摘要" prop="description">
-          <div class="summary-container">
-            <el-input v-model="form.description" type="textarea" :rows="3" placeholder="根据文章内容自动生成，也可手动编辑"
-              maxlength="255" show-word-limit />
+          <el-input v-model="form.description" type="textarea" :rows="3" placeholder="根据文章内容自动生成，也可手动编辑"
+            maxlength="255" show-word-limit />
+        </el-form-item>
+      </el-col>
+    </el-row>
+
+    <el-row :gutter="20">
+      <el-col :span="24">
+        <el-form-item label="AI智能摘要">
+          <div class="ai-summary-container">
+            <el-input v-model="form.ai_summary" type="textarea" :rows="2" placeholder="AI生成的摘要将显示在这里，不超过200个字符"
+              maxlength="200" show-word-limit :disabled="true" />
             <div class="action-buttons">
               <el-button type="primary" @click="generateAiSummary" :loading="aiLoading" class="ai-button">
                 <div class="ai-button-content">
@@ -168,15 +225,6 @@
               </el-button>
             </div>
           </div>
-        </el-form-item>
-      </el-col>
-    </el-row>
-
-    <el-row>
-      <el-col :span="24">
-        <el-form-item label="AI摘要">
-          <el-input v-model="form.ai_summary" type="textarea" :rows="2" placeholder="AI生成的摘要将显示在这里，不超过200个字符"
-            maxlength="200" show-word-limit :disabled="true" />
         </el-form-item>
       </el-col>
     </el-row>
@@ -205,7 +253,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive, computed, watch, onMounted, defineEmits, defineProps } from 'vue'
+import { ref, reactive, computed, watch, onMounted, defineEmits, defineProps, h, defineComponent } from 'vue'
 import { MdEditor } from "md-editor-v3";
 import "md-editor-v3/lib/style.css";
 import { http } from '@/utils/http';
@@ -216,7 +264,7 @@ import { ElMessageBox } from 'element-plus'
 import { uploadImage } from '@/api/upload'
 import {
   ChatRound, Picture, Delete, Camera, Star, ArrowRight, Plus,
-  Minus, Files, InfoFilled, Paperclip, Loading
+  Minus, Files, InfoFilled, Paperclip, Loading, VideoPlay, Mic
 } from '@element-plus/icons-vue'
 import { request, wenxinRequest } from '@/api/openai'
 import { ElMessage } from 'element-plus'
@@ -236,6 +284,7 @@ const props = defineProps({
 const emit = defineEmits(['submit-success', 'cancel'])
 
 const formRef = ref()
+const editorRef = ref()
 const loading = ref(false)
 const submitting = ref(false)
 const aiLoading = ref(false)
@@ -388,6 +437,123 @@ const codeTheme = ref('atom') // 代码主题：atom/a11y/github/gradient/kimbie
 // 编辑器占位符
 const editorPlaceholder = ref('请输入文章内容，支持Markdown语法...')
 
+/**
+ * md-editor-v3 的 sanitize 配置
+ * 直接返回 HTML，绕过过滤，允许 iframe、video、audio 等标签
+ */
+const sanitizeConfig = (html: string) => {
+  return html;
+}
+
+/**
+ * 在光标位置插入内容
+ */
+const insertAtCursor = (text: string) => {
+  const textarea = document.querySelector('.md-editor-input-wrapper textarea') as HTMLTextAreaElement;
+  if (!textarea) {
+    // 如果找不到textarea，就插入到文末
+    form.content = form.content + '\n\n' + text + '\n\n';
+    return;
+  }
+  
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const content = form.content;
+  
+  // 在光标位置插入
+  const before = content.substring(0, start);
+  const after = content.substring(end);
+  form.content = before + '\n\n' + text + '\n\n' + after;
+  
+  // 设置光标位置到插入内容之后
+  setTimeout(() => {
+    const newPosition = start + text.length + 4; // +4 因为有两个\n\n
+    textarea.focus();
+    textarea.setSelectionRange(newPosition, newPosition);
+  }, 100);
+}
+
+/**
+ * 插入视频的函数
+ */
+const insertVideo = () => {
+  ElMessageBox.prompt('请输入视频URL（支持B站、YouTube等平台的嵌入链接，或直接视频文件URL）', '插入视频', {
+    confirmButtonText: '插入',
+    cancelButtonText: '取消',
+    inputPlaceholder: '例：https://www.example.com/video.mp4',
+    inputValidator: (value) => {
+      if (!value || !value.trim()) {
+        return '请输入视频URL';
+      }
+      return true;
+    }
+  }).then(({ value }) => {
+    const url = value.trim();
+    let videoCode = '';
+    
+    // 判断是 B站视频
+    if (url.includes('bilibili.com')) {
+      // 提取 BV 号或嵌入代码
+      if (url.includes('player.bilibili.com')) {
+        videoCode = `<iframe src="${url}" width="100%" height="500" frameborder="0" allowfullscreen></iframe>`;
+      } else {
+        const bvMatch = url.match(/BV[a-zA-Z0-9]+/);
+        if (bvMatch) {
+          videoCode = `<iframe src="//player.bilibili.com/player.html?bvid=${bvMatch[0]}" width="100%" height="500" frameborder="0" allowfullscreen></iframe>`;
+        }
+      }
+    }
+    // 判断是 YouTube 视频
+    else if (url.includes('youtube.com') || url.includes('youtu.be')) {
+      const videoIdMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/);
+      if (videoIdMatch && videoIdMatch[1]) {
+        videoCode = `<iframe width="560" height="315" src="https://www.youtube.com/embed/${videoIdMatch[1]}" frameborder="0" allowfullscreen></iframe>`;
+      }
+    }
+    // 否则使用 HTML5 video 标签
+    else {
+      videoCode = `<video controls width="100%">\n  <source src="${url}" type="video/mp4">\n  您的浏览器不支持 video 标签。\n</video>`;
+    }
+    
+    if (videoCode) {
+      // 插入到光标位置
+      insertAtCursor(videoCode);
+      message('视频插入成功', { type: 'success' });
+    } else {
+      message('视频URL格式不正确', { type: 'error' });
+    }
+  }).catch(() => {
+    // 用户取消
+  });
+}
+
+/**
+ * 插入音频的函数
+ */
+const insertAudio = () => {
+  ElMessageBox.prompt('请输入音频URL', '插入音频', {
+    confirmButtonText: '插入',
+    cancelButtonText: '取消',
+    inputPlaceholder: '例：https://www.example.com/audio.mp3',
+    inputValidator: (value) => {
+      if (!value || !value.trim()) {
+        return '请输入音频URL';
+      }
+      return true;
+    }
+  }).then(({ value }) => {
+    const url = value.trim();
+    const audioCode = `<audio controls>\n  <source src="${url}" type="audio/mpeg">\n  您的浏览器不支持 audio 标签。\n</audio>`;
+    
+    // 插入到光标位置
+    insertAtCursor(audioCode);
+    message('音频插入成功', { type: 'success' });
+  }).catch(() => {
+    // 用户取消
+  });
+}
+
+
 // 编辑器工具栏配置（完整版）
 const editorToolbars = [
   // 文本格式化
@@ -400,6 +566,8 @@ const editorToolbars = [
   'codeRow', 'code', 'link', '-',
   // 媒体插入
   'image', 'table', 'mermaid', 'katex', '-',
+  // 自定义按钮：视频和音频（索引 0 和 1）
+  0, 1, '-',
   // 操作按钮
   'revoke', 'next', 'save', '-',
   // 视图控制
@@ -855,11 +1023,55 @@ function sayHello() {
 </script>
 
 <style scoped>
+/* 自定义工具栏按钮样式，与原生工具栏保持一致 */
+.custom-toolbar-btn {
+  box-shadow: none !important;
+  border: none !important;
+  background: transparent !important;
+  margin: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+  width: 28px;
+  height: 28px;
+}
+
+.custom-toolbar-btn:hover {
+  background-color: var(--md-bk-hover, #e8e8e8) !important;
+  box-shadow: none !important;
+}
+
+.custom-toolbar-btn:active {
+  background-color: var(--md-bk-active, #d8d8d8) !important;
+  transform: scale(0.95);
+}
+
+.custom-toolbar-btn .el-icon {
+  font-size: 16px;
+  color: var(--md-color, #333);
+}
+
+/* 深色主题适配 */
+.md-editor-dark .custom-toolbar-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.md-editor-dark .custom-toolbar-btn:active {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.md-editor-dark .custom-toolbar-btn .el-icon {
+  color: var(--md-color, #fff);
+}
+
 .el-form {
   padding: 20px;
 }
 
-.summary-container {
+.ai-summary-container {
   display: flex;
   flex-direction: column;
 }
