@@ -84,7 +84,7 @@
 
     <!-- 文章权限控制 -->
     <el-row :gutter="20">
-      <el-col :span="12">
+      <el-col :span="8">
         <el-form-item label="文章可见性" prop="visibility">
           <el-select 
             v-model="form.visibility" 
@@ -97,23 +97,21 @@
               :key="option.value"
               :label="option.label"
               :value="option.value"
-            >
-              <div style="display: flex; align-items: center; justify-content: space-between;">
-                <span>{{ option.label }}</span>
-                <el-tag :type="getVisibilityTagType(option.value)" size="small">{{ option.tip }}</el-tag>
-              </div>
-            </el-option>
+            />
           </el-select>
         </el-form-item>
       </el-col>
-      <el-col :span="12" v-if="form.visibility && form.visibility !== 'public'">
+      <el-col :span="16" v-if="form.visibility && form.visibility !== 'public'">
         <el-form-item label="权限说明">
-          <el-alert 
-            :title="getVisibilityDescription(form.visibility)" 
+          <el-tag 
             :type="getVisibilityTagType(form.visibility)"
-            :closable="false"
-            show-icon
-          />
+            size="default"
+            effect="light"
+            style="border: none; background-color: transparent; color: var(--el-text-color-regular);"
+          >
+            <el-icon style="margin-right: 4px;"><InfoFilled /></el-icon>
+            {{ getVisibilityDescription(form.visibility) }}
+          </el-tag>
         </el-form-item>
       </el-col>
     </el-row>
@@ -130,6 +128,8 @@
             placeholder="选择可访问的用户，可多选"
             style="width: 100%"
             clearable
+            collapse-tags
+            collapse-tags-tooltip
           >
             <el-option
               v-for="user in userList"
@@ -138,8 +138,7 @@
               :value="user.id"
             />
           </el-select>
-          <div style="margin-top: 8px; font-size: 12px; color: #909399;">
-            <el-icon><InfoFilled /></el-icon>
+          <div style="margin-top: 6px; font-size: 12px; color: var(--el-text-color-regular);">
             已选择 {{ form.access_users?.length || 0 }} 个用户
           </div>
         </el-form-item>
@@ -150,22 +149,22 @@
     <el-row v-if="form.visibility === 'specific_roles'" :gutter="20">
       <el-col :span="24">
         <el-form-item label="授权角色" prop="access_roles">
-          <el-checkbox-group v-model="form.access_roles" :disabled="roleLoading">
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
             <el-checkbox
               v-for="role in roleList"
               :key="role.id"
+              v-model="form.access_roles"
               :label="role.id"
-              border
-              style="margin-right: 10px; margin-bottom: 10px;"
+              :disabled="roleLoading"
+              size="default"
             >
               {{ role.name }}
             </el-checkbox>
-          </el-checkbox-group>
-          <div v-if="roleLoading" style="margin-top: 8px; font-size: 12px; color: #909399;">
+          </div>
+          <div v-if="roleLoading" style="margin-top: 6px; font-size: 12px; color: var(--el-text-color-regular);">
             加载角色列表中...
           </div>
-          <div v-else style="margin-top: 8px; font-size: 12px; color: #909399;">
-            <el-icon><InfoFilled /></el-icon>
+          <div v-else style="margin-top: 6px; font-size: 12px; color: var(--el-text-color-regular);">
             已选择 {{ form.access_roles?.length || 0 }} 个角色
           </div>
         </el-form-item>
@@ -1047,6 +1046,16 @@ onMounted(() => {
     // 如果已有摘要，标记为用户已编辑
     if (form.description) {
       userEditedSummary.value = true;
+    }
+
+    // ✅ 修复权限数据绑定 - 提取accessUsers和accessRoles的ID数组
+    if (props.formData.accessUsers && Array.isArray(props.formData.accessUsers)) {
+      form.access_users = props.formData.accessUsers.map(user => user.id);
+      console.log('Bound access_users:', form.access_users);
+    }
+    if (props.formData.accessRoles && Array.isArray(props.formData.accessRoles)) {
+      form.access_roles = props.formData.accessRoles.map(role => role.id);
+      console.log('Bound access_roles:', form.access_roles);
     }
 
     // 初始化权限相关数据
