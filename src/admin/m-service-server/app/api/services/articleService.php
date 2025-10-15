@@ -48,64 +48,54 @@ class articleService
                 'accessRoles'
             ])
             ->withCount(['favorites', 'likes', 'comments']);
-        
         // 权限过滤逻辑（除非禁用权限过滤）
         if (!isset($params['skip_permission_filter']) || !$params['skip_permission_filter']) {
-            error_log("[Service] ========== 开始权限过滤 ==========");
+            error_log("[Service] ========== 开始权限过滤 ===========");
             error_log("[Service] currentUserId: {$currentUserId}");
             error_log("[Service] currentUserRoles: " . json_encode($currentUserRoles));
             error_log("[Service] ======================================");
             
-            // ✅ 使用原生SQL构建OR条件，避免ThinkPHP的whereOr问题
-            $conditions = [];
-            
-            // 1. 公开文章 - 所有人都能看
-            $conditions[] = "visibility = 'public'";
-            error_log("[Service] ✅ 添加条件: visibility = 'public'");
-            
-            // 2. 私密文章 - 只有作者能看
-            if ($currentUserId > 0) {
-                $conditions[] = "(visibility = 'private' AND author_id = {$currentUserId})";
-                error_log("[Service] ✅ 添加条件: (visibility = 'private' AND author_id = {$currentUserId})");
-            }
-            
-            // 3. 登录可见 - 已登录用户能看
-            if ($currentUserId > 0) {
-                $conditions[] = "visibility = 'login_required'";
-                error_log("[Service] ✅ 添加条件: visibility = 'login_required'");
-            } else {
-                error_log("[Service] ⏭️  跳过 login_required (用户未登录)");
-            }
-            
-            // 4. 指定用户可见
-            if ($currentUserId > 0) {
-                $conditions[] = "(visibility = 'specific_users' AND EXISTS (" .
-                    "SELECT 1 FROM bl_article_user_access " .
-                    "WHERE bl_article_user_access.article_id = bl_article.id " .
-                    "AND bl_article_user_access.user_id = {$currentUserId}" .
-                    "))";
-                error_log("[Service] ✅ 添加条件: specific_users (userId={$currentUserId})");
-            }
-            
-            // 5. 指定角色可见
-            if (is_array($currentUserRoles) && count($currentUserRoles) > 0) {
-                $rolesStr = implode(',', $currentUserRoles);
-                $conditions[] = "(visibility = 'specific_roles' AND EXISTS (" .
-                    "SELECT 1 FROM bl_article_role_access " .
-                    "WHERE bl_article_role_access.article_id = bl_article.id " .
-                    "AND bl_article_role_access.role_id IN ({$rolesStr})" .
-                    "))";
-                error_log("[Service] ✅ 添加条件: specific_roles (roles=[{$rolesStr}])");
-            } else {
-                error_log("[Service] ⏭️  跳过 specific_roles (用户无角色)");
-            }
-            
-            // 合并所有条件用OR连接
-            if (!empty($conditions)) {
-                $whereRaw = '(' . implode(' OR ', $conditions) . ')';
-                error_log("[Service] ✅ 最终SQL条件: " . $whereRaw);
-                $query->whereRaw($whereRaw);
-            }
+            // ✅ 修复：使用模型的 whereOr 而不是原生SQL，确保关联数据能正确加载
+            $query->where(function($query) use ($currentUserId, $currentUserRoles) {
+                // 1. 公开文章 - 所有人都能看
+                $query->whereOr('visibility', 'public');
+                error_log("[Service] ✅ 添加条件: visibility = 'public'");
+                
+                // 2. 作者自己的文章 - 作者始终可见（包括private）
+                if ($currentUserId > 0) {
+                    $query->whereOr('author_id', $currentUserId);
+                    error_log("[Service] ✅ 添加条件: author_id = {$currentUserId}");
+                }
+                
+                // 3. 登录可见 - 已登录用户能看
+                if ($currentUserId > 0) {
+                    $query->whereOr('visibility', 'login_required');
+                    error_log("[Service] ✅ 添加条件: visibility = 'login_required'");
+                } else {
+                    error_log("[Service] ⏭️  跳过 login_required (用户未登录)");
+                }
+                
+                // 4. 指定用户可见 - 使用原生 whereRaw 避免关联问题
+                if ($currentUserId > 0) {
+                    $query->whereOr(function($subQuery) use ($currentUserId) {
+                        $subQuery->where('visibility', 'specific_users')
+                                ->whereRaw("EXISTS (SELECT 1 FROM bl_article_user_access WHERE bl_article_user_access.article_id = bl_article.id AND bl_article_user_access.user_id = ?)", [$currentUserId]);
+                    });
+                    error_log("[Service] ✅ 添加条件: specific_users (userId={$currentUserId})");
+                }
+                
+                // 5. 指定角色可见 - 使用原生 whereRaw 避免关联问题
+                if (is_array($currentUserRoles) && count($currentUserRoles) > 0) {
+                    $rolesStr = implode(',', $currentUserRoles);
+                    $query->whereOr(function($subQuery) use ($currentUserRoles, $rolesStr) {
+                        $subQuery->where('visibility', 'specific_roles')
+                                ->whereRaw("EXISTS (SELECT 1 FROM bl_article_role_access WHERE bl_article_role_access.article_id = bl_article.id AND bl_article_role_access.role_id IN ({$rolesStr}))");
+                    });
+                    error_log("[Service] ✅ 添加条件: specific_roles (roles=[{$rolesStr}])");
+                } else {
+                    error_log("[Service] ⏭️  跳过 specific_roles (用户无角色)");
+                }
+            });
         }
     
         // ID精确查询

@@ -122,28 +122,30 @@ class article extends Model
     /**
      * 关联：文章可访问的用户（多对多）
      * 用于 specific_users 可见性
+     * ThinkPHP8 belongsToMany 参数: (关联模型, 中间表, 外键, 关联外键)
      */
     public function accessUsers()
     {
         return $this->belongsToMany(
-            users::class,           // 关联模型
-            'article_user_access',  // 中间表
-            'article_id',           // 当前模型外键（article在中间表的字段）
-            'user_id'               // 关联模型外键（user在中间表的字段）
+            users::class,               // 关联模型
+            'article_user_access',      // 中间表
+            'user_id',                  // 外键（关联模型在中间表的字段）
+            'article_id'                // 关联外键（当前模型在中间表的字段）
         );
     }
 
     /**
      * 关联：文章可访问的角色（多对多）
      * 用于 specific_roles 可见性
+     * ThinkPHP8 belongsToMany 参数: (关联模型, 中间表, 外键, 关联外键)
      */
     public function accessRoles()
     {
         return $this->belongsToMany(
-            roles::class,           // 关联模型
-            'article_role_access',  // 中间表
-            'article_id',           // 当前模型外键（article在中间表的字段）
-            'role_id'               // 关联模型外键（role在中间表的字段）
+            roles::class,               // 关联模型
+            'article_role_access',      // 中间表
+            'role_id',                  // 外键（关联模型在中间表的字段）
+            'article_id'                // 关联外键（当前模型在中间表的字段）
         );
     }
 
