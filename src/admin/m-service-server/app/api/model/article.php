@@ -118,4 +118,79 @@ class article extends Model
     {
         return $value ? 1 : 0;
     }
+
+    /**
+     * 关联：文章可访问的用户（多对多）
+     * 用于 specific_users 可见性
+     */
+    public function accessUsers()
+    {
+        return $this->belongsToMany(
+            users::class,           // 关联模型
+            'article_user_access',  // 中间表
+            'article_id',           // 当前模型外键（article在中间表的字段）
+            'user_id'               // 关联模型外键（user在中间表的字段）
+        );
+    }
+
+    /**
+     * 关联：文章可访问的角色（多对多）
+     * 用于 specific_roles 可见性
+     */
+    public function accessRoles()
+    {
+        return $this->belongsToMany(
+            roles::class,           // 关联模型
+            'article_role_access',  // 中间表
+            'article_id',           // 当前模型外键（article在中间表的字段）
+            'role_id'               // 关联模型外键（role在中间表的字段）
+        );
+    }
+
+    /**
+     * 检查用户是否有权访问该文章
+     * @param int $userId 用户ID
+     * @param array $userRoleIds 用户角色ID数组
+     * @return bool
+     */
+    public function canAccessBy($userId, $userRoleIds = [])
+    {
+        // 1. 公开文章，所有人可见
+        if ($this->visibility === 'public') {
+            return true;
+        }
+
+        // 2. 作者始终可以访问自己的文章
+        if ($this->author_id == $userId) {
+            return true;
+        }
+
+        // 3. 私密文章，只有作者可见
+        if ($this->visibility === 'private') {
+            return false;
+        }
+
+        // 4. 登录可见，检查是否已登录
+        if ($this->visibility === 'login_required') {
+            return $userId > 0;
+        }
+
+        // 5. 指定用户，检查用户访问权限表
+        if ($this->visibility === 'specific_users') {
+            if ($userId <= 0) {
+                return false;
+            }
+            return $this->accessUsers()->where('user_id', $userId)->count() > 0;
+        }
+
+        // 6. 指定角色，检查角色访问权限表
+        if ($this->visibility === 'specific_roles') {
+            if (empty($userRoleIds)) {
+                return false;
+            }
+            return $this->accessRoles()->whereIn('role_id', $userRoleIds)->count() > 0;
+        }
+
+        return false;
+    }
 }

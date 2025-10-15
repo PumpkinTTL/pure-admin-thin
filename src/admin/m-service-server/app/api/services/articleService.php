@@ -15,6 +15,17 @@ class articleService
      */
     public static function selectArticleAll(array $params = [])
     {
+        // 获取当前用户信息（优先从参数获取，其次从request，最后从session）
+        $currentUserId = $params['current_user_id'] ?? request()->currentUserId ?? session('user_id') ?? 0;
+        $currentUserRoles = $params['current_user_roles'] ?? request()->currentUserRoles ?? session('user_roles') ?? [];
+        
+        // ========== 强制调试输出 ==========
+        error_log("[Service] currentUserId: {$currentUserId}");
+        error_log("[Service] currentUserRoles: " . json_encode($currentUserRoles));
+        error_log("[Service] currentUserId > 0: " . ($currentUserId > 0 ? 'TRUE' : 'FALSE'));
+        error_log("[Service] count(roles): " . count($currentUserRoles));
+        // ========================================
+        
         // 基础查询构建
         $query = articleModel::with([
                 'category' => function($query) {
@@ -31,9 +42,71 @@ class articleService
             
                 'tags' => function($query) {
                     $query->field(['name']);
-                }
+                },
+                // 加载权限关联数据（不限制字段，让ThinkPHP自动处理）
+                'accessUsers',
+                'accessRoles'
             ])
             ->withCount(['favorites', 'likes', 'comments']);
+        
+        // 权限过滤逻辑（除非禁用权限过滤）
+        if (!isset($params['skip_permission_filter']) || !$params['skip_permission_filter']) {
+            error_log("[Service] ========== 开始权限过滤 ==========");
+            error_log("[Service] currentUserId: {$currentUserId}");
+            error_log("[Service] currentUserRoles: " . json_encode($currentUserRoles));
+            error_log("[Service] ======================================");
+            
+            // ✅ 使用原生SQL构建OR条件，避免ThinkPHP的whereOr问题
+            $conditions = [];
+            
+            // 1. 公开文章 - 所有人都能看
+            $conditions[] = "visibility = 'public'";
+            error_log("[Service] ✅ 添加条件: visibility = 'public'");
+            
+            // 2. 私密文章 - 只有作者能看
+            if ($currentUserId > 0) {
+                $conditions[] = "(visibility = 'private' AND author_id = {$currentUserId})";
+                error_log("[Service] ✅ 添加条件: (visibility = 'private' AND author_id = {$currentUserId})");
+            }
+            
+            // 3. 登录可见 - 已登录用户能看
+            if ($currentUserId > 0) {
+                $conditions[] = "visibility = 'login_required'";
+                error_log("[Service] ✅ 添加条件: visibility = 'login_required'");
+            } else {
+                error_log("[Service] ⏭️  跳过 login_required (用户未登录)");
+            }
+            
+            // 4. 指定用户可见
+            if ($currentUserId > 0) {
+                $conditions[] = "(visibility = 'specific_users' AND EXISTS (" .
+                    "SELECT 1 FROM bl_article_user_access " .
+                    "WHERE bl_article_user_access.article_id = bl_article.id " .
+                    "AND bl_article_user_access.user_id = {$currentUserId}" .
+                    "))";
+                error_log("[Service] ✅ 添加条件: specific_users (userId={$currentUserId})");
+            }
+            
+            // 5. 指定角色可见
+            if (is_array($currentUserRoles) && count($currentUserRoles) > 0) {
+                $rolesStr = implode(',', $currentUserRoles);
+                $conditions[] = "(visibility = 'specific_roles' AND EXISTS (" .
+                    "SELECT 1 FROM bl_article_role_access " .
+                    "WHERE bl_article_role_access.article_id = bl_article.id " .
+                    "AND bl_article_role_access.role_id IN ({$rolesStr})" .
+                    "))";
+                error_log("[Service] ✅ 添加条件: specific_roles (roles=[{$rolesStr}])");
+            } else {
+                error_log("[Service] ⏭️  跳过 specific_roles (用户无角色)");
+            }
+            
+            // 合并所有条件用OR连接
+            if (!empty($conditions)) {
+                $whereRaw = '(' . implode(' OR ', $conditions) . ')';
+                error_log("[Service] ✅ 最终SQL条件: " . $whereRaw);
+                $query->whereRaw($whereRaw);
+            }
+        }
     
         // ID精确查询
         if (!empty($params['id'])) {
@@ -155,11 +228,25 @@ class articleService
         $page = !empty($params['page']) ? intval($params['page']) : 1;
         $pageSize = !empty($params['page_size']) ? intval($params['page_size']) : 10;
     
+        LogService::log("[Service] 开始执行分页查询 - page: {$page}, pageSize: {$pageSize}", [], 'info');
+        
+        // ========== 启用SQL监听 ==========
+        Db::listen(function($sql, $time, $explain) {
+            error_log("[Service] ========== SQL语句 ==========");
+            error_log("[Service] SQL: " . $sql);
+            error_log("[Service] 执行时间: {$time}ms");
+            error_log("[Service] ====================================");
+            LogService::log("[Service] SQL查询语句: " . $sql . " (时间: {$time}ms)", [], 'info');
+        });
+        // ========================================
+    
         // 执行分页查询
         $result = $query->paginate([
             'page' => $page,
             'list_rows' => $pageSize
         ]);
+        
+        LogService::log("[Service] 查询完成 - 结果数量: " . count($result->items()), [], 'info');
         
         // 返回标准格式的分页数据
         return [
@@ -207,7 +294,10 @@ class articleService
                 },
             'comments'=>function($query){
                 $query->field(['id','content','create_time','update_time','delete_time']);
-            }
+            },
+            // 加载权限关联数据
+            'accessUsers',
+            'accessRoles'
         ]) ->withCount(['favorites', 'likes', 'comments'])->where('id', $id)->find();
         
         if (!$article) {
@@ -340,6 +430,13 @@ class articleService
                     throw new \Exception('标签关联处理失败');
                 }
             }
+            
+            // 如果有权限数据，需要更新权限关联
+            if (isset($data['visibility']) && in_array($data['visibility'], ['specific_users', 'specific_roles'])) {
+                if (!self::saveArticleAccess($id, $data)) {
+                    throw new \Exception('权限关联处理失败');
+                }
+            }
 
             // 提交事务
             Db::commit();
@@ -408,6 +505,62 @@ class articleService
                 Db::name('article_tag')->insertAll($tagsData);
             }
 
+            return true;
+        } catch (\Exception $e) {
+            LogService::error($e);
+            return false;
+        }
+    }
+    
+    /**
+     * 保存文章访问权限
+     * @param int $articleId 文章ID
+     * @param array $data 权限数据（包含access_users和access_roles）
+     * @return bool
+     */
+    public static function saveArticleAccess(int $articleId, array $data): bool
+    {
+        try {
+            // 保存指定用户权限
+            if (isset($data['access_users']) && is_array($data['access_users'])) {
+                // 先删除旧权限
+                Db::name('article_user_access')->where('article_id', $articleId)->delete();
+                
+                // 插入新权限
+                if (!empty($data['access_users'])) {
+                    $accessData = [];
+                    foreach ($data['access_users'] as $userId) {
+                        $accessData[] = [
+                            'article_id' => $articleId,
+                            'user_id' => $userId,
+                            'create_time' => date('Y-m-d H:i:s')
+                        ];
+                    }
+                    Db::name('article_user_access')->insertAll($accessData);
+                    LogService::log("保存文章用户权限成功，文章ID：{$articleId}，用户数：" . count($accessData));
+                }
+            }
+            
+            // 保存指定角色权限
+            if (isset($data['access_roles']) && is_array($data['access_roles'])) {
+                // 先删除旧权限
+                Db::name('article_role_access')->where('article_id', $articleId)->delete();
+                
+                // 插入新权限
+                if (!empty($data['access_roles'])) {
+                    $accessData = [];
+                    foreach ($data['access_roles'] as $roleId) {
+                        $accessData[] = [
+                            'article_id' => $articleId,
+                            'role_id' => $roleId,
+                            'create_time' => date('Y-m-d H:i:s')
+                        ];
+                    }
+                    Db::name('article_role_access')->insertAll($accessData);
+                    LogService::log("保存文章角色权限成功，文章ID：{$articleId}，角色数：" . count($accessData));
+                }
+            }
+            
             return true;
         } catch (\Exception $e) {
             LogService::error($e);

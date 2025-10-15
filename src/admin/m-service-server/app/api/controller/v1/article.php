@@ -3,6 +3,7 @@
 namespace app\api\controller\v1;
 
 use app\api\middleware\ParamFilter;
+use app\api\middleware\ArticleAuth;
 use app\api\services\articleService;
 use app\api\services\LogService;
 use app\BaseController;
@@ -14,7 +15,11 @@ use utils\NumUtil;
 
 class article extends BaseController
 {
-    protected $middleware = [ParamFilter::class];
+    // 添加文章权限中间件
+    protected $middleware = [
+        ParamFilter::class,
+        ArticleAuth::class => ['except' => ['getSummary']]  // 除了getSummary外都启用
+    ];
 
     /**
      * 使用讯飞星火API生成文章摘要
@@ -63,6 +68,18 @@ class article extends BaseController
     public function selectArticleAll()
     {
         $params = request()->param();
+        
+        // 从中间件获取用户信息
+        $params['current_user_id'] = request()->currentUserId ?? 0;
+        $params['current_user_roles'] = request()->currentUserRoles ?? [];
+        
+        // ========== 强制调试输出 ==========
+        error_log("[Controller] request()->currentUserId: " . (request()->currentUserId ?? 'NULL'));
+        error_log("[Controller] request()->currentUserRoles: " . json_encode(request()->currentUserRoles ?? 'NULL'));
+        error_log("[Controller] params userId: " . $params['current_user_id']);
+        error_log("[Controller] params roles: " . json_encode($params['current_user_roles']));
+        // ========================================
+        
         $result = articleService::selectArticleAll($params);
         return json($result);
     }
@@ -80,6 +97,10 @@ class article extends BaseController
             'page',
             'page_size'  // 分页参数
         ]);
+        
+        // 从中间件获取用户信息（前台接口也需要权限过滤）
+        $params['current_user_id'] = request()->currentUserId ?? 0;
+        $params['current_user_roles'] = request()->currentUserRoles ?? [];
 
         $result = articleService::selectArticleAll($params);
         return json($result);
@@ -117,8 +138,15 @@ class article extends BaseController
             if (!articleService::handleArticleTags($articleId, $params['tags'])) {
                 throw new Exception('标签关联处理失败');
             }
+            
+            // 5. 处理文章权限关联
+            if (isset($params['visibility']) && in_array($params['visibility'], ['specific_users', 'specific_roles'])) {
+                if (!articleService::saveArticleAccess($articleId, $params)) {
+                    throw new Exception('权限关联处理失败');
+                }
+            }
 
-            // 5. 提交事务
+            // 6. 提交事务
             Db::commit();
 
             // 6. 返回标准响应
@@ -154,12 +182,33 @@ class article extends BaseController
     }
 
     /**
-     * 根据id查询文章详情
+     * 根据id查询文章详情（带权限验证）
      */
     public function selectArticleById()
     {
         $id = request()->param('id');
         $result = articleService::selectArticleById($id);
+        
+        // 如果文章不存在，直接返回
+        if ($result['code'] !== 200) {
+            return json($result);
+        }
+        
+        $article = $result['data'];
+        
+        // 从中间件获取用户信息进行权限验证
+        $currentUserId = request()->currentUserId ?? 0;
+        $currentUserRoles = request()->currentUserRoles ?? [];
+        
+        // 使用 Model 的 canAccessBy 方法验证权限
+        if (!$article->canAccessBy($currentUserId, $currentUserRoles)) {
+            return json([
+                'code' => 403,
+                'msg' => '无权访问该文章',
+                'data' => null
+            ]);
+        }
+        
         return json($result);
     }
     

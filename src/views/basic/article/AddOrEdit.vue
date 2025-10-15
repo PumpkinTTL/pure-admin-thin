@@ -82,6 +82,96 @@
       </el-col>
     </el-row>
 
+    <!-- 文章权限控制 -->
+    <el-row :gutter="20">
+      <el-col :span="12">
+        <el-form-item label="文章可见性" prop="visibility">
+          <el-select 
+            v-model="form.visibility" 
+            placeholder="选择可见性"
+            @change="handleVisibilityChange"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="option in ARTICLE_VISIBILITY_OPTIONS"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            >
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span>{{ option.label }}</span>
+                <el-tag :type="getVisibilityTagType(option.value)" size="small">{{ option.tip }}</el-tag>
+              </div>
+            </el-option>
+          </el-select>
+        </el-form-item>
+      </el-col>
+      <el-col :span="12" v-if="form.visibility && form.visibility !== 'public'">
+        <el-form-item label="权限说明">
+          <el-alert 
+            :title="getVisibilityDescription(form.visibility)" 
+            :type="getVisibilityTagType(form.visibility)"
+            :closable="false"
+            show-icon
+          />
+        </el-form-item>
+      </el-col>
+    </el-row>
+
+    <!-- 指定用户选择器 -->
+    <el-row v-if="form.visibility === 'specific_users'" :gutter="20">
+      <el-col :span="24">
+        <el-form-item label="授权用户" prop="access_users">
+          <el-select
+            v-model="form.access_users"
+            multiple
+            filterable
+            :loading="userLoading"
+            placeholder="选择可访问的用户，可多选"
+            style="width: 100%"
+            clearable
+          >
+            <el-option
+              v-for="user in userList"
+              :key="user.id"
+              :label="`${user.username} (ID:${user.id})`"
+              :value="user.id"
+            />
+          </el-select>
+          <div style="margin-top: 8px; font-size: 12px; color: #909399;">
+            <el-icon><InfoFilled /></el-icon>
+            已选择 {{ form.access_users?.length || 0 }} 个用户
+          </div>
+        </el-form-item>
+      </el-col>
+    </el-row>
+
+    <!-- 指定角色选择器 -->
+    <el-row v-if="form.visibility === 'specific_roles'" :gutter="20">
+      <el-col :span="24">
+        <el-form-item label="授权角色" prop="access_roles">
+          <el-checkbox-group v-model="form.access_roles" :disabled="roleLoading">
+            <el-checkbox
+              v-for="role in roleList"
+              :key="role.id"
+              :label="role.id"
+              border
+              style="margin-right: 10px; margin-bottom: 10px;"
+            >
+              {{ role.name }}
+            </el-checkbox>
+          </el-checkbox-group>
+          <div v-if="roleLoading" style="margin-top: 8px; font-size: 12px; color: #909399;">
+            加载角色列表中...
+          </div>
+          <div v-else style="margin-top: 8px; font-size: 12px; color: #909399;">
+            <el-icon><InfoFilled /></el-icon>
+            已选择 {{ form.access_roles?.length || 0 }} 个角色
+          </div>
+        </el-form-item>
+      </el-col>
+    </el-row>
+
     <el-row>
       <el-col :span="24">
         <el-form-item label="文章封面">
@@ -261,6 +351,8 @@ import "md-editor-v3/lib/style.css";
 import { http } from '@/utils/http';
 import { addArticle, updateArticle } from '@/api/article'
 import { getCategoryList } from '@/api/category'
+import { getUserList } from '@/api/user'
+import { getRoleList } from '@/api/role'
 import { message } from "@/utils/message";
 import { ElMessageBox } from 'element-plus'
 import { uploadImage } from '@/api/upload'
@@ -276,6 +368,8 @@ import { useUserStoreHook } from '@/store/modules/user'
 import { countWords, calculateReadTime, generateSummary } from '@/utils/text'
 import {
   ARTICLE_STATUS_OPTIONS,
+  ARTICLE_VISIBILITY_OPTIONS,
+  ARTICLE_VISIBILITY_MAP,
   EDITOR_CONFIG,
   EDITOR_TOOLBARS,
   EDITOR_FOOTERS,
@@ -307,6 +401,12 @@ const selectedTags = ref([])
 const categoriesListInternal = ref([]) // 内部分类数据存储
 const categoryLoading = ref(false) // 分类加载状态
 const tagsLoading = ref(false) // 标签加载状态
+
+// 权限控制相关
+const userList = ref([]) // 用户列表
+const roleList = ref([]) // 角色列表
+const userLoading = ref(false) // 用户加载状态
+const roleLoading = ref(false) // 角色加载状态
 
 // 计算属性：优先使用props传入的分类数据，否则使用内部请求的数据
 const categoriesList = computed(() => {
@@ -391,6 +491,10 @@ const form = reactive({
   description: '',
   word_count: 0,
   read_time: 0,
+  // 权限相关字段
+  visibility: 'public', // 默认公开
+  access_users: [], // 授权用户ID数组
+  access_roles: [] // 授权角色ID数组
 })
 
 // 表单验证规则
@@ -400,6 +504,83 @@ const rules = reactive({
   content: [{ required: true, message: '请输入文章内容', trigger: 'blur' }],
   slug: [{ required: true, message: '请输入文章别名', trigger: 'blur' }]
 })
+
+// 可见性变化处理方法
+const handleVisibilityChange = (value: string) => {
+  // 当可见性不是指定用户或角色时，清空相关数据
+  if (value !== 'specific_users') {
+    form.access_users = []
+  }
+  if (value !== 'specific_roles') {
+    form.access_roles = []
+  }
+  
+  // 加载用户或角色列表
+  if (value === 'specific_users' && userList.value.length === 0) {
+    fetchUsers()
+  }
+  if (value === 'specific_roles' && roleList.value.length === 0) {
+    fetchRoles()
+  }
+}
+
+// 查询用户列表
+const fetchUsers = async () => {
+  try {
+    userLoading.value = true
+    const res: any = await getUserList({ page_size: 200 })
+    if (res && res.code === 200 && res.data) {
+      userList.value = res.data.list || []
+    }
+  } catch (error) {
+    console.error('获取用户列表失败:', error)
+    message('获取用户列表失败', { type: 'error' })
+  } finally {
+    userLoading.value = false
+  }
+}
+
+// 查询角色列表
+const fetchRoles = async () => {
+  try {
+    roleLoading.value = true
+    const res: any = await getRoleList({ page_size: 200 })
+    if (res && res.code === 200 && res.data) {
+      roleList.value = res.data.list || []
+    }
+  } catch (error) {
+    console.error('获取角色列表失败:', error)
+    message('获取角色列表失败', { type: 'error' })
+  } finally {
+    roleLoading.value = false
+  }
+}
+
+// 获取可见性标签颜色
+const getVisibilityTagType = (visibility: string) => {
+  const typeMap = {
+    'public': '',
+    'private': 'info',
+    'password': 'warning',
+    'login_required': 'info',
+    'specific_users': 'success',
+    'specific_roles': 'primary'
+  }
+  return typeMap[visibility] || ''
+}
+
+// 获取可见性说明文字
+const getVisibilityDescription = (visibility: string) => {
+  const descMap = {
+    'public': '任何人都可以查看此文章',
+    'private': '只有作者本人可以查看此文章',
+    'password': '需要输入密码才能查看此文章',
+    'login_required': '只有登录用户可以查看此文章',
+    'specific_users': '只有指定的用户可以查看此文章',
+    'specific_roles': '只有指定角色的用户可以查看此文章'
+  }
+  return descMap[visibility] || ''
+}
 
 // 封面图片处理相关变量和方法
 const coverFile = ref(null)
@@ -866,6 +1047,14 @@ onMounted(() => {
     // 如果已有摘要，标记为用户已编辑
     if (form.description) {
       userEditedSummary.value = true;
+    }
+
+    // 初始化权限相关数据
+    if (form.visibility === 'specific_users' && userList.value.length === 0) {
+      fetchUsers()
+    }
+    if (form.visibility === 'specific_roles' && roleList.value.length === 0) {
+      fetchRoles()
     }
   }
 

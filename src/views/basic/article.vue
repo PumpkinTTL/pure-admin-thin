@@ -1214,6 +1214,7 @@ const loadDefaultUserOptions = async () => {
 
 // 获取文章列表
 const fetchArticleList = async () => {
+  console.log('===== 开始调用 fetchArticleList =====');
   tableLoading.value = true;
 
   try {
@@ -1222,6 +1223,7 @@ const fetchArticleList = async () => {
       page: pageConfig.value.current_page,
       page_size: pageConfig.value.page_size
     };
+    console.log('请求参数:', params);
 
     // 添加搜索条件（过滤空值）
     Object.keys(searchForm).forEach(key => {
@@ -1239,7 +1241,9 @@ const fetchArticleList = async () => {
 
     console.log('请求参数:', params);
 
+    console.log('开始调用 getArticleList API...');
     const res: any = await getArticleList(params);
+    console.log('API返回结果:', res);
     
     if (res.code === 200) {
       if (res.data && typeof res.data === 'object') {
