@@ -239,37 +239,41 @@
           </template>
         </el-table-column>
 
-        <!-- 互动数据 -->
-        <el-table-column label="互动" min-width="100" align="center">
+        <!-- 互动与时间 -->
+        <el-table-column label="互动 / 时间" min-width="120" align="center">
           <template #default="{ row }">
-            <div class="interaction-stats">
-              <div class="stat-item">
-                <i class="fas fa-thumbs-up"></i>
-                <span>{{ row.likes_count || 0 }}</span>
+            <div class="interaction-time-column">
+              <!-- 互动数据 -->
+              <div class="interaction-row">
+                <div class="interaction-item">
+                  <i class="fas fa-thumbs-up"></i>
+                  <span class="count">{{ row.likes_count || 0 }}</span>
+                  <span class="label">赞</span>
+                </div>
+                <div class="interaction-item">
+                  <i class="fas fa-heart"></i>
+                  <span class="count">{{ row.favorites_count || 0 }}</span>
+                  <span class="label">藏</span>
+                </div>
+                <div class="interaction-item">
+                  <i class="fas fa-comment"></i>
+                  <span class="count">{{ row.comments_count || 0 }}</span>
+                  <span class="label">评</span>
+                </div>
               </div>
-              <div class="stat-item">
-                <i class="fas fa-heart"></i>
-                <span>{{ row.favorites_count || 0 }}</span>
-              </div>
-              <div class="stat-item">
-                <i class="fas fa-comment"></i>
-                <span>{{ row.comments_count || 0 }}</span>
-              </div>
-            </div>
-          </template>
-        </el-table-column>
 
-        <!-- 时间 -->
-        <el-table-column label="时间" min-width="130">
-          <template #default="{ row }">
-            <div class="time-info">
-              <div class="time-item">
-                <i class="fas fa-clock"></i>
-                <span>{{ formatTime(row.create_time) }}</span>
-              </div>
-              <div v-if="row.update_time !== row.create_time" class="time-item update">
-                <i class="fas fa-edit"></i>
-                <span>{{ formatTime(row.update_time) }}</span>
+              <!-- 时间信息 -->
+              <div class="time-row">
+                <div class="time-item">
+                  <i class="fas fa-clock"></i>
+                  <span class="label">创建</span>
+                  <span class="time">{{ formatTime(row.create_time) }}</span>
+                </div>
+                <div v-if="row.update_time !== row.create_time" class="time-item update">
+                  <i class="fas fa-edit"></i>
+                  <span class="label">更新</span>
+                  <span class="time">{{ formatTime(row.update_time) }}</span>
+                </div>
               </div>
             </div>
           </template>
@@ -1377,17 +1381,17 @@ onMounted(() => {
 // 简洁文章布局样式
 .article-item-simple {
   display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  padding: 8px 0;
+  gap: 10px;
+  align-items: center;
+  padding: 4px 0;
 
   .article-cover {
-    width: 60px;
-    height: 45px;
-    border-radius: 6px;
+    width: 50px;
+    height: 38px;
+    border-radius: 4px;
     overflow: hidden;
     flex-shrink: 0;
-    border: 1px solid #e5e7eb;
+    border: 1px solid #e8e8e8;
 
     img {
       width: 100%;
@@ -1446,7 +1450,7 @@ onMounted(() => {
       overflow: hidden;
       text-overflow: ellipsis;
       display: -webkit-box;
-      -webkit-line-clamp: 1;
+      -webkit-line-clamp: 3;
       -webkit-box-orient: vertical;
     }
 
@@ -1469,14 +1473,14 @@ onMounted(() => {
 .meta-info-column {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px 0;
+  gap: 4px;
+  padding: 4px 0;
 
   .meta-row {
     display: flex;
     align-items: center;
-    padding: 2px 0;
-    min-height: 24px;
+    padding: 1px 0;
+    min-height: 22px;
 
     .author-content {
       display: flex;
@@ -1485,12 +1489,12 @@ onMounted(() => {
       width: 100%;
 
       .author-avatar {
-        width: 20px;
-        height: 20px;
+        width: 18px;
+        height: 18px;
         border-radius: 50%;
         overflow: hidden;
         flex-shrink: 0;
-        border: 1px solid #e5e7eb;
+        border: 1px solid #e8e8e8;
 
         img {
           width: 100%;
@@ -1558,65 +1562,103 @@ onMounted(() => {
   }
 }
 
-.interaction-stats {
+.interaction-row {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  margin-bottom: 8px;
 
-  .stat-item {
+  .interaction-item {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 4px;
-    font-size: 12px;
-    color: #606266;
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: #f5f7fa;
 
     i {
       font-size: 12px;
+      color: #909399;
+      line-height: 1;
+    }
 
-      &.fa-thumbs-up {
+    .count {
+      font-weight: 600;
+      color: #606266;
+      line-height: 1;
+      min-width: 20px;
+      text-align: center;
+    }
+
+    .label {
+      font-size: 10px;
+      color: #909399;
+      line-height: 1;
+    }
+
+    &:nth-child(1) {
+      i {
         color: #409eff;
-      }
-
-      &.fa-heart {
-        color: #f56c6c;
-      }
-
-      &.fa-comment {
-        color: #e6a23c;
       }
     }
 
-    span {
-      font-weight: 500;
-      min-width: 16px;
-      text-align: center;
+    &:nth-child(2) {
+      i {
+        color: #f56c6c;
+      }
+    }
+
+    &:nth-child(3) {
+      i {
+        color: #e6a23c;
+      }
     }
   }
 }
 
-.time-info {
+.interaction-time-column {
+  padding: 4px 0;
+}
+
+.time-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
   .time-item {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 4px;
-    font-size: 12px;
-    color: #909399;
-    margin-bottom: 4px;
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: #f5f7fa;
 
     i {
-      font-size: 12px;
-      color: #c0c4cc;
-      width: 12px;
+      font-size: 11px;
+      color: #67c23a;
+      flex-shrink: 0;
+      line-height: 1;
     }
 
-    span {
-      font-weight: 400;
+    .label {
+      font-size: 10px;
+      color: #909399;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    .time {
+      font-weight: 500;
+      color: #606266;
+      font-size: 10px;
+      line-height: 1;
     }
 
     &.update {
-      color: #e6a23c;
-
       i {
         color: #e6a23c;
       }
@@ -1765,14 +1807,21 @@ onMounted(() => {
     margin-bottom: 12px;
 
     :deep(.el-table__header th) {
-      background-color: var(--el-fill-color-light);
-      color: var(--el-text-color-regular);
-      font-weight: 600;
-      padding: 6px 0;
+      background-color: #fafafa;
+      color: #606266;
+      font-weight: 500;
+      font-size: 13px;
+      padding: 8px 0;
+      border-bottom: 1px solid #e8e8e8;
     }
 
     :deep(.el-table__row td) {
-      padding: 6px 0;
+      padding: 8px 0;
+      border-bottom: 1px solid #f5f5f5;
+    }
+
+    :deep(.el-table__row:hover td) {
+      background-color: #fafafa;
     }
   }
 
