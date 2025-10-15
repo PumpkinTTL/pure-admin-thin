@@ -138,7 +138,7 @@
               :value="user.id"
             />
           </el-select>
-          <div style="margin-top: 6px; font-size: 12px; color: var(--el-text-color-regular);">
+          <div style="margin-top: 8px; font-size: 12px; color: var(--el-text-color-secondary);">
             已选择 {{ form.access_users?.length || 0 }} 个用户
           </div>
         </el-form-item>
@@ -149,22 +149,21 @@
     <el-row v-if="form.visibility === 'specific_roles'" :gutter="20">
       <el-col :span="24">
         <el-form-item label="授权角色" prop="access_roles">
-          <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
-            <el-checkbox
+          <el-checkbox-group v-model="form.access_roles" :disabled="roleLoading">
+            <el-checkbox-button
               v-for="role in roleList"
               :key="role.id"
-              v-model="form.access_roles"
               :label="role.id"
               :disabled="roleLoading"
-              size="default"
             >
               {{ role.name }}
-            </el-checkbox>
-          </div>
-          <div v-if="roleLoading" style="margin-top: 6px; font-size: 12px; color: var(--el-text-color-regular);">
+            </el-checkbox-button>
+          </el-checkbox-group>
+          <div v-if="roleLoading" style="margin-top: 8px; font-size: 12px; color: var(--el-text-color-secondary);">
+            <el-icon class="is-loading"><Loading /></el-icon>
             加载角色列表中...
           </div>
-          <div v-else style="margin-top: 6px; font-size: 12px; color: var(--el-text-color-regular);">
+          <div v-else style="margin-top: 8px; font-size: 12px; color: var(--el-text-color-secondary);">
             已选择 {{ form.access_roles?.length || 0 }} 个角色
           </div>
         </el-form-item>
