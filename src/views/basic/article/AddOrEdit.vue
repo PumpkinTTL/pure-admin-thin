@@ -106,8 +106,7 @@
           <el-tag 
             :type="getVisibilityTagType(form.visibility)"
             size="default"
-            effect="light"
-            style="border: none; background-color: transparent; color: var(--el-text-color-regular);"
+            effect="dark"
           >
             <el-icon style="margin-right: 4px;"><InfoFilled /></el-icon>
             {{ getVisibilityDescription(form.visibility) }}
@@ -120,26 +119,28 @@
     <el-row v-if="form.visibility === 'specific_users'" :gutter="20">
       <el-col :span="24">
         <el-form-item label="授权用户" prop="access_users">
-          <el-select
-            v-model="form.access_users"
-            multiple
-            filterable
-            :loading="userLoading"
-            placeholder="选择可访问的用户，可多选"
-            style="width: 100%"
-            clearable
-            collapse-tags
-            collapse-tags-tooltip
-          >
-            <el-option
-              v-for="user in userList"
-              :key="user.id"
-              :label="`${user.username} (ID:${user.id})`"
-              :value="user.id"
-            />
-          </el-select>
-          <div style="margin-top: 6px; font-size: 12px; color: var(--el-text-color-regular);">
-            已选择 {{ form.access_users?.length || 0 }} 个用户
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <el-select
+              v-model="form.access_users"
+              multiple
+              filterable
+              :loading="userLoading"
+              placeholder="选择可访问的用户，可多选"
+              style="flex: 1; max-width: 600px;"
+              clearable
+              collapse-tags
+              collapse-tags-tooltip
+            >
+              <el-option
+                v-for="user in userList"
+                :key="user.id"
+                :label="`${user.username} (ID:${user.id})`"
+                :value="user.id"
+              />
+            </el-select>
+            <el-tag size="default" type="info">
+              已选择 {{ form.access_users?.length || 0 }} 个用户
+            </el-tag>
           </div>
         </el-form-item>
       </el-col>
@@ -149,23 +150,26 @@
     <el-row v-if="form.visibility === 'specific_roles'" :gutter="20">
       <el-col :span="24">
         <el-form-item label="授权角色" prop="access_roles">
-          <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
-            <el-checkbox
-              v-for="role in roleList"
-              :key="role.id"
-              v-model="form.access_roles"
-              :label="role.id"
-              :disabled="roleLoading"
-              size="default"
-            >
-              {{ role.name }}
-            </el-checkbox>
-          </div>
-          <div v-if="roleLoading" style="margin-top: 6px; font-size: 12px; color: var(--el-text-color-regular);">
-            加载角色列表中...
-          </div>
-          <div v-else style="margin-top: 6px; font-size: 12px; color: var(--el-text-color-regular);">
-            已选择 {{ form.access_roles?.length || 0 }} 个角色
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+              <el-checkbox
+                v-for="role in roleList"
+                :key="role.id"
+                v-model="form.access_roles"
+                :label="role.id"
+                :disabled="roleLoading"
+                size="default"
+              >
+                {{ role.name }}
+              </el-checkbox>
+            </div>
+            <el-tag v-if="roleLoading" size="default" type="info">
+              <el-icon class="is-loading"><Loading /></el-icon>
+              加载角色列表中...
+            </el-tag>
+            <el-tag v-else size="default" type="info">
+              已选择 {{ form.access_roles?.length || 0 }} 个角色
+            </el-tag>
           </div>
         </el-form-item>
       </el-col>
