@@ -43,9 +43,13 @@ class articleService
                 'tags' => function($query) {
                     $query->field(['name']);
                 },
-                // 加载权限关联数据（不限制字段，让ThinkPHP自动处理）
-                'accessUsers',
-                'accessRoles'
+                // 加载权限关联数据，限制返回字段保护隐私
+                'accessUsers' => function($query) {
+                    $query->field(['bl_users.id', 'bl_users.username', 'bl_users.nickname']);
+                },
+                'accessRoles' => function($query) {
+                    $query->field(['bl_roles.id', 'bl_roles.name']);
+                }
             ])
             ->withCount(['favorites', 'likes', 'comments']);
         // 权限过滤逻辑（除非禁用权限过滤）

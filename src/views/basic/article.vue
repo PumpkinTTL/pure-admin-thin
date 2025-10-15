@@ -215,6 +215,19 @@
                 </div>
               </div>
 
+              <!-- 权限说明 -->
+              <div class="meta-row" v-if="row.visibility && row.visibility !== 'public'">
+                <div class="visibility-content">
+                  <el-tag 
+                    :type="getVisibilityType(row.visibility)" 
+                    size="small" 
+                    effect="dark"
+                  >
+                    {{ getVisibilityLabel(row.visibility) }}
+                  </el-tag>
+                </div>
+              </div>
+
               <!-- 统计信息 -->
               <div class="meta-row">
                 <div class="stats-content">
@@ -508,6 +521,30 @@ const getCategoryTagType = (categoryId) => {
     5: 'info'
   }
   return typeMap[categoryId] || 'primary'
+}
+
+// 获取可见性标签类型
+const getVisibilityType = (visibility) => {
+  const typeMap = {
+    'public': '',
+    'login_required': 'info',
+    'specific_users': 'success',
+    'specific_roles': 'primary',
+    'private': 'danger'
+  }
+  return typeMap[visibility] || 'info'
+}
+
+// 获取可见性文字
+const getVisibilityLabel = (visibility) => {
+  const labelMap = {
+    'public': '公开',
+    'login_required': '登录可见',
+    'specific_users': '指定用户',
+    'specific_roles': '指定角色',
+    'private': '私密'
+  }
+  return labelMap[visibility] || '未知'
 }
 
 // 格式化时间显示
