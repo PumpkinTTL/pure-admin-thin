@@ -168,22 +168,19 @@ class comments extends BaseController
      */
     public function batchDelete()
     {
-        $params = $this->request->param();
+        // 获取POST请求体中的数据
+        $ids = $this->request->post('ids', []);
         
         // 参数验证
-        $validate = Validate::rule([
-            'ids' => ValidateRule::isRequire(null, '评论ID列表必须传递')->isArray('评论ID必须是数组')
-        ]);
-        
-        if (!$validate->check($params)) {
+        if (empty($ids) || !is_array($ids)) {
             return json([
                 'code' => 501,
                 'msg' => '参数错误',
-                'info' => $validate->getError()
+                'info' => 'ids必须是数组'
             ]);
         }
         
-        $result = commentsService::batchDeleteComments($params['ids']);
+        $result = commentsService::batchDeleteComments($ids);
         
         return json($result);
     }
@@ -243,22 +240,19 @@ class comments extends BaseController
      */
     public function batchApprove()
     {
-        $params = $this->request->param();
+        // 获取POST请求体中的数据
+        $ids = $this->request->post('ids', []);
         
         // 参数验证
-        $validate = Validate::rule([
-            'ids' => ValidateRule::isRequire(null, '评论ID列表必须传递')->isArray('评论ID必须是数组')
-        ]);
-        
-        if (!$validate->check($params)) {
+        if (empty($ids) || !is_array($ids)) {
             return json([
                 'code' => 501,
                 'msg' => '参数错误',
-                'info' => $validate->getError()
+                'info' => 'ids必须是数组'
             ]);
         }
         
-        $result = commentsService::batchApproveComments($params['ids']);
+        $result = commentsService::batchApproveComments($ids);
         
         return json($result);
     }
