@@ -13,6 +13,7 @@ class commentsService
     public static function getTreeComments($articleId)
     {
         $comments = commentsModel::with(['user', 'replies'])
+            ->withCount(['likes'])
             ->where('article_id', $articleId)
             ->where('parent_id', 0)
             ->whereNull('delete_time')
@@ -29,6 +30,7 @@ class commentsService
     public static function getChildComments($parentId)
     {
         $comments = commentsModel::with(['user', 'replies'])
+            ->withCount(['likes'])
             ->where('parent_id', $parentId)
             ->whereNull('delete_time')
             ->select()
@@ -47,6 +49,7 @@ class commentsService
         $limit = $params['limit'] ?? 20;
         
         $query = commentsModel::with(['user'])
+            ->withCount(['likes'])
             ->whereNull('delete_time');
         
         // 按文章ID筛选
@@ -161,8 +164,7 @@ class commentsService
                 'user_id' => $data['user_id'],
                 'content' => $data['content'],
                 'parent_id' => $data['parent_id'] ?? 0,
-                'status' => $data['status'] ?? 0, // 默认待审核
-                'likes' => 0
+                'status' => $data['status'] ?? 0 // 默认待审核
             ];
             
             $comment = commentsModel::create($commentData);
@@ -424,6 +426,7 @@ class commentsService
     {
         try {
             $comment = commentsModel::with(['user', 'replies'])
+                ->withCount(['likes'])
                 ->find($id);
             
             if (!$comment) {

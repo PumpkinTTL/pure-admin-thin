@@ -30,10 +30,11 @@ class comments extends Model
             ->with(['user', 'replies' => function($q) {
                 // 第二层回复，再加载一层子回复
                 $q->with(['user', 'replies' => function($q2) {
-                    // 第三层回复，只加载用户信息，不再继续递归
-                    $q2->with(['user']);
-                }]);
+                    // 第三层回复，加载用户信息和点赞统计
+                    $q2->with(['user'])->withCount(['likes']);
+                }])->withCount(['likes']);
             }])
+            ->withCount(['likes'])
             ->whereNull('delete_time')
             ->order('create_time', 'desc');
     }
@@ -43,6 +44,7 @@ class comments extends Model
     {
         return $this->hasMany(self::class, 'parent_id')
             ->with(['user'])
+            ->withCount(['likes'])
             ->whereNull('delete_time')
             ->order('create_time', 'desc');
     }
