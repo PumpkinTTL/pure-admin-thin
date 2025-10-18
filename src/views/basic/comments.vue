@@ -245,7 +245,7 @@
         </el-table-column>
         
         <!-- 操作 -->
-        <el-table-column label="操作" fixed="right" width="200" align="center">
+        <el-table-column label="操作" fixed="right" width="240" align="center">
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button 
@@ -267,6 +267,15 @@
               >
                 <IconifyIconOnline icon="ep:close" />
                 拒绝
+              </el-button>
+              <el-button 
+                link 
+                type="primary" 
+                size="small" 
+                @click="handleReply(row)"
+              >
+                <IconifyIconOnline icon="ep:chat-dot-round" />
+                回复
               </el-button>
               <el-button 
                 link 
@@ -800,6 +809,14 @@ const showAddDialog = (isReply: boolean) => {
     addForm.article_id = searchForm.article_id || "";
     addForm.parent_id = 0;
   }
+  addForm.content = "";
+  addDialogVisible.value = true;
+};
+
+// 回复评论
+const handleReply = (row: any) => {
+  addForm.article_id = row.article_id.toString();
+  addForm.parent_id = row.id;
   addForm.content = "";
   addDialogVisible.value = true;
 };
