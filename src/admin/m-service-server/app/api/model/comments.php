@@ -46,4 +46,26 @@ class comments extends Model
             ->whereNull('delete_time')
             ->order('create_time', 'desc');
     }
+
+    // 点赞关联关系
+    public function likes()
+    {
+        return $this->hasMany(likes::class, 'target_id')
+            ->where('target_type', 'comment');
+    }
+
+    // 获取点赞数（动态属性）
+    public function getLikeCountAttr()
+    {
+        return $this->likes()->count();
+    }
+
+    // 检查是否被指定用户点赞（动态方法）
+    public function isLikedBy($userId)
+    {
+        if (!$userId) return false;
+        return $this->likes()
+                ->where('user_id', $userId)
+                ->count() > 0;
+    }
 }

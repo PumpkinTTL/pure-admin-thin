@@ -73,20 +73,20 @@ class article extends Model
                 ->count() > 0;
     }
 
-    // 新增点赞关联关系
+    // 点赞关联关系
     public function likes()
     {
-        return $this->hasMany(likes::class, 'article_id')
-            ->whereNull('delete_time');
+        return $this->hasMany(likes::class, 'target_id')
+            ->where('target_type', 'article');
     }
 
-// 获取点赞数（动态属性）
+    // 获取点赞数（动态属性）
     public function getLikeCountAttr()
     {
         return $this->likes()->count();
     }
 
-// 检查是否被指定用户点赞（动态方法）
+    // 检查是否被指定用户点赞（动态方法）
     public function isLikedBy($userId)
     {
         if (!$userId) return false;
