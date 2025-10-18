@@ -221,7 +221,7 @@
         <el-table-column prop="likes_count" label="点赞" width="70" align="center">
           <template #default="{ row }">
             <span class="likes-text">
-              <IconifyIconOnline icon="ep:star-filled" class="like-icon" />
+              <IconifyIconOnline icon="ep:thumb" class="like-icon" />
               {{ row.likes_count || 0 }}
             </span>
           </template>
