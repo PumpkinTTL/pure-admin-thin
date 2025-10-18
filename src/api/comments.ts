@@ -17,7 +17,9 @@ export interface Comment {
   user_id: number;
   user?: CommentUser;
   content: string;
-  article_id: number;
+  target_id: number; // 目标ID（文章、商品等）
+  target_type: string; // 目标类型（article、product、user等）
+  article_id?: number; // 兼容旧版本
   parent_id: number;
   status: number; // 0-待审核, 1-已通过, 2-已拒绝
   likes?: number;
@@ -67,7 +69,9 @@ export interface ApiResponse {
 export interface CommentListParams {
   page?: number;
   limit?: number;
-  article_id?: number | string;
+  target_id?: number | string; // 目标ID
+  target_type?: string; // 目标类型
+  article_id?: number | string; // 兼容旧版本
   status?: number | string;
   keyword?: string;
   user_id?: number;
@@ -76,7 +80,9 @@ export interface CommentListParams {
 
 // 添加评论参数
 export interface AddCommentParams {
-  article_id: number;
+  target_id?: number; // 目标ID
+  target_type?: string; // 目标类型
+  article_id?: number; // 兼容旧版本
   parent_id?: number;
   content: string;
   user_id: number;
@@ -111,11 +117,22 @@ export const getCommentsByArticleId = (articleId: number, params?: CommentListPa
 
 /**
  * 获取文章评论树（首次加载，包含嵌套结构）
+ * @deprecated 使用 getTargetCommentsTree 替代
  */
 export const getCommentsTree = (articleId: number) => {
   return http.request<CommentTreeResponse>(
     "get",
     `/api/v1/comments/getComments/${articleId}`
+  );
+};
+
+/**
+ * 获取目标对象的评论树（通用方法）
+ */
+export const getTargetCommentsTree = (targetId: number, targetType: string = 'article') => {
+  return http.request<CommentTreeResponse>(
+    "get",
+    `/api/v1/comments/getTargetComments/${targetId}/${targetType}`
   );
 };
 

@@ -7,15 +7,31 @@
             <span class="header-title">评论管理</span>
           </el-col>
           
-          <!-- 文章ID筛选 -->
+          <!-- 目标ID筛选 -->
           <el-col :xs="24" :sm="8" :md="4" :lg="3" :xl="3">
             <el-input 
-              v-model="searchForm.article_id" 
-              placeholder="文章ID" 
+              v-model="searchForm.target_id" 
+              placeholder="目标ID" 
               clearable 
               size="default"
               @keyup.enter="handleSearch"
             />
+          </el-col>
+          
+          <!-- 目标类型筛选 -->
+          <el-col :xs="24" :sm="8" :md="4" :lg="3" :xl="3">
+            <el-select 
+              v-model="searchForm.target_type" 
+              placeholder="目标类型" 
+              clearable 
+              size="default"
+              style="width: 100%"
+              @change="handleSearch"
+            >
+              <el-option label="文章" value="article" />
+              <el-option label="商品" value="product" />
+              <el-option label="用户" value="user" />
+            </el-select>
           </el-col>
           
           <!-- 状态筛选 -->
@@ -199,12 +215,19 @@
         <!-- 评论内容 -->
         <el-table-column prop="content" label="评论内容" min-width="200" show-overflow-tooltip />
         
-        <!-- 文章信息 -->
-        <el-table-column label="文章" width="100">
+        <!-- 目标对象信息 -->
+        <el-table-column label="目标对象" width="150">
           <template #default="{ row }">
-            <el-link type="primary" :underline="false" size="small">
-              #{{ row.article_id }}
-            </el-link>
+            <div class="target-cell">
+              <div class="target-type-badge" :class="`badge-${row.target_type || 'article'}`">
+                <i :class="getTargetIcon(row.target_type || 'article')" class="target-icon"></i>
+                <span class="target-type-text">{{ getTargetTypeName(row.target_type || 'article') }}</span>
+              </div>
+              <div class="target-id-box">
+                <span class="id-label">ID</span>
+                <span class="id-value">{{ row.target_id || row.article_id }}</span>
+              </div>
+            </div>
           </template>
         </el-table-column>
         
@@ -221,7 +244,7 @@
         <el-table-column prop="likes_count" label="点赞" width="70" align="center">
           <template #default="{ row }">
             <span class="likes-text">
-              <IconifyIconOnline icon="ep:thumb" class="like-icon" />
+              <i class="fas fa-thumbs-up like-icon"></i>
               {{ row.likes_count || 0 }}
             </span>
           </template>
@@ -347,9 +370,12 @@
           
           <div class="comment-meta-grid">
             <div class="meta-item">
-              <span class="label">文章：</span>
-              <el-link type="primary">
-                #{{ currentComment.article_id }}
+              <span class="label">目标对象：</span>
+              <el-tag size="small" :type="getTargetTypeColor(currentComment.target_type || 'article')">
+                {{ getTargetTypeName(currentComment.target_type || 'article') }}
+              </el-tag>
+              <el-link type="primary" style="margin-left: 8px">
+                #{{ currentComment.target_id || currentComment.article_id }}
               </el-link>
             </div>
             <div class="meta-item">
@@ -424,9 +450,16 @@
       :title="addForm.parent_id > 0 ? '测试回复评论' : '测试添加评论'" 
       width="600px"
     >
-      <el-form :model="addForm" label-width="80px">
-        <el-form-item label="文章ID">
-          <el-input v-model="addForm.article_id" :disabled="addForm.parent_id > 0" />
+      <el-form :model="addForm" label-width="90px">
+        <el-form-item label="目标ID">
+          <el-input v-model="addForm.target_id" :disabled="addForm.parent_id > 0" placeholder="请输入目标ID" />
+        </el-form-item>
+        <el-form-item label="目标类型">
+          <el-select v-model="addForm.target_type" :disabled="addForm.parent_id > 0" style="width: 100%">
+            <el-option label="文章" value="article" />
+            <el-option label="商品" value="product" />
+            <el-option label="用户" value="user" />
+          </el-select>
         </el-form-item>
         <el-form-item label="父评论ID" v-if="addForm.parent_id > 0">
           <el-input v-model="addForm.parent_id" disabled />
@@ -483,7 +516,8 @@ const statsData = reactive({
 
 // 搜索表单
 const searchForm = reactive({
-  article_id: "",
+  target_id: "", // 目标ID
+  target_type: "article", // 目标类型
   status: null,
   keyword: ""
 });
@@ -508,7 +542,8 @@ const currentComment = ref<any>(null);
 // 添加评论对话框
 const addDialogVisible = ref(false);
 const addForm = reactive({
-  article_id: "",
+  target_id: "",
+  target_type: "article",
   parent_id: 0,
   content: "",
   user_id: 1
@@ -559,6 +594,36 @@ const formatDateTime = (timestamp: any): string => {
   return timestamp;
 };
 
+// 获取目标类型名称
+const getTargetTypeName = (type: string): string => {
+  const typeMap: Record<string, string> = {
+    "article": "文章",
+    "product": "商品",
+    "user": "用户"
+  };
+  return typeMap[type] || type;
+};
+
+// 获取目标类型颜色
+const getTargetTypeColor = (type: string): string => {
+  const colorMap: Record<string, string> = {
+    "article": "primary",
+    "product": "success",
+    "user": "warning"
+  };
+  return colorMap[type] || "info";
+};
+
+// 获取目标类型图标
+const getTargetIcon = (type: string): string => {
+  const iconMap: Record<string, string> = {
+    "article": "fas fa-file-alt",
+    "product": "fas fa-shopping-cart",
+    "user": "fas fa-user"
+  };
+  return iconMap[type] || "fas fa-file";
+};
+
 // 加载统计数据
 const loadStats = async () => {
   try {
@@ -577,36 +642,28 @@ const loadStats = async () => {
 const loadCommentsList = async () => {
   loading.value = true;
   try {
-    // 如果指定了文章ID，使用评论树接口（显示嵌套结构）
-    if (searchForm.article_id) {
-      const articleId = Number(searchForm.article_id);
-      const response = await getCommentsTree(articleId);
-      
-      if (response.code === 200) {
-        tableData.value = response.data || [];
-        pagination.total = response.data?.length || 0;
-      } else {
-        message(response.msg || "加载失败", { type: "error" });
-        tableData.value = [];
-      }
+    // 构建查询参数
+    const params: any = {
+      page: pagination.currentPage,
+      limit: pagination.pageSize,
+      status: searchForm.status,
+      keyword: searchForm.keyword
+    };
+    
+    // 添加target_id和target_type筛选
+    if (searchForm.target_id) {
+      params.target_id = searchForm.target_id;
+      params.target_type = searchForm.target_type;
+    }
+    
+    const response = await getCommentsList(params);
+    
+    if (response.code === 200 && response.data) {
+      tableData.value = response.data.list || [];
+      pagination.total = response.data.total || 0;
     } else {
-      // 没有指定文章ID，加载所有评论（分页）
-      const params = {
-        page: pagination.currentPage,
-        limit: pagination.pageSize,
-        status: searchForm.status,
-        keyword: searchForm.keyword
-      };
-      
-      const response = await getCommentsList(params);
-      
-      if (response.code === 200 && response.data) {
-        tableData.value = response.data.list || [];
-        pagination.total = response.data.total || 0;
-      } else {
-        message(response.msg || "加载失败", { type: "error" });
-        tableData.value = [];
-      }
+      message(response.msg || "加载失败", { type: "error" });
+      tableData.value = [];
     }
   } catch (error: any) {
     console.error("加载评论列表失败:", error);
@@ -625,7 +682,8 @@ const handleSearch = () => {
 
 // 重置
 const handleReset = () => {
-  searchForm.article_id = "";
+  searchForm.target_id = "";
+  searchForm.target_type = "article";
   searchForm.status = null;
   searchForm.keyword = "";
   handleSearch();
@@ -803,10 +861,12 @@ const showAddDialog = (isReply: boolean) => {
     }
     const selected = tableData.value.find(item => item.id === selectedIds.value[0]);
     if (!selected) return;
-    addForm.article_id = selected.article_id.toString();
+    addForm.target_id = (selected.target_id || selected.article_id || "").toString();
+    addForm.target_type = selected.target_type || "article";
     addForm.parent_id = selected.id;
   } else {
-    addForm.article_id = searchForm.article_id || "";
+    addForm.target_id = searchForm.target_id || "";
+    addForm.target_type = searchForm.target_type || "article";
     addForm.parent_id = 0;
   }
   addForm.content = "";
@@ -815,7 +875,8 @@ const showAddDialog = (isReply: boolean) => {
 
 // 回复评论
 const handleReply = (row: any) => {
-  addForm.article_id = row.article_id.toString();
+  addForm.target_id = (row.target_id || row.article_id || "").toString();
+  addForm.target_type = row.target_type || "article";
   addForm.parent_id = row.id;
   addForm.content = "";
   addDialogVisible.value = true;
@@ -823,8 +884,8 @@ const handleReply = (row: any) => {
 
 // 提交添加
 const submitAdd = async () => {
-  if (!addForm.article_id) {
-    message("请输入文章ID", { type: "warning" });
+  if (!addForm.target_id) {
+    message("请输入目标ID", { type: "warning" });
     return;
   }
   if (!addForm.content.trim()) {
@@ -833,7 +894,8 @@ const submitAdd = async () => {
   }
   try {
     const response = await addComment({
-      article_id: Number(addForm.article_id),
+      target_id: Number(addForm.target_id),
+      target_type: addForm.target_type,
       parent_id: addForm.parent_id,
       content: addForm.content,
       user_id: addForm.user_id
@@ -853,17 +915,18 @@ const submitAdd = async () => {
 
 // 测试获取评论树
 const handleTestGetComments = async () => {
-  if (!searchForm.article_id) {
-    message("请先输入文章ID", { type: "warning" });
+  if (!searchForm.target_id) {
+    message("请先输入目标ID", { type: "warning" });
     return;
   }
   
   try {
-    const articleId = Number(searchForm.article_id);
-    message(`测试：获取文章 #${articleId} 的评论树结构`, { type: "info" });
-    console.log(`测试API: GET /api/v1/comments/getComments/${articleId}`);
+    const targetId = Number(searchForm.target_id);
+    const targetType = searchForm.target_type;
+    message(`测试：获取${targetType} #${targetId} 的评论树结构`, { type: "info" });
+    console.log(`测试API: GET /api/v1/comments/getTargetComments/${targetId}/${targetType}`);
     
-    const response = await getCommentsTree(articleId);
+    const response = await getCommentsTree(targetId); // 使用旧接口测试
     console.log("响应数据:", response);
     
     if (response.code === 200) {
@@ -979,7 +1042,7 @@ onMounted(() => {
   
   // 测试区域
   .test-area {
-    margin: 12px 0;
+    margin: 20px 0 16px 0;
     background: var(--el-fill-color-blank);
     border: 1px dashed var(--el-border-color);
     border-radius: 6px;
@@ -1087,6 +1150,93 @@ onMounted(() => {
   .empty-text {
     color: var(--el-text-color-placeholder);
     font-size: 12px;
+  }
+  
+  // 目标对象单元格
+  .target-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    align-items: center;
+    padding: 4px 0;
+    
+    .target-type-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      
+      .target-icon {
+        font-size: 10px;
+      }
+      
+      .target-type-text {
+        line-height: 1;
+      }
+      
+      // 文章样式 - 淡紫蓝色
+      &.badge-article {
+        background: linear-gradient(135deg, #f5f7fa 0%, #e8eaf6 100%);
+        color: #5c6bc0;
+        border: 1px solid #c5cae9;
+        
+        .target-icon {
+          color: #3f51b5;
+        }
+      }
+      
+      // 商品样式 - 淡青绿色
+      &.badge-product {
+        background: linear-gradient(135deg, #f5f9f5 0%, #e0f2f1 100%);
+        color: #26a69a;
+        border: 1px solid #b2dfdb;
+        
+        .target-icon {
+          color: #00897b;
+        }
+      }
+      
+      // 用户样式 - 淡暖橙色
+      &.badge-user {
+        background: linear-gradient(135deg, #fef9f5 0%, #ffe8cc 100%);
+        color: #ff9800;
+        border: 1px solid #ffcc80;
+        
+        .target-icon {
+          color: #f57c00;
+        }
+      }
+    }
+    
+    .target-id-box {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 3px;
+      padding: 1px 6px;
+      background: transparent;
+      border-radius: 8px;
+      font-size: 10px;
+      
+      .id-label {
+        color: var(--el-text-color-placeholder);
+        font-weight: 400;
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      
+      .id-value {
+        color: var(--el-text-color-regular);
+        font-weight: 600;
+        font-size: 11px;
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        letter-spacing: 0.3px;
+      }
+    }
   }
   
   // 操作按钮

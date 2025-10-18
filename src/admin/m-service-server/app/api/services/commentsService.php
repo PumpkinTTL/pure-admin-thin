@@ -8,13 +8,16 @@ class commentsService
 {
 
     /**
-     * 获取文章的顶级评论（带3层嵌套）
+     * 获取目标对象的顶级评论（带3层嵌套）
+     * @param int $targetId 目标ID
+     * @param string $targetType 目标类型（article, product, user等）
      */
-    public static function getTreeComments($articleId)
+    public static function getTreeComments($targetId, $targetType = 'article')
     {
         $comments = commentsModel::with(['user', 'replies'])
             ->withCount(['likes'])
-            ->where('article_id', $articleId)
+            ->where('target_id', $targetId)
+            ->where('target_type', $targetType)
             ->where('parent_id', 0)
             ->whereNull('delete_time')
             ->select()
@@ -52,9 +55,19 @@ class commentsService
             ->withCount(['likes'])
             ->whereNull('delete_time');
         
-        // 按文章ID筛选
+        // 按目标ID和类型筛选
+        if (isset($params['target_id']) && $params['target_id']) {
+            $query->where('target_id', $params['target_id']);
+        }
+        
+        if (isset($params['target_type']) && $params['target_type']) {
+            $query->where('target_type', $params['target_type']);
+        }
+        
+        // 兼容旧版本article_id参数
         if (isset($params['article_id']) && $params['article_id']) {
-            $query->where('article_id', $params['article_id']);
+            $query->where('target_id', $params['article_id'])
+                  ->where('target_type', 'article');
         }
         
         // 按状态筛选
@@ -160,12 +173,21 @@ class commentsService
         try {
             // 设置默认值
             $commentData = [
-                'article_id' => $data['article_id'],
+                'target_id' => $data['target_id'] ?? $data['article_id'] ?? 0, // 兼容旧版本
+                'target_type' => $data['target_type'] ?? 'article',
                 'user_id' => $data['user_id'],
                 'content' => $data['content'],
                 'parent_id' => $data['parent_id'] ?? 0,
                 'status' => $data['status'] ?? 0 // 默认待审核
             ];
+            
+            // 验证目标类型
+            if (!in_array($commentData['target_type'], array_keys(commentsModel::TARGET_TYPES))) {
+                return [
+                    'code' => 400,
+                    'msg' => '不支持的目标类型'
+                ];
+            }
             
             $comment = commentsModel::create($commentData);
             

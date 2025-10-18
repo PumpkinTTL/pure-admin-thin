@@ -96,9 +96,11 @@ class article extends Model
                 ->count() > 0;
     }
 
+    // 评论关联关系（使用target_id + target_type）
     public function comments()
     {
-        return $this->hasMany(comments::class, 'article_id')
+        return $this->hasMany(comments::class, 'target_id')
+            ->where('target_type', 'article')
             ->whereNull('delete_time');
     }
     // 转换true和0-1

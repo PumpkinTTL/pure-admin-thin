@@ -5,6 +5,7 @@ namespace app\api\model;
 use think\Model;
 use app\api\model\users;
 use app\api\model\likes;
+use app\api\model\article;
 class comments extends Model
 {
     // 表名
@@ -16,11 +17,43 @@ class comments extends Model
     // 软删除字段
     protected $deleteTime = 'delete_time';
     
+    // 定义允许的目标类型
+    const TARGET_TYPES = [
+        'article' => '文章',
+        'product' => '商品',
+        'user' => '用户'
+    ];
+    
     // 关联用户（必须指定完整命名空间）
     public function user()
     {
         return $this->belongsTo(users::class, 'user_id', 'id')
             ->field('id,username,avatar');
+    }
+    
+    // 关联目标文章（当target_type='article'时）
+    public function targetArticle()
+    {
+        return $this->belongsTo(article::class, 'target_id', 'id')
+            ->where('target_type', 'article')
+            ->field('id,title,status');
+    }
+    
+    // 获取目标对象信息（动态方法）
+    public function getTargetInfo()
+    {
+        switch ($this->target_type) {
+            case 'article':
+                return $this->targetArticle;
+            case 'product':
+                // 这里可以添加商品模型的关联
+                return null;
+            case 'user':
+                // 这里可以添加用户模型的关联
+                return null;
+            default:
+                return null;
+        }
     }
 
     // 无限级回复关联（核心方法）

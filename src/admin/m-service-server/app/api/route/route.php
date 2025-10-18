@@ -66,6 +66,11 @@ Route::group('/:version/comments', function () {
     Route::rule('list', ':version.comments/getList'); // 获取评论列表（分页）
     Route::rule('stats', ':version.comments/getStats'); // 获取统计数据
     Route::rule('detail', ':version.comments/detail'); // 获取评论详情
+    
+    // 通用评论接口（推荐使用）
+    Route::rule('getTargetComments/:target_id/:target_type', ':version.comments/getTargetComments'); // 获取目标对象评论树
+    
+    // 兼容接口（保留）
     Route::rule('getCommentsByArticleId', ':version.comments/getCommentsByArticleId');
     Route::rule('getComments/:article_id', ':version.comments/getComments');
     Route::rule('getCommentsChildren/:parent_id', ':version.comments/getCommentsChildren');

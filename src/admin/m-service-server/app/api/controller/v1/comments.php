@@ -16,6 +16,7 @@ class comments extends BaseController
     // 根据文章获取评论
    /**
      * 获取文章评论树（首次加载）
+     * @deprecated 使用 getTargetComments 替代
      */
     public function getComments($articleId)
     {
@@ -24,11 +25,53 @@ class comments extends BaseController
             // echo "[SQL] " . $sql . "\n";
         });
 
-        $comments = commentsService::getTreeComments($articleId);
+        $comments = commentsService::getTreeComments($articleId, 'article');
         return json([
             'code' => 200,
             'data' => $this->formatTree($comments) // 格式化嵌套结构
         ]);
+    }
+    
+    /**
+     * 获取目标对象的评论树（通用方法）
+     * @param int $targetId 目标ID
+     * @param string $targetType 目标类型（article/product/user等）
+     */
+    public function getTargetComments($targetId, $targetType = 'article')
+    {
+        // 验证目标类型
+        if (!in_array($targetType, ['article', 'product', 'user'])) {
+            return json([
+                'code' => 400,
+                'msg' => '不支持的目标类型'
+            ]);
+        }
+        
+        $comments = commentsService::getTreeComments($targetId, $targetType);
+        return json([
+            'code' => 200,
+            'data' => $this->formatTree($comments)
+        ]);
+    }
+    
+    /**
+     * 兼容方法：根据article_id获取评论
+     * 用于向后兼容，内部转换为target_id + target_type
+     */
+    public function getCommentsByArticleId()
+    {
+        $params = $this->request->param();
+        $articleId = $params['article_id'] ?? 0;
+        
+        if (!$articleId) {
+            return json([
+                'code' => 400,
+                'msg' => '缺少article_id参数'
+            ]);
+        }
+        
+        // 转换为通用方法调用
+        return $this->getTargetComments($articleId, 'article');
     }
       /**
      * 获取子评论（懒加载）
@@ -91,9 +134,8 @@ class comments extends BaseController
     {
         $params = $this->request->param();
         
-        // 参数验证
+        // 参数验证（同时支持target_id和article_id，后者自动转换）
         $validate = Validate::rule([
-            'article_id' => ValidateRule::isRequire(null, '文章ID必须传递'),
             'content' => ValidateRule::isRequire(null, '评论内容必须传递')->max(1000, '评论内容不能超过1000字'),
             'user_id' => ValidateRule::isRequire(null, '用户ID必须传递')
         ]);
@@ -103,6 +145,15 @@ class comments extends BaseController
                 'code' => 501,
                 'msg' => '参数错误',
                 'info' => $validate->getError()
+            ]);
+        }
+        
+        // 验证target_id或article_id至少有一个
+        if (empty($params['target_id']) && empty($params['article_id'])) {
+            return json([
+                'code' => 501,
+                'msg' => '参数错误',
+                'info' => 'target_id或article_id必须传递其中一个'
             ]);
         }
         
