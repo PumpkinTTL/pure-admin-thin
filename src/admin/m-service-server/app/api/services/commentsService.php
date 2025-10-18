@@ -148,4 +148,307 @@ class commentsService
         
         return $comments;
     }
+
+    /**
+     * 添加评论
+     */
+    public static function addComment($data)
+    {
+        try {
+            // 设置默认值
+            $commentData = [
+                'article_id' => $data['article_id'],
+                'user_id' => $data['user_id'],
+                'content' => $data['content'],
+                'parent_id' => $data['parent_id'] ?? 0,
+                'status' => $data['status'] ?? 0, // 默认待审核
+                'likes' => 0
+            ];
+            
+            $comment = commentsModel::create($commentData);
+            
+            return [
+                'code' => 200,
+                'msg' => '添加成功',
+                'data' => $comment
+            ];
+        } catch (\Exception $e) {
+            return [
+                'code' => 500,
+                'msg' => '添加失败：' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * 更新评论
+     */
+    public static function updateComment($data)
+    {
+        try {
+            $comment = commentsModel::find($data['id']);
+            
+            if (!$comment) {
+                return [
+                    'code' => 404,
+                    'msg' => '评论不存在'
+                ];
+            }
+            
+            // 检查是否已被删除
+            if ($comment->delete_time) {
+                return [
+                    'code' => 400,
+                    'msg' => '评论已被删除，无法编辑'
+                ];
+            }
+            
+            // 只更新允许修改的字段
+            $allowedFields = ['content', 'status'];
+            $updateData = [];
+            
+            foreach ($allowedFields as $field) {
+                if (isset($data[$field])) {
+                    $updateData[$field] = $data[$field];
+                }
+            }
+            
+            if (empty($updateData)) {
+                return [
+                    'code' => 400,
+                    'msg' => '没有可更新的字段'
+                ];
+            }
+            
+            $comment->save($updateData);
+            
+            return [
+                'code' => 200,
+                'msg' => '更新成功',
+                'data' => $comment
+            ];
+        } catch (\Exception $e) {
+            return [
+                'code' => 500,
+                'msg' => '更新失败：' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * 删除评论（软删除）
+     */
+    public static function deleteComment($id)
+    {
+        try {
+            $comment = commentsModel::find($id);
+            
+            if (!$comment) {
+                return [
+                    'code' => 404,
+                    'msg' => '评论不存在'
+                ];
+            }
+            
+            if ($comment->delete_time) {
+                return [
+                    'code' => 400,
+                    'msg' => '评论已被删除'
+                ];
+            }
+            
+            // 软删除
+            $comment->delete();
+            
+            // 同时软删除所有子评论
+            self::deleteChildComments($id);
+            
+            return [
+                'code' => 200,
+                'msg' => '删除成功'
+            ];
+        } catch (\Exception $e) {
+            return [
+                'code' => 500,
+                'msg' => '删除失败：' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * 递归删除子评论
+     */
+    private static function deleteChildComments($parentId)
+    {
+        $children = commentsModel::where('parent_id', $parentId)
+            ->whereNull('delete_time')
+            ->select();
+        
+        foreach ($children as $child) {
+            $child->delete();
+            // 递归删除子评论的子评论
+            self::deleteChildComments($child->id);
+        }
+    }
+
+    /**
+     * 批量删除评论
+     */
+    public static function batchDeleteComments($ids)
+    {
+        try {
+            if (empty($ids)) {
+                return [
+                    'code' => 400,
+                    'msg' => '请选择要删除的评论'
+                ];
+            }
+            
+            $successCount = 0;
+            $failCount = 0;
+            
+            foreach ($ids as $id) {
+                $result = self::deleteComment($id);
+                if ($result['code'] == 200) {
+                    $successCount++;
+                } else {
+                    $failCount++;
+                }
+            }
+            
+            return [
+                'code' => 200,
+                'msg' => "成功删除{$successCount}条，失败{$failCount}条",
+                'data' => [
+                    'success' => $successCount,
+                    'fail' => $failCount
+                ]
+            ];
+        } catch (\Exception $e) {
+            return [
+                'code' => 500,
+                'msg' => '批量删除失败：' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * 更新评论状态
+     */
+    public static function updateCommentStatus($id, $status)
+    {
+        try {
+            $comment = commentsModel::find($id);
+            
+            if (!$comment) {
+                return [
+                    'code' => 404,
+                    'msg' => '评论不存在'
+                ];
+            }
+            
+            if ($comment->delete_time) {
+                return [
+                    'code' => 400,
+                    'msg' => '评论已被删除'
+                ];
+            }
+            
+            $comment->status = $status;
+            $comment->save();
+            
+            $statusText = [
+                0 => '待审核',
+                1 => '已通过',
+                2 => '已拒绝'
+            ];
+            
+            return [
+                'code' => 200,
+                'msg' => '状态已更新为：' . ($statusText[$status] ?? '未知'),
+                'data' => $comment
+            ];
+        } catch (\Exception $e) {
+            return [
+                'code' => 500,
+                'msg' => '更新状态失败：' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * 批量审核评论
+     */
+    public static function batchApproveComments($ids)
+    {
+        try {
+            if (empty($ids)) {
+                return [
+                    'code' => 400,
+                    'msg' => '请选择要审核的评论'
+                ];
+            }
+            
+            $successCount = 0;
+            $failCount = 0;
+            
+            foreach ($ids as $id) {
+                $result = self::updateCommentStatus($id, 1);
+                if ($result['code'] == 200) {
+                    $successCount++;
+                } else {
+                    $failCount++;
+                }
+            }
+            
+            return [
+                'code' => 200,
+                'msg' => "成功审核{$successCount}条，失败{$failCount}条",
+                'data' => [
+                    'success' => $successCount,
+                    'fail' => $failCount
+                ]
+            ];
+        } catch (\Exception $e) {
+            return [
+                'code' => 500,
+                'msg' => '批量审核失败：' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * 获取评论详情
+     */
+    public static function getCommentDetail($id)
+    {
+        try {
+            $comment = commentsModel::with(['user', 'replies'])
+                ->find($id);
+            
+            if (!$comment) {
+                return [
+                    'code' => 404,
+                    'msg' => '评论不存在'
+                ];
+            }
+            
+            // 计算回复数
+            $comment = $comment->toArray();
+            $comment['reply_count'] = commentsModel::where('parent_id', $id)
+                ->whereNull('delete_time')
+                ->count();
+            
+            return [
+                'code' => 200,
+                'msg' => '获取成功',
+                'data' => $comment
+            ];
+        } catch (\Exception $e) {
+            return [
+                'code' => 500,
+                'msg' => '获取失败：' . $e->getMessage()
+            ];
+        }
+    }
 }

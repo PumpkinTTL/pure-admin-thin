@@ -83,4 +83,208 @@ class comments extends BaseController
             'data' => $stats
         ]);
     }
+
+    /**
+     * 添加评论
+     */
+    public function add()
+    {
+        $params = $this->request->param();
+        
+        // 参数验证
+        $validate = Validate::rule([
+            'article_id' => ValidateRule::isRequire(null, '文章ID必须传递'),
+            'content' => ValidateRule::isRequire(null, '评论内容必须传递')->max(1000, '评论内容不能超过1000字'),
+            'user_id' => ValidateRule::isRequire(null, '用户ID必须传递')
+        ]);
+        
+        if (!$validate->check($params)) {
+            return json([
+                'code' => 501,
+                'msg' => '参数错误',
+                'info' => $validate->getError()
+            ]);
+        }
+        
+        // 调用服务添加评论
+        $result = commentsService::addComment($params);
+        
+        return json($result);
+    }
+
+    /**
+     * 更新评论
+     */
+    public function update()
+    {
+        $params = $this->request->param();
+        
+        // 参数验证
+        $validate = Validate::rule([
+            'id' => ValidateRule::isRequire(null, '评论ID必须传递')
+        ]);
+        
+        if (!$validate->check($params)) {
+            return json([
+                'code' => 501,
+                'msg' => '参数错误',
+                'info' => $validate->getError()
+            ]);
+        }
+        
+        // 调用服务更新评论
+        $result = commentsService::updateComment($params);
+        
+        return json($result);
+    }
+
+    /**
+     * 删除评论（软删除）
+     */
+    public function delete()
+    {
+        $params = $this->request->param();
+        
+        // 参数验证
+        $validate = Validate::rule([
+            'id' => ValidateRule::isRequire(null, '评论ID必须传递')
+        ]);
+        
+        if (!$validate->check($params)) {
+            return json([
+                'code' => 501,
+                'msg' => '参数错误',
+                'info' => $validate->getError()
+            ]);
+        }
+        
+        $result = commentsService::deleteComment($params['id']);
+        
+        return json($result);
+    }
+
+    /**
+     * 批量删除评论
+     */
+    public function batchDelete()
+    {
+        $params = $this->request->param();
+        
+        // 参数验证
+        $validate = Validate::rule([
+            'ids' => ValidateRule::isRequire(null, '评论ID列表必须传递')->isArray('评论ID必须是数组')
+        ]);
+        
+        if (!$validate->check($params)) {
+            return json([
+                'code' => 501,
+                'msg' => '参数错误',
+                'info' => $validate->getError()
+            ]);
+        }
+        
+        $result = commentsService::batchDeleteComments($params['ids']);
+        
+        return json($result);
+    }
+
+    /**
+     * 审核评论（通过）
+     */
+    public function approve()
+    {
+        $params = $this->request->param();
+        
+        // 参数验证
+        $validate = Validate::rule([
+            'id' => ValidateRule::isRequire(null, '评论ID必须传递')
+        ]);
+        
+        if (!$validate->check($params)) {
+            return json([
+                'code' => 501,
+                'msg' => '参数错误',
+                'info' => $validate->getError()
+            ]);
+        }
+        
+        $result = commentsService::updateCommentStatus($params['id'], 1);
+        
+        return json($result);
+    }
+
+    /**
+     * 拒绝评论
+     */
+    public function reject()
+    {
+        $params = $this->request->param();
+        
+        // 参数验证
+        $validate = Validate::rule([
+            'id' => ValidateRule::isRequire(null, '评论ID必须传递')
+        ]);
+        
+        if (!$validate->check($params)) {
+            return json([
+                'code' => 501,
+                'msg' => '参数错误',
+                'info' => $validate->getError()
+            ]);
+        }
+        
+        $result = commentsService::updateCommentStatus($params['id'], 2);
+        
+        return json($result);
+    }
+
+    /**
+     * 批量审核评论
+     */
+    public function batchApprove()
+    {
+        $params = $this->request->param();
+        
+        // 参数验证
+        $validate = Validate::rule([
+            'ids' => ValidateRule::isRequire(null, '评论ID列表必须传递')->isArray('评论ID必须是数组')
+        ]);
+        
+        if (!$validate->check($params)) {
+            return json([
+                'code' => 501,
+                'msg' => '参数错误',
+                'info' => $validate->getError()
+            ]);
+        }
+        
+        $result = commentsService::batchApproveComments($params['ids']);
+        
+        return json($result);
+    }
+
+    /**
+     * 获取评论详情
+     */
+    public function detail()
+    {
+        $params = $this->request->param();
+        
+        // 参数验证
+        $validate = Validate::rule([
+            'id' => ValidateRule::isRequire(null, '评论ID必须传递')
+        ]);
+        
+        if (!$validate->check($params)) {
+            return json([
+                'code' => 501,
+                'msg' => '参数错误',
+                'info' => $validate->getError()
+            ]);
+        }
+        
+        $result = commentsService::getCommentDetail($params['id']);
+        
+        return json($result);
+    }
 }

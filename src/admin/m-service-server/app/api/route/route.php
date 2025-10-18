@@ -62,11 +62,24 @@ Route::group('/:version/article', function () {
 ]);
 // 评论组
 Route::group('/:version/comments', function () {
+    // 查询接口
     Route::rule('list', ':version.comments/getList'); // 获取评论列表（分页）
     Route::rule('stats', ':version.comments/getStats'); // 获取统计数据
+    Route::rule('detail', ':version.comments/detail'); // 获取评论详情
     Route::rule('getCommentsByArticleId', ':version.comments/getCommentsByArticleId');
     Route::rule('getComments/:article_id', ':version.comments/getComments');
     Route::rule('getCommentsChildren/:parent_id', ':version.comments/getCommentsChildren');
+    
+    // 增删改接口
+    Route::rule('add', ':version.comments/add'); // 添加评论
+    Route::rule('update', ':version.comments/update'); // 更新评论
+    Route::rule('delete', ':version.comments/delete'); // 删除评论
+    Route::rule('batchDelete', ':version.comments/batchDelete'); // 批量删除
+    
+    // 审核接口
+    Route::rule('approve', ':version.comments/approve'); // 审核通过
+    Route::rule('reject', ':version.comments/reject'); // 拒绝评论
+    Route::rule('batchApprove', ':version.comments/batchApprove'); // 批量审核
 });
 //文件分组
 Route::group('/:version/upload', function () {

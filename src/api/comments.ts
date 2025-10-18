@@ -129,78 +129,70 @@ export const getCommentsChildren = (parentId: number) => {
   );
 };
 
-// ========== 以下接口后端尚未实现，暂时注释 ==========
+// ========== 增删改接口（已实现） ==========
 
 /**
- * 添加评论（后端未实现）
+ * 添加评论
+ * 后端路由: POST /api/v1/comments/add
  */
 export const addComment = (data: AddCommentParams) => {
-  console.warn("添加评论接口后端未实现");
-  return Promise.reject({ code: 404, msg: "接口未实现" });
-  // return http.request<ApiResponse>("post", "/api/v1/comments/add", { data });
+  return http.request<ApiResponse>("post", "/api/v1/comments/add", { data });
 };
 
 /**
- * 更新评论（后端未实现）
+ * 更新评论
+ * 后端路由: POST /api/v1/comments/update
  */
 export const updateComment = (data: UpdateCommentParams) => {
-  console.warn("更新评论接口后端未实现");
-  return Promise.reject({ code: 404, msg: "接口未实现" });
-  // return http.request<ApiResponse>("post", "/api/v1/comments/update", { data });
+  return http.request<ApiResponse>("post", "/api/v1/comments/update", { data });
 };
 
 /**
- * 删除评论（后端未实现）
+ * 删除评论（软删除）
+ * 后端路由: POST /api/v1/comments/delete
  */
 export const deleteComment = (id: number) => {
-  console.warn("删除评论接口后端未实现");
-  return Promise.reject({ code: 404, msg: "接口未实现" });
-  // return http.request<ApiResponse>("post", "/api/v1/comments/delete", { data: { id } });
+  return http.request<ApiResponse>("post", "/api/v1/comments/delete", { data: { id } });
 };
 
 /**
- * 批量删除评论（后端未实现）
+ * 批量删除评论
+ * 后端路由: POST /api/v1/comments/batchDelete
  */
 export const batchDeleteComments = (ids: number[]) => {
-  console.warn("批量删除评论接口后端未实现");
-  return Promise.reject({ code: 404, msg: "接口未实现" });
-  // return http.request<ApiResponse>("post", "/api/v1/comments/batchDelete", { data: { ids } });
+  return http.request<ApiResponse>("post", "/api/v1/comments/batchDelete", { data: { ids } });
 };
 
 /**
- * 审核评论（通过）（后端未实现）
+ * 审核评论（通过）
+ * 后端路由: POST /api/v1/comments/approve
  */
 export const approveComment = (id: number) => {
-  console.warn("审核评论接口后端未实现");
-  return Promise.reject({ code: 404, msg: "接口未实现" });
-  // return http.request<ApiResponse>("post", "/api/v1/comments/approve", { data: { id, status: 1 } });
+  return http.request<ApiResponse>("post", "/api/v1/comments/approve", { data: { id } });
 };
 
 /**
- * 拒绝评论（后端未实现）
+ * 拒绝评论
+ * 后端路由: POST /api/v1/comments/reject
  */
 export const rejectComment = (id: number) => {
-  console.warn("拒绝评论接口后端未实现");
-  return Promise.reject({ code: 404, msg: "接口未实现" });
-  // return http.request<ApiResponse>("post", "/api/v1/comments/reject", { data: { id, status: 2 } });
+  return http.request<ApiResponse>("post", "/api/v1/comments/reject", { data: { id } });
 };
 
 /**
- * 批量审核评论（后端未实现）
+ * 批量审核评论
+ * 后端路由: POST /api/v1/comments/batchApprove
  */
 export const batchApproveComments = (ids: number[]) => {
-  console.warn("批量审核评论接口后端未实现");
-  return Promise.reject({ code: 404, msg: "接口未实现" });
-  // return http.request<ApiResponse>("post", "/api/v1/comments/batchApprove", { data: { ids, status: 1 } });
+  return http.request<ApiResponse>("post", "/api/v1/comments/batchApprove", { data: { ids } });
 };
 
 /**
- * 获取评论详情（后端未实现）
+ * 获取评论详情
+ * 后端路由: GET /api/v1/comments/detail
  */
 export const getCommentDetail = (id: number) => {
-  console.warn("获取评论详情接口后端未实现");
-  return Promise.reject({ code: 404, msg: "接口未实现" });
-  // return http.request<CommentDetailResponse>("get", `/api/v1/comments/detail/${id}`);
+  return http.request<CommentDetailResponse>("get", "/api/v1/comments/detail", { params: { id } });
 };
 
 /**
