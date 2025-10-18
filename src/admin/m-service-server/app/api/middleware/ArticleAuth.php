@@ -21,7 +21,6 @@ class ArticleAuth
         // 默认未登录状态
         $userId = 0;
         $userRoles = [];
-
         LogService::log("[Middleware] ArticleAuth - 开始执行", [], 'info');
 
         try {

@@ -60,6 +60,7 @@ const testRouter = {
     {
       path: "/basic/comment",
       name: "comment",
+      component: "/src/views/basic/comments.vue",
       meta: {
         icon: "ep:chat-dot-round",
         title: "评论管理"

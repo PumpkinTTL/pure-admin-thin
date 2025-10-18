@@ -53,4 +53,34 @@ class comments extends BaseController
             return $item;
         }, $comments);
     }
+
+    /**
+     * 获取评论列表（分页，管理端）
+     */
+    public function getList()
+    {
+        $params = $this->request->param();
+        
+        $result = commentsService::getCommentsList($params);
+        
+        return json([
+            'code' => 200,
+            'msg' => 'success',
+            'data' => $result
+        ]);
+    }
+
+    /**
+     * 获取评论统计数据
+     */
+    public function getStats()
+    {
+        $stats = commentsService::getCommentsStats();
+        
+        return json([
+            'code' => 200,
+            'msg' => 'success',
+            'data' => $stats
+        ]);
+    }
 }

@@ -62,6 +62,8 @@ Route::group('/:version/article', function () {
 ]);
 // 评论组
 Route::group('/:version/comments', function () {
+    Route::rule('list', ':version.comments/getList'); // 获取评论列表（分页）
+    Route::rule('stats', ':version.comments/getStats'); // 获取统计数据
     Route::rule('getCommentsByArticleId', ':version.comments/getCommentsByArticleId');
     Route::rule('getComments/:article_id', ':version.comments/getComments');
     Route::rule('getCommentsChildren/:parent_id', ':version.comments/getCommentsChildren');
