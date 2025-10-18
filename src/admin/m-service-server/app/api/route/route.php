@@ -81,6 +81,14 @@ Route::group('/:version/comments', function () {
     Route::rule('reject', ':version.comments/reject'); // 拒绝评论
     Route::rule('batchApprove', ':version.comments/batchApprove'); // 批量审核
 });
+
+// 点赞组
+Route::group('/:version/likes', function () {
+    Route::rule('toggle', ':version.likes/toggle'); // 点赞/取消点赞
+    Route::rule('check', ':version.likes/check'); // 检查是否点赞
+    Route::rule('batchCheck', ':version.likes/batchCheck'); // 批量检查点赞状态
+    Route::rule('list', ':version.likes/list'); // 获取用户点赞列表
+});
 //文件分组
 Route::group('/:version/upload', function () {
     Route::rule('uploadFile', ':version.upload/uploadFile');
