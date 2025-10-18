@@ -26,6 +26,16 @@
               重置
             </el-button>
           </el-col>
+          <el-col :xs="24" :sm="24" :md="10" :lg="8" :xl="8">
+            <div class="test-buttons">
+              <el-button type="success" size="small" @click="showTestLikeDialog">
+                测试点赞/取消
+              </el-button>
+              <el-button type="danger" size="small" @click="batchDelete" :disabled="selectedRows.length === 0">
+                批量删除({{selectedRows.length}})
+              </el-button>
+            </div>
+          </el-col>
         </el-row>
       </template>
 
@@ -45,10 +55,12 @@
         :header-cell-style="{ textAlign: 'center', backgroundColor: '#F5F7FA' }"
         size="small"
         v-loading="loading"
+        @selection-change="handleSelectionChange"
       >
-        <el-table-column label="ID" prop="id" width="80" />
+        <el-table-column type="selection" width="50" />
+        <el-table-column label="ID" prop="id" width="60" />
         
-        <el-table-column label="用户" width="180">
+        <el-table-column label="用户" min-width="160">
           <template #default="{ row }">
             <div class="user-cell">
               <el-avatar :size="32" :src="row.user?.avatar || defaultAvatar" />
@@ -60,7 +72,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="类型" prop="target_type" width="100">
+        <el-table-column label="类型" width="80">
           <template #default="{ row }">
             <el-tag :type="getTypeTagType(row.target_type)" size="small">
               {{ getTypeName(row.target_type) }}
@@ -68,15 +80,15 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="目标ID" prop="target_id" width="100" />
+        <el-table-column label="目标ID" prop="target_id" width="80" />
 
-        <el-table-column label="点赞时间" prop="create_time" width="180">
+        <el-table-column label="点赞时间" min-width="150">
           <template #default="{ row }">
             {{ formatDateTime(row.create_time) }}
           </template>
         </el-table-column>
 
-        <el-table-column label="更新时间" prop="update_time" width="180">
+        <el-table-column label="更新时间" min-width="150">
           <template #default="{ row }">
             {{ formatDateTime(row.update_time) }}
           </template>
@@ -91,6 +103,14 @@
               @click="handleViewTarget(row)"
             >
               查看目标
+            </el-button>
+            <el-button
+              link
+              type="danger"
+              size="small"
+              @click="handleDelete(row)"
+            >
+              删除
             </el-button>
           </template>
         </el-table-column>
@@ -109,6 +129,28 @@
         @current-change="handleCurrentChange"
       />
     </el-card>
+
+    <!-- 测试点赞对话框 -->
+    <el-dialog v-model="testLikeDialog.visible" title="测试点赞/取消" width="400px">
+      <el-form :model="testLikeDialog.form" label-width="80px">
+        <el-form-item label="类型">
+          <el-select v-model="testLikeDialog.form.target_type" style="width: 100%">
+            <el-option label="文章" value="article" />
+            <el-option label="评论" value="comment" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="目标ID">
+          <el-input-number v-model="testLikeDialog.form.target_id" :min="1" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="用户ID">
+          <el-input-number v-model="testLikeDialog.form.user_id" :min="1" style="width: 100%" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="testLikeDialog.visible = false">取消</el-button>
+        <el-button type="primary" @click="confirmTestLike">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -116,7 +158,7 @@
 import { ref, reactive, onMounted } from "vue";
 import { message } from "@/utils/message";
 import { Search, RefreshLeft } from "@element-plus/icons-vue";
-import { getLikesList, type LikeRecord } from "@/api/likes";
+import { getLikesList, toggleLike, type LikeRecord } from "@/api/likes";
 
 defineOptions({
   name: "Likes"
@@ -134,6 +176,17 @@ const searchForm = reactive({
 // 表格数据
 const tableData = ref<LikeRecord[]>([]);
 const loading = ref(false);
+const selectedRows = ref<LikeRecord[]>([]);
+
+// 测试点赞对话框
+const testLikeDialog = reactive({
+  visible: false,
+  form: {
+    target_type: 'article',
+    target_id: 11355,
+    user_id: 1001
+  }
+});
 
 // 分页配置
 const pagination = reactive({
@@ -241,6 +294,86 @@ const handleViewTarget = (row: LikeRecord) => {
   message(`查看 ${getTypeName(row.target_type)} ID: ${row.target_id}`, { type: "info" });
 };
 
+// 选择变化
+const handleSelectionChange = (selection: LikeRecord[]) => {
+  selectedRows.value = selection;
+};
+
+// 单个删除
+const handleDelete = async (row: LikeRecord) => {
+  try {
+    const response = await toggleLike({
+      target_type: row.target_type,
+      target_id: row.target_id,
+      user_id: row.user_id
+    });
+    if (response.code === 200) {
+      message('删除成功', { type: "success" });
+      loadList();
+    } else {
+      message(response.msg || '删除失败', { type: "error" });
+    }
+  } catch (error: any) {
+    message('删除失败', { type: "error" });
+  }
+};
+
+// 批量删除
+const batchDelete = async () => {
+  if (selectedRows.value.length === 0) {
+    message('请选择要删除的数据', { type: "warning" });
+    return;
+  }
+  
+  try {
+    let successCount = 0;
+    for (const row of selectedRows.value) {
+      const response = await toggleLike({
+        target_type: row.target_type,
+        target_id: row.target_id,
+        user_id: row.user_id
+      });
+      if (response.code === 200) {
+        successCount++;
+      }
+    }
+    
+    message(`成功删除 ${successCount} 条记录`, { type: "success" });
+    selectedRows.value = [];
+    loadList();
+  } catch (error: any) {
+    message('批量删除失败', { type: "error" });
+  }
+};
+
+// 显示测试点赞对话框
+const showTestLikeDialog = () => {
+  testLikeDialog.visible = true;
+};
+
+// 确认测试点赞
+const confirmTestLike = async () => {
+  try {
+    const response = await toggleLike({
+      target_type: testLikeDialog.form.target_type,
+      target_id: testLikeDialog.form.target_id,
+      user_id: testLikeDialog.form.user_id
+    });
+    if (response.code === 200) {
+      message(response.msg, { type: "success" });
+      testLikeDialog.visible = false;
+      loadList(); // 刷新列表
+    } else {
+      message(response.msg || "操作失败", { type: "error" });
+    }
+  } catch (error: any) {
+    message("测试点赞失败", { type: "error" });
+  }
+};
+
+
+
+
 // 页面加载
 onMounted(() => {
   loadList();
@@ -277,6 +410,17 @@ onMounted(() => {
         color: var(--el-text-color-secondary);
         margin-top: 2px;
       }
+    }
+  }
+  
+  .test-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    
+    .el-button {
+      margin-left: 0;
     }
   }
 }

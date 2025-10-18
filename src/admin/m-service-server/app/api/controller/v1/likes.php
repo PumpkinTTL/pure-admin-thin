@@ -2,127 +2,61 @@
 
 namespace app\api\controller\v1;
 
-use app\api\controller\BaseController;
+use app\BaseController;
 use app\api\services\likesService;
 use think\facade\Validate;
-use app\api\validate\ValidateRule;
+use think\validate\ValidateRule;
 
 class likes extends BaseController
 {
     /**
-     * 点赞/取消点赞
-     * POST /api/v1/likes/toggle
+     * 获取点赞列表（管理后台）
+     * GET /api/v1/likes/list
      */
-    public function toggle()
+    public function list()
     {
-        $params = $this->request->post();
+        $params = $this->request->param();
         
-        // 参数验证
-        if (empty($params['target_type']) || empty($params['target_id'])) {
-            return json([
-                'code' => 501,
-                'msg' => '参数错误',
-                'info' => 'target_type和target_id必须传递'
-            ]);
-        }
-        
-        // 验证target_type
-        $allowedTypes = ['comment', 'article'];
-        if (!in_array($params['target_type'], $allowedTypes)) {
-            return json([
-                'code' => 501,
-                'msg' => '参数错误',
-                'info' => 'target_type必须是: ' . implode(', ', $allowedTypes)
-            ]);
-        }
-        
-        // 获取当前用户ID（从token或session中获取）
-        $userId = $params['user_id'] ?? 1; // 暂时使用传入的user_id，实际应从认证中获取
-        
-        $result = likesService::toggleLike(
-            $userId,
-            $params['target_type'],
-            $params['target_id']
-        );
-        
-        return json($result);
-    }
-    
-    /**
-     * 检查是否点赞
-     * GET /api/v1/likes/check
-     */
-    public function check()
-    {
-        $params = $this->request->get();
-        
-        if (empty($params['target_type']) || empty($params['target_id'])) {
-            return json([
-                'code' => 501,
-                'msg' => '参数错误'
-            ]);
-        }
-        
-        $userId = $params['user_id'] ?? 1;
-        
-        $isLiked = likesService::isLiked(
-            $userId,
-            $params['target_type'],
-            $params['target_id']
-        );
+        $result = likesService::getList($params);
         
         return json([
             'code' => 200,
-            'msg' => '查询成功',
-            'data' => ['is_liked' => $isLiked]
-        ]);
-    }
-    
-    /**
-     * 批量检查点赞状态
-     * POST /api/v1/likes/batchCheck
-     */
-    public function batchCheck()
-    {
-        $params = $this->request->post();
-        
-        if (empty($params['target_type']) || empty($params['target_ids'])) {
-            return json([
-                'code' => 501,
-                'msg' => '参数错误'
-            ]);
-        }
-        
-        $userId = $params['user_id'] ?? 1;
-        
-        $result = likesService::batchCheckLiked(
-            $userId,
-            $params['target_type'],
-            $params['target_ids']
-        );
-        
-        return json([
-            'code' => 200,
-            'msg' => '查询成功',
+            'msg' => 'success',
             'data' => $result
         ]);
     }
     
     /**
-     * 获取用户点赞列表
-     * GET /api/v1/likes/list
+     * 点赞/取消点赞（客户端接口）
+     * POST /api/v1/likes/toggle
+     * 点赞记录存在就删除，不存在就创建
      */
-    public function list()
+    public function toggle()
     {
-        $params = $this->request->get();
+        $params = $this->request->param();
         
-        $userId = $params['user_id'] ?? 1;
-        $targetType = $params['target_type'] ?? '';
-        $page = $params['page'] ?? 1;
-        $limit = $params['limit'] ?? 10;
+        // 参数验证
+        $validate = Validate::rule([
+            'target_type' => ValidateRule::isRequire(null, 'target_type必须传递')->in(['comment', 'article'], 'target_type必须是comment或article'),
+            'target_id' => ValidateRule::isRequire(null, 'target_id必须传递'),
+            'user_id' => ValidateRule::isRequire(null, '用户ID必须传递')
+        ]);
         
-        $result = likesService::getUserLikes($userId, $targetType, $page, $limit);
+        if (!$validate->check($params)) {
+            return json([
+                'code' => 501,
+                'msg' => '参数错误',
+                'info' => $validate->getError()
+            ]);
+        }
+        
+        $result = likesService::toggleLike(
+            $params['user_id'],
+            $params['target_type'],
+            $params['target_id']
+        );
         
         return json($result);
     }
+    
 }

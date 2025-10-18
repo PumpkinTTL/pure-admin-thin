@@ -50,29 +50,6 @@ export const toggleLike = (data: {
   return http.request<ApiResponse>("post", "/api/v1/likes/toggle", { data });
 };
 
-/**
- * 检查是否点赞
- * GET /api/v1/likes/check
- */
-export const checkLike = (params: {
-  target_type: string;
-  target_id: number;
-  user_id: number;
-}) => {
-  return http.request<ApiResponse>("get", "/api/v1/likes/check", { params });
-};
-
-/**
- * 批量检查点赞状态
- * POST /api/v1/likes/batchCheck
- */
-export const batchCheckLikes = (data: {
-  target_type: string;
-  target_ids: number[];
-  user_id: number;
-}) => {
-  return http.request<ApiResponse>("post", "/api/v1/likes/batchCheck", { data });
-};
 
 /**
  * 获取点赞列表
@@ -86,3 +63,4 @@ export const getLikesList = (params: {
 }) => {
   return http.request<LikeListResponse>("get", "/api/v1/likes/list", { params });
 };
+

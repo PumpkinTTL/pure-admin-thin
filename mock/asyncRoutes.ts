@@ -204,6 +204,15 @@ const dataRouter = {
         title: "统计报表",
         icon: "ep:histogram"
       }
+    },
+    {
+      path: "/data/likes",
+      name: "DataLikes",
+      component: "/src/views/basic/likes.vue",
+      meta: {
+        title: "点赞管理",
+        icon: "ep:star"
+      }
     }
   ]
 };

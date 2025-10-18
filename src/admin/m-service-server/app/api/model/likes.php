@@ -12,8 +12,6 @@ class likes extends Model
     // 开启自动时间戳
     protected $autoWriteTimestamp = true;
     
-    // 软删除字段
-    protected $deleteTime = 'delete_time';
     
     // 关联用户
     public function user()
