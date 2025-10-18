@@ -218,11 +218,11 @@
         </el-table-column>
         
         <!-- 点赞数 -->
-        <el-table-column prop="likes" label="点赞" width="70" align="center">
+        <el-table-column prop="likes_count" label="点赞" width="70" align="center">
           <template #default="{ row }">
             <span class="likes-text">
               <IconifyIconOnline icon="ep:star-filled" class="like-icon" />
-              {{ row.likes || 0 }}
+              {{ row.likes_count || 0 }}
             </span>
           </template>
         </el-table-column>
@@ -354,7 +354,7 @@
             </div>
             <div class="meta-item">
               <span class="label">点赞：</span>
-              <span class="value">{{ currentComment.likes || 0 }}</span>
+              <span class="value">{{ currentComment.likes_count || 0 }}</span>
             </div>
             <div class="meta-item">
               <span class="label">回复数：</span>
