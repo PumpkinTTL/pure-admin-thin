@@ -2,7 +2,9 @@
 
 <div align="center">
 
-**📚 不只是博客系统，更是你的知识宇宙**
+<img src="https://img.shields.io/badge/📚-知识棱镜-blue.svg?style=for-the-badge" alt="知识棱镜">
+
+**🌟 不只是博客系统，更是你的知识宇宙 🌟**
 
 *AI智能助手 · 资源整合管理 · 知识图谱构建 · 个人品牌打造*
 
@@ -10,12 +12,14 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6.svg?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![ThinkPHP](https://img.shields.io/badge/ThinkPHP-8.0-FF6B6B.svg?style=for-the-badge&logo=php&logoColor=white)](https://www.thinkphp.cn/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/PumpkinTTL/pure-admin-thin?style=for-the-badge&logo=github&color=yellow)](https://github.com/PumpkinTTL/pure-admin-thin)
+[![Forks](https://img.shields.io/github/forks/PumpkinTTL/pure-admin-thin?style=for-the-badge&logo=github&color=blue)](https://github.com/PumpkinTTL/pure-admin-thin)
 
 --- 
 
-***"让知识像光一样，通过棱镜折射出无限可能"***
+> 💎 **"让知识像光一样，通过棱镜折射出无限可能"**
 
-📝 **智能写作** | 🔍 **资源整合** | 🧠 **知识图谱** | 👥 **学习社区** | 🤖 **AI助手**
+🚀 **智能写作** | 🔍 **资源整合** | 🧠 **知识图谱** | 👥 **学习社区** | 🤖 **AI助手** | 💎 **VIP会员**
 
 </div>
 
@@ -144,48 +148,65 @@ Composer              // PHP依赖管理
 
 ### ⚡ 一键部署
 
-#### **1. 克隆项目**
+<div align="center">
+
+```mermaid
+graph LR
+    A[📥 克隆项目] --> B[🔧 前端配置]
+    B --> C[🚀 后端部署]
+    C --> D[🌐 访问应用]
+    
+    style A fill:#e1f5fe
+    style B fill:#f3e5f5
+    style C fill:#e8f5e8
+    style D fill:#fff3e0
+```
+
+</div>
+
+#### **📥 第一步：克隆项目**
 ```bash
-git clone https://github.com/your-username/pure-admin-thin.git
+git clone https://github.com/PumpkinTTL/pure-admin-thin.git
 cd pure-admin-thin
 ```
 
-#### **2. 前端启动**
+#### **🔧 第二步：前端启动**
 ```bash
-# 安装依赖
+# 🚀 安装依赖（推荐pnpm，速度更快）
 pnpm install
 
-# 启动开发服务器
+# ⚡ 启动开发服务器（支持热重载）
 pnpm dev
 
-# 构建生产版本
+# 🏗️ 构建生产版本
 pnpm build
 ```
 
-#### **3. 后端配置**
+#### **🚀 第三步：后端配置**
 ```bash
-# 进入后端目录
+# 📂 进入后端目录
 cd src/admin/m-service-server
 
-# 安装PHP依赖
+# 📦 安装PHP依赖
 composer install
 
-# 配置环境变量
+# ⚙️ 配置环境变量
 cp .env.example .env
 # 编辑 .env 文件配置数据库连接
 
-# 初始化数据库
+# 💾 初始化数据库
 php think migrate
 
-# 启动后端服务
+# 🚀 启动后端服务
 php think run
 ```
 
-#### **4. 访问应用**
+#### **🌐 第四步：访问应用**
 ```bash
 🌐 前端应用: http://localhost:5173
 🔧 后端API: http://localhost:8000
 👤 默认账号: admin / admin123
+🎉 开始你的知识管理之旅！
 ```
 
 ### ⚙️ 配置说明
@@ -696,8 +717,10 @@ copies or substantial portions of the Software.
 
 **⭐ 如果这个项目对你有帮助，请给个Star支持一下！**
 
-**📧 联系我们: your-email@example.com**
+**📧 联系我们: weeksevenss@gmail.com**
 
-**🌐 官方网站: https://your-website.com**
+**🌐 官方网站: https://lengz.com**
+
+**💬 技术交流: 欢迎提交Issue或PR**
 
 </div>
