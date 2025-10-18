@@ -90,6 +90,25 @@
           <el-button 
             type="primary" 
             size="small" 
+            @click="showAddDialog(false)"
+          >
+            <IconifyIconOnline icon="ep:edit" />
+            测试添加评论
+          </el-button>
+          
+          <el-button 
+            type="success" 
+            size="small" 
+            @click="showAddDialog(true)"
+            :disabled="selectedIds.length !== 1"
+          >
+            <IconifyIconOnline icon="ep:chat-dot-round" />
+            测试回复
+          </el-button>
+          
+          <el-button 
+            type="primary" 
+            size="small" 
             @click="handleTestGetComments"
           >
             <IconifyIconOnline icon="ep:reading" />
@@ -389,6 +408,32 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <!-- 添加评论对话框 -->
+    <el-dialog 
+      v-model="addDialogVisible" 
+      :title="addForm.parent_id > 0 ? '测试回复评论' : '测试添加评论'" 
+      width="600px"
+    >
+      <el-form :model="addForm" label-width="80px">
+        <el-form-item label="文章ID">
+          <el-input v-model="addForm.article_id" :disabled="addForm.parent_id > 0" />
+        </el-form-item>
+        <el-form-item label="父评论ID" v-if="addForm.parent_id > 0">
+          <el-input v-model="addForm.parent_id" disabled />
+        </el-form-item>
+        <el-form-item label="用户ID">
+          <el-input-number v-model="addForm.user_id" :min="1" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="内容">
+          <el-input v-model="addForm.content" type="textarea" :rows="5" maxlength="500" show-word-limit />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="addDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitAdd">提交</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -408,6 +453,7 @@ import {
   rejectComment,
   batchApproveComments,
   getCommentsStats,
+  addComment,
   type Comment,
   type CommentListParams
 } from "@/api/comments";
@@ -449,6 +495,15 @@ const pagination = reactive({
 // 详情对话框
 const detailDialogVisible = ref(false);
 const currentComment = ref<any>(null);
+
+// 添加评论对话框
+const addDialogVisible = ref(false);
+const addForm = reactive({
+  article_id: "",
+  parent_id: 0,
+  content: "",
+  user_id: 1
+});
 
 // 获取状态文本
 const getStatusText = (status: any): string => {
@@ -729,6 +784,55 @@ const handleDetail = async (row: any) => {
 };
 
 // ===== 测试按钮操作 =====
+
+// 显示添加对话框
+const showAddDialog = (isReply: boolean) => {
+  if (isReply) {
+    if (selectedIds.value.length !== 1) {
+      message("请选择一条评论", { type: "warning" });
+      return;
+    }
+    const selected = tableData.value.find(item => item.id === selectedIds.value[0]);
+    if (!selected) return;
+    addForm.article_id = selected.article_id.toString();
+    addForm.parent_id = selected.id;
+  } else {
+    addForm.article_id = searchForm.article_id || "";
+    addForm.parent_id = 0;
+  }
+  addForm.content = "";
+  addDialogVisible.value = true;
+};
+
+// 提交添加
+const submitAdd = async () => {
+  if (!addForm.article_id) {
+    message("请输入文章ID", { type: "warning" });
+    return;
+  }
+  if (!addForm.content.trim()) {
+    message("请输入内容", { type: "warning" });
+    return;
+  }
+  try {
+    const response = await addComment({
+      article_id: Number(addForm.article_id),
+      parent_id: addForm.parent_id,
+      content: addForm.content,
+      user_id: addForm.user_id
+    });
+    if (response.code === 200) {
+      message("添加成功", { type: "success" });
+      addDialogVisible.value = false;
+      loadCommentsList();
+      loadStats();
+    } else {
+      message(response.msg || "添加失败", { type: "error" });
+    }
+  } catch (error: any) {
+    message(error?.message || "操作失败", { type: "error" });
+  }
+};
 
 // 测试获取评论树
 const handleTestGetComments = async () => {
