@@ -21,7 +21,9 @@ class comments extends Model
     const TARGET_TYPES = [
         'article' => '文章',
         'product' => '商品',
-        'user' => '用户'
+        'user' => '用户',
+        'video' => '视频',
+        'resource' => '资源'
     ];
     
     // 关联用户（必须指定完整命名空间）

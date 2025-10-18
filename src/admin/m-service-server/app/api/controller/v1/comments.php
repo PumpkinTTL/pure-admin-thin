@@ -40,7 +40,7 @@ class comments extends BaseController
     public function getTargetComments($targetId, $targetType = 'article')
     {
         // 验证目标类型
-        if (!in_array($targetType, ['article', 'product', 'user'])) {
+        if (!in_array($targetType, ['article', 'product', 'user', 'video', 'resource'])) {
             return json([
                 'code' => 400,
                 'msg' => '不支持的目标类型'

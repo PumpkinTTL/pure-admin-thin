@@ -31,6 +31,8 @@
               <el-option label="文章" value="article" />
               <el-option label="商品" value="product" />
               <el-option label="用户" value="user" />
+              <el-option label="视频" value="video" />
+              <el-option label="资源" value="resource" />
             </el-select>
           </el-col>
           
@@ -219,13 +221,22 @@
         <el-table-column label="目标对象" width="150">
           <template #default="{ row }">
             <div class="target-cell">
-              <div class="target-type-badge" :class="`badge-${row.target_type || 'article'}`">
-                <i :class="getTargetIcon(row.target_type || 'article')" class="target-icon"></i>
-                <span class="target-type-text">{{ getTargetTypeName(row.target_type || 'article') }}</span>
+              <!-- 如果是回复，parent_id > 0，显示为回复类型 -->
+              <div 
+                class="target-type-badge" 
+                :class="`badge-${row.parent_id > 0 ? 'reply' : (row.target_type || 'article')}`"
+              >
+                <i 
+                  :class="row.parent_id > 0 ? 'fas fa-reply' : getTargetIcon(row.target_type || 'article')" 
+                  class="target-icon"
+                ></i>
+                <span class="target-type-text">
+                  {{ row.parent_id > 0 ? '回复' : getTargetTypeName(row.target_type || 'article') }}
+                </span>
               </div>
               <div class="target-id-box">
-                <span class="id-label">ID</span>
-                <span class="id-value">{{ row.target_id || row.article_id }}</span>
+                <span class="id-label">{{ row.parent_id > 0 ? '父ID' : 'ID' }}</span>
+                <span class="id-value">{{ row.parent_id > 0 ? row.parent_id : (row.target_id || row.article_id) }}</span>
               </div>
             </div>
           </template>
@@ -459,6 +470,8 @@
             <el-option label="文章" value="article" />
             <el-option label="商品" value="product" />
             <el-option label="用户" value="user" />
+            <el-option label="视频" value="video" />
+            <el-option label="资源" value="resource" />
           </el-select>
         </el-form-item>
         <el-form-item label="父评论ID" v-if="addForm.parent_id > 0">
@@ -599,7 +612,9 @@ const getTargetTypeName = (type: string): string => {
   const typeMap: Record<string, string> = {
     "article": "文章",
     "product": "商品",
-    "user": "用户"
+    "user": "用户",
+    "video": "视频",
+    "resource": "资源"
   };
   return typeMap[type] || type;
 };
@@ -609,7 +624,9 @@ const getTargetTypeColor = (type: string): string => {
   const colorMap: Record<string, string> = {
     "article": "primary",
     "product": "success",
-    "user": "warning"
+    "user": "warning",
+    "video": "danger",
+    "resource": "info"
   };
   return colorMap[type] || "info";
 };
@@ -619,7 +636,9 @@ const getTargetIcon = (type: string): string => {
   const iconMap: Record<string, string> = {
     "article": "fas fa-file-alt",
     "product": "fas fa-shopping-cart",
-    "user": "fas fa-user"
+    "user": "fas fa-user",
+    "video": "fas fa-video",
+    "resource": "fas fa-folder-open"
   };
   return iconMap[type] || "fas fa-file";
 };
@@ -1185,7 +1204,7 @@ onMounted(() => {
         border: 1px solid #c5cae9;
         
         .target-icon {
-          color: #3f51b5;
+          color: #5c6bc0;
         }
       }
       
@@ -1196,7 +1215,7 @@ onMounted(() => {
         border: 1px solid #b2dfdb;
         
         .target-icon {
-          color: #00897b;
+          color: #26a69a;
         }
       }
       
@@ -1207,7 +1226,40 @@ onMounted(() => {
         border: 1px solid #ffcc80;
         
         .target-icon {
-          color: #f57c00;
+          color: #ff9800;
+        }
+      }
+      
+      // 视频样式 - 淡红色
+      &.badge-video {
+        background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+        color: #e53935;
+        border: 1px solid #ef9a9a;
+        
+        .target-icon {
+          color: #e53935;
+        }
+      }
+      
+      // 资源样式 - 淡灰蓝色
+      &.badge-resource {
+        background: linear-gradient(135deg, #eceff1 0%, #cfd8dc 100%);
+        color: #546e7a;
+        border: 1px solid #b0bec5;
+        
+        .target-icon {
+          color: #546e7a;
+        }
+      }
+      
+      // 回复样式 - 淡紫色
+      &.badge-reply {
+        background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+        color: #8e24aa;
+        border: 1px solid #ce93d8;
+        
+        .target-icon {
+          color: #8e24aa;
         }
       }
     }
