@@ -4,6 +4,7 @@ namespace app\api\model;
 
 use think\Model;
 use app\api\model\users;
+use app\api\model\likes;
 class comments extends Model
 {
     // 表名

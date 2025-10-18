@@ -4,6 +4,7 @@ namespace app\api\model;
 
 use think\Model;
 use think\model\concern\SoftDelete;
+use app\api\model\likes;
 
 class article extends Model
 {
