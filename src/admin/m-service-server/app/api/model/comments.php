@@ -6,8 +6,16 @@ use think\Model;
 use app\api\model\users;
 class comments extends Model
 {
+    // 表名
+    protected $name = 'comments';
+    
+    // 开启自动时间戳
+    protected $autoWriteTimestamp = true;
+    
+    // 软删除字段
+    protected $deleteTime = 'delete_time';
+    
     // 关联用户（必须指定完整命名空间）
-// 关联用户
     public function user()
     {
         return $this->belongsTo(users::class, 'user_id', 'id')
