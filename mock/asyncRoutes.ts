@@ -213,6 +213,15 @@ const dataRouter = {
         title: "点赞管理",
         icon: "ep:star"
       }
+    },
+    {
+      path: "/data/favorites",
+      name: "DataFavorites",
+      component: "/src/views/basic/favorites.vue",
+      meta: {
+        title: "收藏管理",
+        icon: "ep:collection"
+      }
     }
   ]
 };

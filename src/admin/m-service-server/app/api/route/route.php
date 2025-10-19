@@ -66,21 +66,21 @@ Route::group('/:version/comments', function () {
     Route::rule('list', ':version.comments/getList'); // 获取评论列表（分页）
     Route::rule('stats', ':version.comments/getStats'); // 获取统计数据
     Route::rule('detail', ':version.comments/detail'); // 获取评论详情
-    
+
     // 通用评论接口（推荐使用）
     Route::rule('getTargetComments/:target_id/:target_type', ':version.comments/getTargetComments'); // 获取目标对象评论树
-    
+
     // 兼容接口（保留）
     Route::rule('getCommentsByArticleId', ':version.comments/getCommentsByArticleId');
     Route::rule('getComments/:article_id', ':version.comments/getComments');
     Route::rule('getCommentsChildren/:parent_id', ':version.comments/getCommentsChildren');
-    
+
     // 增删改接口
     Route::rule('add', ':version.comments/add'); // 添加评论
     Route::rule('update', ':version.comments/update'); // 更新评论
     Route::rule('delete', ':version.comments/delete'); // 删除评论
     Route::rule('batchDelete', ':version.comments/batchDelete'); // 批量删除
-    
+
     // 审核接口
     Route::rule('approve', ':version.comments/approve'); // 审核通过
     Route::rule('reject', ':version.comments/reject'); // 拒绝评论
@@ -93,6 +93,12 @@ Route::group('/:version/likes', function () {
     Route::rule('check', ':version.likes/check'); // 检查是否点赞
     Route::rule('batchCheck', ':version.likes/batchCheck'); // 批量检查点赞状态
     Route::rule('list', ':version.likes/list'); // 获取用户点赞列表
+});
+
+// 收藏组
+Route::group('/:version/favorites', function () {
+    Route::get('list', ':version.favorites/list'); // 获取收藏列表
+    Route::post('toggle', ':version.favorites/toggle'); // 收藏/取消收藏
 });
 //文件分组
 Route::group('/:version/upload', function () {
