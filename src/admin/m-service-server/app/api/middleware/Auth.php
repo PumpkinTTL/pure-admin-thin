@@ -1,4 +1,5 @@
 <?php
+
 namespace app\api\middleware;
 
 use think\facade\Log;
