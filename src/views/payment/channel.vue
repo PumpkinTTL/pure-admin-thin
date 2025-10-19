@@ -563,7 +563,43 @@ onMounted(() => {
 
   .payment-icon {
     font-size: 14px;
-    color: var(--el-color-primary);
+  }
+  
+  // 不同网络的专属颜色
+  i.fa-ethereum {
+    color: #627EEA !important;
+  }
+  
+  i.fa-bitcoin {
+    color: #F7931A !important;
+  }
+  
+  i.fa-coins {
+    color: #26A17B !important;
+  }
+  
+  i.fa-link {
+    color: #F3BA2F !important;
+  }
+  
+  i.fa-gem {
+    color: #14F195 !important;
+  }
+  
+  i.fa-alipay {
+    color: #1677FF !important;
+  }
+  
+  i.fa-weixin {
+    color: #07C160 !important;
+  }
+  
+  i.fa-paypal {
+    color: #00457C !important;
+  }
+  
+  i.fa-credit-card {
+    color: #666666 !important;
   }
 
   .currency-info {
