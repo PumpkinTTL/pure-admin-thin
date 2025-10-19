@@ -1,14 +1,9 @@
 <template>
   <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" size="small" class="payment-channel-form">
     <el-row :gutter="16">
-      <el-col :span="12">
+      <el-col :span="24">
         <el-form-item label="渠道名称" prop="name">
-          <el-input v-model="form.name" placeholder="请输入渠道名称" clearable />
-        </el-form-item>
-      </el-col>
-      <el-col :span="12">
-        <el-form-item label="渠道代码" prop="code">
-          <el-input v-model="form.code" placeholder="请输入渠道代码" clearable />
+          <el-input v-model="form.name" placeholder="请输入渠道名称，如：支付宝、波场网络" clearable />
         </el-form-item>
       </el-col>
     </el-row>
@@ -27,8 +22,8 @@
         <el-form-item label="图标" prop="icon">
           <el-input v-model="form.icon" placeholder="点击选择图标" readonly @click="handleSelectIcon">
             <template #prepend>
-              <FontIcon v-if="form.icon" :icon="form.icon" />
-              <FontIcon v-else icon="fas fa-credit-card" />
+              <i v-if="form.icon" :class="form.icon"></i>
+              <i v-else class="fas fa-credit-card"></i>
             </template>
             <template #suffix>
               <el-icon class="icon-select-btn">
@@ -40,46 +35,29 @@
       </el-col>
     </el-row>
 
-    <el-row :gutter="16">
-      <el-col :span="12">
-        <el-form-item label="货币代码" prop="currency_code">
-          <el-input v-model="form.currency_code" placeholder="如：CNY、USD" clearable />
-        </el-form-item>
-      </el-col>
-      <el-col :span="12">
-        <el-form-item label="货币符号" prop="currency_symbol">
-          <el-input v-model="form.currency_symbol" placeholder="如：¥、$" clearable />
-        </el-form-item>
-      </el-col>
-    </el-row>
 
     <el-row :gutter="16">
-      <el-col :span="12">
-        <el-form-item label="加密货币" prop="is_crypto">
-          <el-radio-group v-model="form.is_crypto" size="small">
-            <el-radio :value="0">否</el-radio>
-            <el-radio :value="1">是</el-radio>
-          </el-radio-group>
-        </el-form-item>
-      </el-col>
       <el-col :span="12">
         <el-form-item label="排序权重" prop="sort_order">
           <el-input-number v-model="form.sort_order" :min="0" :max="9999" style="width: 100%" />
         </el-form-item>
       </el-col>
+      <el-col :span="12">
+        <!-- 预留位置，保持布局均衡 -->
+      </el-col>
     </el-row>
 
-    <!-- 加密货币相关字段 -->
-    <template v-if="form.is_crypto === 1">
+    <!-- 加密货币相关字段（当 type=2 时显示） -->
+    <template v-if="form.type === 2">
       <el-row :gutter="16">
         <el-col :span="12">
           <el-form-item label="区块链网络" prop="network">
-            <el-input v-model="form.network" placeholder="如：ETH、TRX" clearable />
+            <el-input v-model="form.network" placeholder="如：ETH、TRX、BTC" clearable />
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="合约地址" prop="contract_address">
-            <el-input v-model="form.contract_address" placeholder="智能合约地址" clearable />
+          <el-form-item label="收款地址" prop="wallet_address">
+            <el-input v-model="form.wallet_address" placeholder="区块链钱包地址" clearable />
           </el-form-item>
         </el-col>
       </el-row>
@@ -118,7 +96,6 @@ import { defineComponent, ref, reactive, computed, watch } from "vue";
 import { ElMessage, type FormInstance, type FormRules } from "element-plus";
 import { Search } from "@element-plus/icons-vue";
 import { addPaymentMethod, updatePaymentMethod, type PaymentMethodForm, type PaymentMethod } from "@/api/paymentMethod";
-import { FontIcon } from "@/components/ReIcon";
 import { useSettingStoreHook } from "@/store/modules/settings";
 
 export default defineComponent({
@@ -145,14 +122,10 @@ export default defineComponent({
     // 表单数据
     const form = reactive<PaymentMethodForm>({
       name: "",
-      code: "",
       type: 1,
       icon: "",
-      currency_code: "",
-      currency_symbol: "",
-      is_crypto: 0,
       network: "",
-      contract_address: "",
+      wallet_address: "",
       status: 1,
       sort_order: 100,
       is_default: 0
@@ -162,12 +135,7 @@ export default defineComponent({
     const rules: FormRules = {
       name: [
         { required: true, message: "请输入支付渠道名称", trigger: "blur" },
-        { min: 2, max: 50, message: "长度在 2 到 50 个字符", trigger: "blur" }
-      ],
-      code: [
-        { required: true, message: "请输入支付渠道代码", trigger: "blur" },
-        { min: 2, max: 30, message: "长度在 2 到 30 个字符", trigger: "blur" },
-        { pattern: /^[a-zA-Z0-9_-]+$/, message: "只能包含字母、数字、下划线和横线", trigger: "blur" }
+        { min: 2, max: 100, message: "长度在 2 到 100 个字符", trigger: "blur" }
       ],
       type: [
         { required: true, message: "请选择支付类型", trigger: "change" }
@@ -179,14 +147,10 @@ export default defineComponent({
       if (newData) {
         Object.assign(form, {
           name: newData.name,
-          code: newData.code,
           type: newData.type,
           icon: newData.icon,
-          currency_code: newData.currency_code,
-          currency_symbol: newData.currency_symbol,
-          is_crypto: newData.is_crypto,
           network: newData.network,
-          contract_address: newData.contract_address,
+          wallet_address: newData.wallet_address,
           status: newData.status,
           sort_order: newData.sort_order,
           is_default: newData.is_default

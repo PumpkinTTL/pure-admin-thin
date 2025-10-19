@@ -22,16 +22,11 @@ export interface PaymentMethodListResponse {
 export interface PaymentMethod {
   id: number;
   name: string;
-  code: string;
   type: number;
   type_text: string;
   icon: string;
-  currency_code: string;
-  currency_symbol: string;
-  is_crypto: number;
-  is_crypto_text: string;
   network: string;
-  contract_address: string;
+  wallet_address: string;
   status: number;
   status_text: string;
   sort_order: number;
@@ -47,11 +42,8 @@ export interface PaymentMethodSearchForm {
   limit?: number;
   id?: string;
   name?: string;
-  code?: string;
   type?: string;
   status?: string;
-  is_crypto?: string;
-  currency_code?: string;
   network?: string;
   is_default?: string;
 }
@@ -59,14 +51,10 @@ export interface PaymentMethodSearchForm {
 // 定义添加/编辑表单结构
 export interface PaymentMethodForm {
   name: string;
-  code: string;
   type: number;
   icon?: string;
-  currency_code?: string;
-  currency_symbol?: string;
-  is_crypto?: number;
   network?: string;
-  contract_address?: string;
+  wallet_address?: string;
   status?: number;
   sort_order?: number;
   is_default?: number;
@@ -108,6 +96,6 @@ export const setDefaultPaymentMethod = (id: number) => {
 };
 
 // 获取启用的支付方式
-export const getEnabledPaymentMethods = (params?: { type?: number; is_crypto?: number; currency_code?: string }) => {
+export const getEnabledPaymentMethods = (params?: { type?: number; network?: string }) => {
   return http.request<ApiResponse<PaymentMethod[]>>("get", "/api/v1/paymentMethod/getEnabledList", { params });
 };

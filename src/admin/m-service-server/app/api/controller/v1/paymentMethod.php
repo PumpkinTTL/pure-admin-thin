@@ -23,7 +23,7 @@ class paymentMethod extends BaseController
 
         // 查询条件
         $conditions = [];
-        $searchFields = ['id', 'name', 'code', 'type', 'status', 'is_crypto', 'currency_code', 'network', 'is_default'];
+        $searchFields = ['id', 'name', 'type', 'status', 'network', 'is_default'];
         foreach ($searchFields as $field) {
             if (isset($params[$field]) && $params[$field] !== '') {
                 $conditions[$field] = $params[$field];
@@ -66,13 +66,9 @@ class paymentMethod extends BaseController
         // 验证规则
         $validate = Validate::rule([
             'name' => 'require|max:100',
-            'code' => 'require|max:50|alphaNum',
             'type' => 'require|in:1,2,3',
-            'currency_code' => 'max:10',
-            'currency_symbol' => 'max:10',
-            'is_crypto' => 'in:0,1',
             'network' => 'max:50',
-            'contract_address' => 'max:100',
+            'wallet_address' => 'max:100',
             'status' => 'in:0,1',
             'sort_order' => 'integer',
             'is_default' => 'in:0,1',
@@ -80,9 +76,6 @@ class paymentMethod extends BaseController
         ])->message([
             'name.require' => '支付方式名称不能为空',
             'name.max' => '支付方式名称不能超过100个字符',
-            'code.require' => '支付方式代码不能为空',
-            'code.max' => '支付方式代码不能超过50个字符',
-            'code.alphaNum' => '支付方式代码只能包含字母和数字',
             'type.require' => '支付类型不能为空',
             'type.in' => '支付类型必须为1(传统支付)、2(加密货币)或3(数字钱包)'
         ]);
@@ -118,21 +111,15 @@ class paymentMethod extends BaseController
         // 验证规则（更新时字段可选）
         $validate = Validate::rule([
             'name' => 'max:100',
-            'code' => 'max:50|alphaNum',
             'type' => 'in:1,2,3',
-            'currency_code' => 'max:10',
-            'currency_symbol' => 'max:10',
-            'is_crypto' => 'in:0,1',
             'network' => 'max:50',
-            'contract_address' => 'max:100',
+            'wallet_address' => 'max:100',
             'status' => 'in:0,1',
             'sort_order' => 'integer',
             'is_default' => 'in:0,1',
             'icon' => 'max:100'
         ])->message([
             'name.max' => '支付方式名称不能超过100个字符',
-            'code.max' => '支付方式代码不能超过50个字符',
-            'code.alphaNum' => '支付方式代码只能包含字母和数字',
             'type.in' => '支付类型必须为1(传统支付)、2(加密货币)或3(数字钱包)'
         ]);
 
@@ -229,7 +216,7 @@ class paymentMethod extends BaseController
 
         // 查询条件
         $conditions = [];
-        $filterFields = ['type', 'is_crypto', 'currency_code'];
+        $filterFields = ['type', 'network'];
         foreach ($filterFields as $field) {
             if (isset($params[$field]) && $params[$field] !== '') {
                 $conditions[$field] = $params[$field];

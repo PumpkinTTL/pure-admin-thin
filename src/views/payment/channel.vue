@@ -17,9 +17,6 @@
         <el-form-item label="渠道名称">
           <el-input v-model="searchForm.name" placeholder="请输入渠道名称" clearable size="small" style="width: 140px" />
         </el-form-item>
-        <el-form-item label="渠道代码">
-          <el-input v-model="searchForm.code" placeholder="请输入渠道代码" clearable size="small" style="width: 140px" />
-        </el-form-item>
         <el-form-item label="支付类型">
           <el-select v-model="searchForm.type" placeholder="请选择类型" size="small" style="width: 120px">
             <el-option label="全部" value="" />
@@ -67,16 +64,11 @@
         <el-table-column prop="id" label="ID" width="60" align="center" />
         <el-table-column label="图标" width="50" align="center">
           <template #default="{ row }">
-            <FontIcon v-if="row.icon" :icon="row.icon" class="payment-icon" />
-            <FontIcon v-else icon="fas fa-credit-card" class="payment-icon" />
+            <i v-if="row.icon" :class="row.icon" class="payment-icon"></i>
+            <i v-else class="fas fa-credit-card payment-icon"></i>
           </template>
         </el-table-column>
-        <el-table-column prop="name" label="渠道名称" min-width="120" show-overflow-tooltip />
-        <el-table-column label="代码" width="120" align="center">
-          <template #default="{ row }">
-            <el-tag size="small" type="info">{{ row.code }}</el-tag>
-          </template>
-        </el-table-column>
+        <el-table-column prop="name" label="渠道名称" min-width="140" show-overflow-tooltip />
         <el-table-column label="区块网络" width="120" align="center">
           <template #default="{ row }">
             <el-tag size="small" type="info">{{ row.network ? row.network : '-' }}</el-tag>
@@ -89,31 +81,20 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="货币" width="100" align="center">
+        <el-table-column label="收款地址" min-width="180" align="center">
           <template #default="{ row }">
-            <div class="currency-info">
-              <span>{{ row.currency_symbol }}</span>
-              <small>{{ row.currency_code }}</small>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="钱包地址" align="center">
-          <template #default="{ row }">
-            <div v-if="row.is_crypto === 1 && row.contract_address" class="wallet-address">
+            <div v-if="row.type === 2 && row.wallet_address" class="wallet-address">
               <div class="address-content">
-                <el-tooltip :content="row.contract_address" placement="top">
+                <el-tooltip :content="row.wallet_address" placement="top">
                   <span class="address-text">
-                    {{ row.contract_address.slice(0, 8) }}...{{ row.contract_address.slice(-6) }}
+                    {{ row.wallet_address.slice(0, 8) }}...{{ row.wallet_address.slice(-6) }}
                   </span>
                 </el-tooltip>
-                <el-button size="small" type="primary" link @click="copyAddress(row.contract_address)" class="copy-btn">
-                  <FontIcon icon="fas fa-copy" />
+                <el-button size="small" type="primary" link @click="copyAddress(row.wallet_address)" class="copy-btn">
+                  <i class="fas fa-copy"></i>
                 </el-button>
               </div>
             </div>
-            <el-tag v-else-if="row.is_crypto === 1" size="small" type="info">
-              原生币
-            </el-tag>
             <span v-else class="text-muted">-</span>
           </template>
         </el-table-column>
@@ -169,7 +150,6 @@ import {
   type PaymentMethodSearchForm
 } from "@/api/paymentMethod";
 import { message } from "@/utils/message";
-import { FontIcon } from "@/components/ReIcon";
 import AddOrEdit from "./channel/AddOrEdit.vue";
 
 // 扩展PaymentMethod接口以包含UI状态
@@ -189,11 +169,8 @@ const selectedIds = ref<number[]>([]);
 const searchForm = reactive<PaymentMethodSearchForm>({
   id: "",
   name: "",
-  code: "",
   type: "",
   status: "",
-  is_crypto: "",
-  currency_code: "",
   network: "",
   is_default: ""
 });
@@ -245,9 +222,8 @@ async function loadServerData(pageNum = 1) {
 
       // 处理数据格式
       newData.forEach((item: any) => {
-        // 确保status是数字类型
+        // 确俚 status 是数字类型
         item.status = Number(item.status);
-        item.is_crypto = Number(item.is_crypto);
         item.is_default = Number(item.is_default);
       });
 
@@ -295,11 +271,8 @@ const resetSearchForm = () => {
   Object.assign(searchForm, {
     id: "",
     name: "",
-    code: "",
     type: "",
     status: "",
-    is_crypto: "",
-    currency_code: "",
     network: "",
     is_default: ""
   });

@@ -39,7 +39,7 @@ class PaymentMethodService
             }
 
             // 精确匹配字段
-            foreach (['type', 'status', 'is_crypto', 'currency_code', 'network', 'is_default'] as $field) {
+            foreach (['type', 'status', 'network', 'is_default'] as $field) {
                 if (isset($conditions[$field]) && $conditions[$field] !== '') {
                     $query->where("pm.{$field}", '=', $conditions[$field]);
                 }
@@ -58,7 +58,7 @@ class PaymentMethodService
             // 添加文本描述字段
             $list = $result->items();
             foreach ($list as &$item) {
-                $item->append(['type_text', 'status_text', 'is_crypto_text', 'is_default_text']);
+                $item->append(['type_text', 'status_text', 'is_default_text']);
             }
             
             // 记录SQL执行时间
@@ -108,7 +108,7 @@ class PaymentMethodService
             }
 
             // 添加文本描述字段
-            $paymentMethod->append(['type_text', 'status_text', 'is_crypto_text', 'is_default_text']);
+            $paymentMethod->append(['type_text', 'status_text', 'is_default_text']);
             
             $endTime = microtime(true);
             $executionTime = round(($endTime - $startTime) * 1000, 2);
@@ -140,15 +140,8 @@ class PaymentMethodService
             $startTime = microtime(true);
             
             // 验证必填字段
-            if (empty($data['name']) || empty($data['code'])) {
-                return ['code' => 400, 'msg' => '支付方式名称和代码不能为空'];
-            }
-            
-            // 检查代码是否已存在
-            $exists = PaymentMethod::where('code', $data['code'])->find();
-            if ($exists) {
-                LogService::log("添加支付方式失败，代码已存在：{$data['code']}", [], 'warning');
-                return ['code' => 400, 'msg' => '支付方式代码已存在'];
+            if (empty($data['name'])) {
+                return ['code' => 400, 'msg' => '支付方式名称不能为空'];
             }
             
             // 如果设置为默认支付方式，需要取消其他默认设置
@@ -198,15 +191,6 @@ class PaymentMethodService
                 return ['code' => 404, 'msg' => '支付方式不存在'];
             }
             
-            // 如果更新代码，检查是否与其他记录冲突
-            if (!empty($data['code']) && $data['code'] !== $paymentMethod->code) {
-                $exists = PaymentMethod::where('code', $data['code'])->where('id', '<>', $id)->find();
-                if ($exists) {
-                    LogService::log("更新支付方式失败，代码已存在：{$data['code']}", [], 'warning');
-                    return ['code' => 400, 'msg' => '支付方式代码已存在'];
-                }
-            }
-            
             // 如果设置为默认支付方式，需要取消其他默认设置
             if (!empty($data['is_default']) && $data['is_default'] == 1) {
                 PaymentMethod::where('is_default', 1)->where('id', '<>', $id)->update(['is_default' => 0]);
@@ -221,7 +205,7 @@ class PaymentMethodService
             LogService::log("更新支付方式成功，ID：{$id}，名称：{$paymentMethod->name}");
             
             // 添加文本描述字段
-            $paymentMethod->append(['type_text', 'status_text', 'is_crypto_text', 'is_default_text']);
+            $paymentMethod->append(['type_text', 'status_text', 'is_default_text']);
 
             return [
                 'code' => 200,
@@ -414,17 +398,12 @@ class PaymentMethodService
                 $query->where('type', $conditions['type']);
             }
 
-            // 根据是否为加密货币筛选
-            if (isset($conditions['is_crypto'])) {
-                $query->where('is_crypto', $conditions['is_crypto']);
+            // 根据网络筛选
+            if (!empty($conditions['network'])) {
+                $query->where('network', $conditions['network']);
             }
 
-            // 根据货币代码筛选
-            if (!empty($conditions['currency_code'])) {
-                $query->where('currency_code', $conditions['currency_code']);
-            }
-
-            $paymentMethods = $query->field('id,name,code,type,icon,currency_code,currency_symbol,is_crypto,network,contract_address,sort_order,is_default')
+            $paymentMethods = $query->field('id,name,type,icon,network,wallet_address,sort_order,is_default')
                                    ->order('sort_order', 'desc')
                                    ->order('is_default', 'desc')
                                    ->select();

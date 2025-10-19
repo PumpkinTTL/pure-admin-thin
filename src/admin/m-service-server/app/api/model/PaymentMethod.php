@@ -69,17 +69,6 @@ class PaymentMethod extends Model
     }
     
     /**
-     * 获取是否为加密货币文本描述
-     * @param $value
-     * @param $data
-     * @return string
-     */
-    public function getIsCryptoTextAttr($value, $data)
-    {
-        return $data['is_crypto'] ? '是' : '否';
-    }
-    
-    /**
      * 获取是否为默认支付方式文本描述
      * @param $value
      * @param $data
@@ -98,16 +87,6 @@ class PaymentMethod extends Model
     public function searchNameAttr($query, $value)
     {
         $query->whereLike('name', '%' . $value . '%');
-    }
-
-    /**
-     * 搜索器：根据代码搜索
-     * @param $query
-     * @param $value
-     */
-    public function searchCodeAttr($query, $value)
-    {
-        $query->whereLike('code', '%' . $value . '%');
     }
 
     /**
@@ -130,24 +109,5 @@ class PaymentMethod extends Model
         $query->where('status', $value);
     }
 
-    /**
-     * 搜索器：根据是否为加密货币搜索
-     * @param $query
-     * @param $value
-     */
-    public function searchIsCryptoAttr($query, $value)
-    {
-        $query->where('is_crypto', $value);
-    }
-
-    /**
-     * 搜索器：根据货币代码搜索
-     * @param $query
-     * @param $value
-     */
-    public function searchCurrencyCodeAttr($query, $value)
-    {
-        $query->where('currency_code', $value);
-    }
 }
 
