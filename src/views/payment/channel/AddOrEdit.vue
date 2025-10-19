@@ -100,6 +100,9 @@ import { useSettingStoreHook } from "@/store/modules/settings";
 
 export default defineComponent({
   name: "AddOrEdit",
+  components: {
+    Search
+  },
   props: {
     formData: {
       type: Object as () => PaymentMethod | null,
