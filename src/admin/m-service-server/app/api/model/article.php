@@ -46,11 +46,11 @@ class article extends Model
         return $this->belongsTo(users::class, 'author_id', 'id');
     }
 
-    // 关联收藏记录（用于统计收藏量）
+    // 关联收藏记录（用于统计收藏量）- 多态关联
     public function favorites()
     {
-        return $this->hasMany(favorites::class, 'article_id')
-            ->whereNull('delete_time'); // 只统计未删除的收藏
+        return $this->hasMany(favorites::class, 'target_id')
+            ->where('target_type', 'article');
     }
 
     /**
