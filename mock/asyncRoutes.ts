@@ -99,6 +99,7 @@ const systemRouter = {
     {
       path: "/system/files",
       name: "SystemFiles",
+      component: "/src/views/system/files/index.vue",
       meta: {
         title: "文件管理",
         roles: ["superAdmin"],
