@@ -100,9 +100,6 @@ import { useSettingStoreHook } from "@/store/modules/settings";
 
 export default defineComponent({
   name: "AddOrEdit",
-  components: {
-    FontIcon
-  },
   props: {
     formData: {
       type: Object as () => PaymentMethod | null,
