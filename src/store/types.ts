@@ -34,6 +34,9 @@ export type setType = {
   title: string;
   fixedHeader: boolean;
   hiddenSideBar: boolean;
+  iconSelectorVisible: boolean;
+  iconSelectorValue: string;
+  iconSelectorCallback?: (value: string) => void;
 };
 
 export type userType = {

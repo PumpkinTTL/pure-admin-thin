@@ -147,6 +147,7 @@
         :show-header="true" element-loading-text="正在加载文章数据..." element-loading-background="rgba(255, 255, 255, 0.8)"
         :empty-text="getEmptyText()" :key="pageConfig.current_page">
         <el-table-column type="selection" width="50" align="center" />
+        <el-table-column label="ID" prop="id" width="80" align="center" />
 
         <!-- 文章内容 -->
         <el-table-column label="文章" min-width="320">

@@ -25,10 +25,15 @@
       </el-col>
       <el-col :span="12">
         <el-form-item label="图标" prop="icon">
-          <el-input v-model="form.icon" placeholder="图标类名" clearable>
+          <el-input v-model="form.icon" placeholder="点击选择图标" readonly @click="handleSelectIcon">
             <template #prepend>
               <FontIcon v-if="form.icon" :icon="form.icon" />
               <FontIcon v-else icon="fas fa-credit-card" />
+            </template>
+            <template #suffix>
+              <el-icon class="icon-select-btn">
+                <Search />
+              </el-icon>
             </template>
           </el-input>
         </el-form-item>
@@ -111,8 +116,10 @@
 <script lang="ts">
 import { defineComponent, ref, reactive, computed, watch } from "vue";
 import { ElMessage, type FormInstance, type FormRules } from "element-plus";
+import { Search } from "@element-plus/icons-vue";
 import { addPaymentMethod, updatePaymentMethod, type PaymentMethodForm, type PaymentMethod } from "@/api/paymentMethod";
 import { FontIcon } from "@/components/ReIcon";
+import { useSettingStoreHook } from "@/store/modules/settings";
 
 export default defineComponent({
   name: "AddOrEdit",
@@ -130,6 +137,7 @@ export default defineComponent({
     // 响应式数据
     const formRef = ref<FormInstance>();
     const loading = ref(false);
+    const settingStore = useSettingStoreHook();
 
     // 判断是否为编辑模式
     const isEdit = computed(() => props.formData && props.formData.id);
@@ -216,6 +224,16 @@ export default defineComponent({
       formRef.value.resetFields();
     };
 
+    // 选择图标
+    const handleSelectIcon = () => {
+      settingStore.openIconSelector({
+        currentValue: form.icon,
+        callback: (value: string) => {
+          form.icon = value;
+        }
+      });
+    };
+
     return {
       formRef,
       loading,
@@ -223,7 +241,8 @@ export default defineComponent({
       form,
       rules,
       handleSubmit,
-      handleReset
+      handleReset,
+      handleSelectIcon
     };
   }
 });
@@ -256,6 +275,16 @@ export default defineComponent({
 
   .el-button {
     font-size: 12px;
+  }
+
+  .icon-select-btn {
+    cursor: pointer;
+    color: var(--el-color-primary);
+    transition: color 0.3s;
+
+    &:hover {
+      color: var(--el-color-primary-light-3);
+    }
   }
 }
 </style>

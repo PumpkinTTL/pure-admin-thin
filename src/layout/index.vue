@@ -30,6 +30,7 @@ import LaySetting from "./components/lay-setting/index.vue";
 import NavVertical from "./components/lay-sidebar/NavVertical.vue";
 import NavHorizontal from "./components/lay-sidebar/NavHorizontal.vue";
 import BackTopIcon from "@/assets/svg/back_top.svg?component";
+import IconSelector from "@/components/IconSelector/index.vue";
 
 const appWrapperRef = ref();
 const { isDark } = useDark();
@@ -198,6 +199,8 @@ const LayHeader = defineComponent({
     </div>
     <!-- 系统设置 -->
     <LaySetting />
+    <!-- 图标选择器 -->
+    <IconSelector />
   </div>
 </template>
 
