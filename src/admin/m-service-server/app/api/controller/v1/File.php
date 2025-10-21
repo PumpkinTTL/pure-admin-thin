@@ -156,4 +156,49 @@ class File extends BaseController
             'message' => $result['message']
         ]);
     }
-} 
+
+    /**
+     * 更新文件信息
+     * @return Json
+     */
+    public function updateFile(): Json
+    {
+        try {
+            // 获取JSON请求体
+            $input = request()->getContent();
+            $data = json_decode($input, true);
+
+            // 验证参数
+            if (!isset($data['file_id']) || !is_numeric($data['file_id'])) {
+                return json(['code' => 400, 'message' => '无效的文件ID']);
+            }
+
+            $fileId = (int)$data['file_id'];
+            $updateData = [];
+
+            // 获取可更新的字段
+            if (isset($data['original_name'])) {
+                $updateData['original_name'] = $data['original_name'];
+            }
+            if (isset($data['remark'])) {
+                $updateData['remark'] = $data['remark'];
+            }
+
+            if (empty($updateData)) {
+                return json(['code' => 400, 'message' => '没有提供要更新的字段']);
+            }
+
+            $result = FileService::updateFile($fileId, $updateData);
+
+            return json([
+                'code' => $result['success'] ? 200 : 500,
+                'message' => $result['message']
+            ]);
+        } catch (\Exception $e) {
+            return json([
+                'code' => 500,
+                'message' => '更新失败：' . $e->getMessage()
+            ]);
+        }
+    }
+}

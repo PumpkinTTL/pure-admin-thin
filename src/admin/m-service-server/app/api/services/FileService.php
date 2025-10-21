@@ -518,6 +518,58 @@ class FileService
     }
 
     /**
+     * 更新文件信息
+     * @param int $fileId 文件ID
+     * @param array $updateData 要更新的数据
+     * @return array
+     */
+    public static function updateFile(int $fileId, array $updateData): array
+    {
+        try {
+            $file = File::find($fileId);
+            
+            if (!$file) {
+                throw new \Exception('文件不存在');
+            }
+            
+            // 允许更新的字段
+            $allowedFields = ['original_name', 'remark'];
+            
+            // 过滤不允许更新的字段
+            $filteredData = [];
+            foreach ($updateData as $key => $value) {
+                if (in_array($key, $allowedFields)) {
+                    $filteredData[$key] = $value;
+                }
+            }
+            
+            if (empty($filteredData)) {
+                throw new \Exception('没有可更新的字段');
+            }
+            
+            // 更新文件信息
+            $file->save($filteredData);
+            
+            return [
+                'success' => true,
+                'message' => '文件信息更新成功'
+            ];
+        } catch (\Throwable $e) {
+            Log::error('更新文件信息失败：' . $e->getMessage(), [
+                'file_id' => $fileId,
+                'update_data' => $updateData,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return [
+                'success' => false,
+                'message' => '更新文件信息失败：' . $e->getMessage(),
+                'error_code' => 500
+            ];
+        }
+    }
+
+    /**
      * 格式化文件大小
      * @param int $size 字节数
      * @return string 格式化后的大小
@@ -532,4 +584,4 @@ class FileService
         }
         return round($size, 2) . ' ' . $units[$i];
     }
-} 
+}

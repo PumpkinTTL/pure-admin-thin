@@ -34,7 +34,7 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column label="存储名称" min-width="180" show-overflow-tooltip>
+      <el-table-column label="存储名称" min-width="240" show-overflow-tooltip>
         <template #default="{ row }">
           <div class="store-name">
             <i class="fa fa-save"></i>
@@ -84,6 +84,11 @@
           </el-tooltip>
         </template>
       </el-table-column>
+      <el-table-column label="备注" min-width="150" show-overflow-tooltip>
+        <template #default="{ row }">
+          <span class="remark-text">{{ row.remark || '-' }}</span>
+        </template>
+      </el-table-column>
       <el-table-column label="上传时间" min-width="150" align="center">
         <template #default="{ row }">
           <span class="create-time">{{ formatDate(row.create_time) }}</span>
@@ -117,7 +122,7 @@
               下载
             </el-button>
 
-            <!-- 详情按钮 -->
+            <!-- 编辑按钮 -->
             <el-button
               type="primary"
               size="small"
@@ -125,8 +130,8 @@
               @click="emit('detail', row)"
               class="action-btn-text"
             >
-              <i class="fa fa-info-circle mr-1"></i>
-              详情
+              <i class="fa fa-edit mr-1"></i>
+              编辑
             </el-button>
 
             <!-- 活跃文件的删除按钮 -->
@@ -282,19 +287,19 @@ const clearSelection = () => {
 
 // 表格样式
 const tableHeaderStyle = {
-  background: "transparent",
+  background: "linear-gradient(180deg, #fafbfc 0%, #f4f6f9 100%)",
   color: "#303133",
   fontWeight: "600",
   fontSize: "13px",
-  padding: "8px 0",
-  borderBottom: "1px solid #EBEEF5"
+  padding: "10px 0",
+  borderBottom: "2px solid #e4e7ed"
 };
 
 const tableCellStyle = () => {
   return {
-    padding: "8px",
+    padding: "10px 8px",
     fontSize: "13px",
-    borderBottom: "1px solid #EBEEF5"
+    borderBottom: "1px solid #f0f2f5"
   };
 };
 
@@ -306,6 +311,9 @@ defineExpose({
 
 <style lang="scss" scoped>
 .file-table-wrapper {
+  width: 100%;
+  overflow: visible;
+
   .el-table {
     margin-top: 15px;
     margin-bottom: 15px;
@@ -395,17 +403,21 @@ defineExpose({
   .store-name {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     font-size: 12px;
     color: #606266;
 
     i {
       color: #409eff;
       font-size: 14px;
+      flex-shrink: 0;
     }
 
     span {
-      font-family: monospace;
+      font-family: 'Courier New', monospace;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
 
@@ -530,9 +542,16 @@ defineExpose({
     color: #606266;
   }
 
+  // 备注
+  .remark-text {
+    font-size: 12px;
+    color: #606266;
+  }
+
   :deep(.el-table) {
-    border-radius: 4px;
+    border-radius: 6px;
     overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 
     .el-table__header th {
       background-color: transparent;
@@ -541,14 +560,12 @@ defineExpose({
     }
 
     .el-table__row {
-      transition: all 0.2s;
-
       &:hover {
-        background-color: rgba(240, 247, 255, 0.5) !important;
+        background-color: rgba(245, 249, 255, 0.6) !important;
       }
 
       &.current-row {
-        background-color: rgba(236, 245, 255, 0.5) !important;
+        background-color: rgba(236, 245, 255, 0.6) !important;
       }
     }
 
@@ -568,9 +585,9 @@ defineExpose({
   }
 
   .pagination {
-    margin-top: 15px;
-    padding-top: 10px;
-    border-top: 1px solid #ebeef5;
+    margin-top: 18px;
+    padding: 12px 0;
+    border-top: 1px solid #e4e7ed;
     display: flex;
     justify-content: flex-end;
   }
@@ -579,13 +596,7 @@ defineExpose({
 .action-btn-text {
   border-radius: 4px;
   font-weight: 500;
-  padding: 4px 8px;
+  padding: 5px 10px;
   margin: 0 2px;
-  transition: all 0.3s ease;
-
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
 }
 </style>

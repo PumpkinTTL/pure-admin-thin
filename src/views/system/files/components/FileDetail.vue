@@ -2,7 +2,7 @@
   <div>
     <el-dialog
       v-model="visible"
-      title="文件详情"
+      title="编辑文件"
       width="800px"
       align-center
       @close="handleClose"
@@ -37,7 +37,11 @@
         <div class="detail-item-group">
           <div class="detail-item">
             <div class="detail-label">原始文件名</div>
-            <div class="detail-value">{{ fileData.original_name }}</div>
+            <el-input
+              v-model="editForm.original_name"
+              placeholder="请输入文件名"
+              clearable
+            />
           </div>
           <div class="detail-item">
             <div class="detail-label">文件大小</div>
@@ -137,6 +141,18 @@
             }}</el-link>
           </div>
         </div>
+
+        <div class="detail-item full-width">
+          <div class="detail-label">备注</div>
+          <el-input
+            v-model="editForm.remark"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入备注信息"
+            maxlength="200"
+            show-word-limit
+          />
+        </div>
       </div>
     </div>
 
@@ -144,7 +160,7 @@
       <div class="dialog-footer">
         <el-button @click="visible = false" size="default" class="dialog-btn">
           <i class="fa fa-times mr-1"></i>
-          关闭
+          取消
         </el-button>
         <el-button
           type="primary"
@@ -157,13 +173,23 @@
         </el-button>
         <el-button
           v-if="canPreviewFile"
-          type="success"
+          type="info"
           @click="handlePreview"
           size="default"
           class="dialog-btn"
         >
           <i class="fa fa-eye mr-1"></i>
           预览
+        </el-button>
+        <el-button
+          type="success"
+          @click="handleSave"
+          :loading="saveLoading"
+          size="default"
+          class="dialog-btn"
+        >
+          <i class="fa fa-save mr-1"></i>
+          保存
         </el-button>
       </div>
     </template>
@@ -172,8 +198,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, reactive } from "vue";
 import type { FileInfo } from "@/api/fileManage";
+import { updateFile } from "@/api/fileManage";
 import { useFileUtils } from "../composables/useFileUtils";
 import { message } from "@/utils/message";
 
@@ -192,6 +219,7 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   "update:modelValue": [value: boolean];
   preview: [file: FileInfo];
+  updated: [];
 }>();
 
 // Hooks
@@ -212,6 +240,13 @@ const {
 
 // 状态
 const fileData = ref<FileInfo | null>(null);
+const saveLoading = ref(false);
+
+// 编辑表单
+const editForm = reactive({
+  original_name: "",
+  remark: ""
+});
 
 // 计算属性
 const visible = computed({
@@ -241,6 +276,8 @@ watch(
   newFile => {
     if (newFile) {
       fileData.value = newFile;
+      editForm.original_name = newFile.original_name || "";
+      editForm.remark = newFile.remark || "";
     }
   },
   { immediate: true }
@@ -265,9 +302,42 @@ const handlePreview = () => {
   }
 };
 
+// 保存编辑
+const handleSave = async () => {
+  if (!fileData.value) return;
+
+  if (!editForm.original_name?.trim()) {
+    message("文件名不能为空", { type: "warning" });
+    return;
+  }
+
+  saveLoading.value = true;
+  try {
+    const res: any = await updateFile(fileData.value.file_id, {
+      original_name: editForm.original_name,
+      remark: editForm.remark
+    });
+
+    if (res?.code === 200) {
+      message("保存成功", { type: "success" });
+      visible.value = false;
+      emit("updated");
+    } else {
+      message(res?.message || "保存失败", { type: "error" });
+    }
+  } catch (error) {
+    console.error("保存文件失败:", error);
+    message("保存文件失败，请稍后重试", { type: "error" });
+  } finally {
+    saveLoading.value = false;
+  }
+};
+
 // 关闭事件
 const handleClose = () => {
   fileData.value = null;
+  editForm.original_name = "";
+  editForm.remark = "";
 };
 </script>
 

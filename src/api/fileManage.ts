@@ -204,3 +204,16 @@ export const getFileStats = () => {
     data: FileStats;
   }>("get", `${baseUrlApi}/file/stats`);
 };
+
+// 10. 编辑文件信息
+export const updateFile = (fileId: number, data: {
+  original_name?: string;
+  remark?: string;
+}) => {
+  return http.request<{
+    code: number;
+    message: string;
+  }>("post", `${baseUrlApi}/file/update`, {
+    data: { file_id: fileId, ...data }
+  });
+};

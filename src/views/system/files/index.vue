@@ -206,11 +206,12 @@
       />
     </el-card>
 
-    <!-- 文件详情对话框 -->
+    <!-- 文件编辑对话框 -->
     <FileDetail
       v-model="detailDialogVisible"
       :file="currentFile"
       @preview="handlePreview"
+      @updated="handleFileUpdated"
     />
 
     <!-- 文件预览对话框 -->
@@ -532,7 +533,7 @@ const handleDownload = (file: FileInfo) => {
   }
 };
 
-// 查看文件详情
+// 查看文件详情/编辑
 const handleDetail = async (file: FileInfo) => {
   try {
     const res: any = await getFileDetail(file.file_id);
@@ -546,6 +547,11 @@ const handleDetail = async (file: FileInfo) => {
     console.error("获取文件详情失败:", error);
     message("获取文件详情失败，请稍后重试", { type: "error" });
   }
+};
+
+// 文件更新后刷新列表
+const handleFileUpdated = () => {
+  fetchFileList();
 };
 
 // 删除文件
@@ -648,7 +654,7 @@ onMounted(() => {
 <style lang="scss" scoped>
 .files-container {
   padding: 8px;
-  height: calc(100vh - 84px);
+  min-height: calc(100vh - 84px);
 
   .content-card {
     margin-bottom: 10px;
@@ -725,35 +731,19 @@ onMounted(() => {
 
   // 按钮样式
   .toolbar-btn {
-    border-radius: 6px;
+    border-radius: 4px;
     font-weight: 500;
-    transition: all 0.3s ease;
-
-    &:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    }
   }
 
   .search-btn {
-    border-radius: 6px;
+    border-radius: 4px;
     font-weight: 500;
-    transition: all 0.3s ease;
-
-    &:hover {
-      transform: translateY(-1px);
-    }
   }
 
   .form-btn {
-    border-radius: 6px;
+    border-radius: 4px;
     font-weight: 500;
     padding: 8px 16px;
-    transition: all 0.3s ease;
-
-    &:hover {
-      transform: translateY(-1px);
-    }
   }
 
   .status-btn {
@@ -766,15 +756,9 @@ onMounted(() => {
   }
 
   .dialog-btn {
-    border-radius: 6px;
+    border-radius: 4px;
     font-weight: 500;
     padding: 8px 16px;
-    transition: all 0.3s ease;
-
-    &:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    }
   }
 
   .dialog-footer {
