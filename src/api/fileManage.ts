@@ -217,3 +217,20 @@ export const updateFile = (fileId: number, data: {
     data: { file_id: fileId, ...data }
   });
 };
+
+// 11. 读取文件内容（用于文本文件预览）
+export const getFileContent = (fileId: number) => {
+  return http.request<{
+    code: number;
+    message: string;
+    data: {
+      content: string;
+      encoding: string;
+      file_extension: string;
+      file_size: number;
+      original_name: string;
+    };
+  }>("get", `${baseUrlApi}/file/content`, {
+    params: { file_id: fileId }
+  });
+};

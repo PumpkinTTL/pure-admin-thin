@@ -570,6 +570,135 @@ class FileService
     }
 
     /**
+     * 读取文件内容（用于文本文件预览）
+     * @param int $fileId 文件ID
+     * @return array
+     */
+    public static function readFileContent(int $fileId): array
+    {
+        try {
+            // 获取文件记录
+            $file = File::find($fileId);
+            
+            if (!$file) {
+                throw new \Exception('文件不存在');
+            }
+            
+            // 可预览的文本文件扩展名
+            $textExtensions = [
+                'txt', 'log', 'md', 'json', 'xml', 'html', 'htm', 'css', 'js', 'ts',
+                'vue', 'jsx', 'tsx', 'php', 'java', 'py', 'c', 'cpp', 'h', 'go',
+                'sql', 'yaml', 'yml', 'ini', 'conf', 'sh', 'bat', 'csv'
+            ];
+            
+            // 检查文件扩展名
+            $extension = strtolower($file['file_extension']);
+            if (!in_array($extension, $textExtensions)) {
+                return [
+                    'success' => false,
+                    'message' => '该文件类型不支持文本预览',
+                    'error_code' => 400
+                ];
+            }
+            
+            // 文件大小限制（最大5MB，避免读取超大文件）
+            $maxSize = 5 * 1024 * 1024; // 5MB
+            if ($file['file_size'] > $maxSize) {
+                return [
+                    'success' => false,
+                    'message' => '文件过大，无法预览（最大支持5MB）',
+                    'error_code' => 400
+                ];
+            }
+            
+            // 获取环境配置
+            $env = app()->isDebug() ? 'development' : 'production';
+            $config = [
+                'development' => [
+                    'base_path' => 'D:/upload/'
+                ],
+                'production' => [
+                    'base_path' => '/home/upload/'
+                ]
+            ];
+            $basePath = $config[$env]['base_path'];
+            
+            // 构建完整的文件路径
+            // 根据存储类型处理文件路径
+            if ($file['storage_type'] == 0) {
+                // 本地存储
+                // file_path 格式: upload/20250121/document/xxx.txt
+                $filePath = $file['file_path'];
+                
+                // 移除开头的 "upload/"
+                if (strpos($filePath, 'upload/') === 0) {
+                    $filePath = substr($filePath, 7);
+                }
+                
+                $fullPath = $basePath . $filePath;
+            } else {
+                // 云存储，暂不支持预览
+                return [
+                    'success' => false,
+                    'message' => '云存储文件暂不支持预览',
+                    'error_code' => 400
+                ];
+            }
+            
+            // 检查文件是否存在
+            if (!file_exists($fullPath)) {
+                Log::error('文件物理路径不存在', [
+                    'file_id' => $fileId,
+                    'full_path' => $fullPath,
+                    'file_path' => $file['file_path']
+                ]);
+                
+                return [
+                    'success' => false,
+                    'message' => '物理文件不存在',
+                    'error_code' => 404
+                ];
+            }
+            
+            // 读取文件内容
+            $content = file_get_contents($fullPath);
+            
+            if ($content === false) {
+                throw new \Exception('读取文件内容失败');
+            }
+            
+            // 尝试转换编码为UTF-8
+            $encoding = mb_detect_encoding($content, ['UTF-8', 'GBK', 'GB2312', 'BIG5'], true);
+            if ($encoding && $encoding !== 'UTF-8') {
+                $content = mb_convert_encoding($content, 'UTF-8', $encoding);
+            }
+            
+            return [
+                'success' => true,
+                'data' => [
+                    'content' => $content,
+                    'encoding' => $encoding ?: 'UTF-8',
+                    'file_extension' => $extension,
+                    'file_size' => $file['file_size'],
+                    'original_name' => $file['original_name']
+                ],
+                'message' => '读取文件内容成功'
+            ];
+        } catch (\Throwable $e) {
+            Log::error('读取文件内容失败：' . $e->getMessage(), [
+                'file_id' => $fileId,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return [
+                'success' => false,
+                'message' => '读取文件内容失败：' . $e->getMessage(),
+                'error_code' => 500
+            ];
+        }
+    }
+
+    /**
      * 格式化文件大小
      * @param int $size 字节数
      * @return string 格式化后的大小

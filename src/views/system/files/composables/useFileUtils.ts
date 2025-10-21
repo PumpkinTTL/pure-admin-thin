@@ -193,13 +193,27 @@ export function useFileUtils() {
   };
 
   /**
+   * 判断是否为文本文件
+   */
+  const isText = (extension: string) => {
+    if (!extension) return false;
+    const textExtensions = [
+      "txt", "log", "md", "json", "xml", "html", "htm", "css", "js", "ts",
+      "vue", "jsx", "tsx", "php", "java", "py", "c", "cpp", "h", "go",
+      "sql", "yaml", "yml", "ini", "conf", "sh", "bat", "csv"
+    ];
+    return textExtensions.includes(extension.toLowerCase());
+  };
+
+  /**
    * 检查是否可预览
    */
   const canPreview = (file: FileInfo) => {
     return (
       isImage(file.file_extension) ||
       isVideo(file.file_extension) ||
-      isAudio(file.file_extension)
+      isAudio(file.file_extension) ||
+      isText(file.file_extension)
     );
   };
 
@@ -228,6 +242,7 @@ export function useFileUtils() {
     isImage,
     isVideo,
     isAudio,
+    isText,
     canPreview,
     getFileThumbnail
   };

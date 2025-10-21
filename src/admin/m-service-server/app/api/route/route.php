@@ -221,6 +221,10 @@ Route::group('/:version/file', function () {
     Route::rule('batchDelete', ':version.File/batchDeleteFiles');
     // 获取文件统计信息
     Route::rule('stats', ':version.File/getFileStats');
+    // 更新文件信息
+    Route::rule('update', ':version.File/updateFile');
+    // 读取文件内容（文本预览）
+    Route::rule('content', ':version.File/readFileContent');
 });
 
 // 接口管理路由组

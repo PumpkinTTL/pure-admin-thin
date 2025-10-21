@@ -130,10 +130,7 @@ const transitionMain = defineComponent({
                 'flex-direction': 'column'
               }"
             >
-              <el-backtop
-                title="回到顶部"
-                target=".app-main .el-scrollbar__wrap"
-              >
+              <el-backtop title="回到顶部">
                 <BackTopIcon />
               </el-backtop>
               <div class="grow">

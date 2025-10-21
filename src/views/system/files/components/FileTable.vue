@@ -63,7 +63,7 @@
           }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="存储位置" min-width="100" align="center">
+      <el-table-column label="存储位置" min-width="110" align="center">
         <template #default="{ row }">
           <div class="storage-type" :class="getStorageClass(row.storage_type)">
             <i :class="getStorageIcon(row.storage_type)"></i>
@@ -294,12 +294,10 @@ const tableHeaderStyle = {
   borderBottom: "2px solid #e4e7ed"
 };
 
-const tableCellStyle = () => {
-  return {
-    padding: "10px 8px",
-    fontSize: "13px",
-    borderBottom: "1px solid #f0f2f5"
-  };
+const tableCellStyle = {
+  padding: "10px 8px",
+  fontSize: "13px",
+  borderBottom: "1px solid #f0f2f5"
 };
 
 // 导出方法供父组件调用
@@ -488,9 +486,15 @@ defineExpose({
     justify-content: center;
     gap: 4px;
     font-size: 12px;
+    white-space: nowrap;
 
     i {
       font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    span {
+      white-space: nowrap;
     }
 
     &.storage-local {

@@ -201,4 +201,32 @@ class File extends BaseController
             ]);
         }
     }
+
+    /**
+     * 读取文件内容（用于预览文本类型文件）
+     * @return Json
+     */
+    public function readFileContent(): Json
+    {
+        try {
+            $fileId = request()->param('file_id');
+            
+            if (!$fileId || !is_numeric($fileId)) {
+                return json(['code' => 400, 'message' => '无效的文件ID']);
+            }
+
+            $result = FileService::readFileContent((int)$fileId);
+            
+            return json([
+                'code' => $result['success'] ? 200 : 500,
+                'data' => $result['data'] ?? null,
+                'message' => $result['message']
+            ]);
+        } catch (\Exception $e) {
+            return json([
+                'code' => 500,
+                'message' => '读取文件内容失败：' . $e->getMessage()
+            ]);
+        }
+    }
 }
