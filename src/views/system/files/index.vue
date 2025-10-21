@@ -395,7 +395,7 @@ const currentStatus = computed(() => searchParams.status);
 const dateRange = ref<[string, string] | null>(null);
 const searchParams = reactive({
   page: 1,
-  page_size: 10,
+  page_size: 5,
   original_name: "",
   file_type: "",
   file_extension: "",

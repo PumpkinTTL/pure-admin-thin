@@ -6,7 +6,6 @@
       :data="fileList"
       @selection-change="handleSelectionChange"
       style="width: 100%"
-      border
       row-key="file_id"
       highlight-current-row
       :header-cell-style="tableHeaderStyle"
@@ -187,7 +186,7 @@
       <el-pagination
         v-model:current-page="currentPage"
         v-model:page-size="currentPageSize"
-        :page-sizes="[10, 20, 50, 100]"
+        :page-sizes="[5, 10, 20, 50]"
         background
         layout="total, sizes, prev, pager, next, jumper"
         :total="total"
