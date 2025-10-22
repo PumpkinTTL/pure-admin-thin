@@ -3,5 +3,5 @@
 return [
     'app\api\middleware\LogMiddleware',
     'api_log' => app\api\middleware\ApiLogMiddleware::class,
-
+    'file_access' => app\api\middleware\FileAccessMiddleware::class,
 ];

@@ -9,29 +9,11 @@ use think\facade\Env;
 use think\file\UploadedFile;
 use utils\FileUtil;
 use app\api\services\LogService;
+use app\api\services\FileSecurityService;
+use app\api\config\FileConfig;
 
 class Upload
 {
-    // 允许上传的文件类型
-    private $allowTypes = [
-        'image' => ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'],
-        'video' => ['mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv'],
-        'document' => ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt'],
-        'audio' => ['mp3', 'wav', 'ogg', 'aac'],
-        'archive' => ['zip', 'rar', '7z', 'tar', 'gz']
-    ];
-    
-    // 配置信息
-    private $config = [
-        'development' => [
-            'base_path' => 'D:/upload/',
-            'base_url' => 'http://localhost/pics/'
-        ],
-        'production' => [
-            'base_path' => '/home/upload/',
-            'base_url' => 'https://your-domain.com/files/'
-        ]
-    ];
 
     public function uploadFile(): \think\response\Json
     {
@@ -48,8 +30,9 @@ class Upload
             }
 
             // 验证文件数量
-            if (count($files) > 8) {
-                return json(['code' => 400, 'msg' => '最多上传8个文件']);
+            $maxCount = FileConfig::getMaxCount();
+            if (count($files) > $maxCount) {
+                return json(['code' => 400, 'msg' => "最多上传{$maxCount}个文件"]);
             }
 
             // 获取上传用户ID
@@ -60,10 +43,12 @@ class Upload
             $bucketName = request()->param('bucket_name', '');
             $deviceFingerprint = request()->param('device_fingerprint', '');
             $remark = request()->param('remark', '未备注信息');
-            // 获取环境配置
-            $env = $this->getEnvironment();
-            $basePath = $this->config[$env]['base_path'];
-            $baseUrl = $this->config[$env]['base_url'];
+            
+            // 从配置类获取存储配置
+            $storageConfig = FileConfig::getStorageConfig();
+            $basePath = $storageConfig['base_path'];
+            $baseUrl = $storageConfig['base_url'];
+            $maxSize = FileConfig::getMaxSize();
 
             $result = [];
             
@@ -78,17 +63,37 @@ class Upload
 
                 // 验证单个文件大小
                 $fileSize = $file->getSize();
-                if ($fileSize > 8 * 1024 * 1024) {
-                    throw new \Exception('单个文件不能超过8M');
+                $sizeValidation = FileSecurityService::validateFileSize($fileSize, $maxSize);
+                if (!$sizeValidation['valid']) {
+                    throw new \Exception($sizeValidation['message']);
                 }
 
                 // 获取文件类型分类和扩展名
-                $ext = $file->extension(); // 使用extension()方法更可靠
-                $fileType = $this->getFileType($ext);
-                $mimeType = $file->getMime();
+                $ext = $file->extension();
+                $declaredMimeType = $file->getMime();
                 
-                // 计算文件哈希值（先计算临时文件的哈希）
+                // 安全验证: MIME类型和扩展名匹配检查
                 $tempPath = $file->getPathname();
+                $validation = FileSecurityService::validateFile($tempPath, $ext, $declaredMimeType);
+                
+                if (!$validation['valid']) {
+                    LogService::log('文件验证失败', [
+                        'file_name' => $file->getOriginalName(),
+                        'extension' => $ext,
+                        'declared_mime' => $declaredMimeType,
+                        'reason' => $validation['message']
+                    ], 'warning');
+                    
+                    throw new \Exception($validation['message']);
+                }
+                
+                // 使用验证后的真实MIME类型
+                $realMimeType = $validation['mime'];
+                
+                // 获取文件类型分类(简短字符串,避免过长)
+                $fileType = $this->getFileType($ext);
+                
+                // 计算文件哈希值
                 $fileHash = md5_file($tempPath);
                 
                 // 检查是否已有相同哈希值的文件(避免重复存储)
@@ -109,7 +114,7 @@ class Upload
                         'original_name' => $file->getOriginalName(),
                         'save_path' => $fileRecord->file_path,
                         'file_type' => $fileType,
-                        'mime_type' => $mimeType,
+                        'mime_type' => $realMimeType,
                         'size' => $fileSize,
                         'url' => $fileRecord->http_url,
                         'is_duplicate' => $isDuplicate
@@ -167,7 +172,7 @@ class Upload
                     'original_name' => $file->getOriginalName(),
                     'save_path' => $relativePath,
                     'file_type' => $fileType,
-                    'mime_type' => $mimeType,
+                    'mime_type' => $realMimeType,
                     'size' => $fileSize,
                     'url' => $fileRecord->http_url,
                     'is_duplicate' => $isDuplicate
@@ -209,27 +214,14 @@ class Upload
     private function getFileType($ext)
     {
         $ext = strtolower($ext);
-        foreach ($this->allowTypes as $type => $exts) {
+        $allowedTypes = FileConfig::getAllowedTypes();
+        
+        foreach ($allowedTypes as $type => $exts) {
             if (in_array($ext, $exts)) {
                 return $type;
             }
         }
         return 'other';
-    }
-    
-    /**
-     * 获取当前运行环境
-     * @return string
-     */
-    private function getEnvironment()
-    {
-        // 通过操作系统类型判断环境
-        $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
-        
-        // 也可以通过配置文件或环境变量判断
-        // 例如: return Env::get('app_environment', $isWindows ? 'development' : 'production');
-        
-        return $isWindows ? 'development' : 'production';
     }
 
     /**

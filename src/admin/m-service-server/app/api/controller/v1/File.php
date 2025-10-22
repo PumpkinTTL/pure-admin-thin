@@ -9,6 +9,12 @@ use think\response\Json;
 class File extends BaseController
 {
     /**
+     * 中间件配置
+     */
+    protected $middleware = [
+        'file_access' => ['only' => ['detail', 'update', 'delete', 'forceDelete', 'restore', 'content']]
+    ];
+    /**
      * 获取文件列表
      * @return Json
      */
