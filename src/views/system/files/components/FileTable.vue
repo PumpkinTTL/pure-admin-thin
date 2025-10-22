@@ -217,7 +217,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, computed } from "vue";
 import type { FileInfo } from "@/api/fileManage";
 import { useFileUtils } from "../composables/useFileUtils";
 
@@ -262,8 +262,7 @@ const {
   getHashAlgorithmName,
   formatDate,
   isImage,
-  canPreview,
-  getFileThumbnail
+  canPreview
 } = useFileUtils();
 
 // Refs

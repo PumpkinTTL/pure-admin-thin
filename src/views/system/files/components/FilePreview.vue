@@ -168,33 +168,13 @@ const visible = computed({
   set: (val: boolean) => emit("update:modelValue", val)
 });
 
-const isImageFile = computed(() => {
-  return fileData.value ? isImage(fileData.value.file_extension) : false;
-});
-
-const isVideoFile = computed(() => {
-  return fileData.value ? isVideo(fileData.value.file_extension) : false;
-});
-
-const isAudioFile = computed(() => {
-  return fileData.value ? isAudio(fileData.value.file_extension) : false;
-});
-
-const isTextFile = computed(() => {
-  return fileData.value ? isText(fileData.value.file_extension) : false;
-});
-
-const isWordFile = computed(() => {
-  return fileData.value ? isWord(fileData.value.file_extension) : false;
-});
-
-const isExcelFile = computed(() => {
-  return fileData.value ? isExcel(fileData.value.file_extension) : false;
-});
-
-const isPdfFile = computed(() => {
-  return fileData.value ? isPdf(fileData.value.file_extension) : false;
-});
+const isImageFile = computed(() => fileData.value && isImage(fileData.value.file_extension));
+const isVideoFile = computed(() => fileData.value && isVideo(fileData.value.file_extension));
+const isAudioFile = computed(() => fileData.value && isAudio(fileData.value.file_extension));
+const isTextFile = computed(() => fileData.value && isText(fileData.value.file_extension));
+const isWordFile = computed(() => fileData.value && isWord(fileData.value.file_extension));
+const isExcelFile = computed(() => fileData.value && isExcel(fileData.value.file_extension));
+const isPdfFile = computed(() => fileData.value && isPdf(fileData.value.file_extension));
 
 const textLines = computed(() => {
   if (!textContent.value) return 0;

@@ -335,7 +335,7 @@ defineOptions({
   name: "SystemFiles"
 });
 
-import { ref, reactive, computed, onMounted, watch, nextTick } from "vue";
+import { ref, reactive, computed, onMounted, watch } from "vue";
 import { ElMessageBox } from "element-plus";
 import { Search } from "@element-plus/icons-vue";
 import {
@@ -430,16 +430,6 @@ watch(dateRange, val => {
   }
 });
 
-// 监听状态变化
-watch(
-  () => searchParams.status,
-  (newStatus, oldStatus) => {
-    if (newStatus !== oldStatus) {
-      tableKey.value++;
-    }
-  },
-  { immediate: true }
-);
 
 // 获取文件列表
 const fetchFileList = async () => {
@@ -449,7 +439,6 @@ const fetchFileList = async () => {
     if (res?.code === 200 && res?.data) {
       fileList.value = res.data.data || [];
       totalCount.value = res.data.total || 0;
-      tableKey.value++;
     } else {
       message(res?.msg || "获取文件列表失败", { type: "error" });
     }
@@ -487,12 +476,11 @@ const resetSearch = () => {
 };
 
 // 状态过滤
-const handleStatusCommand = async (command: string) => {
+const handleStatusCommand = (command: string) => {
   clearTableSelection();
   searchParams.page = 1;
   searchParams.status = command as "active" | "deleted";
   tableKey.value++;
-  await nextTick();
   fetchFileList();
 };
 

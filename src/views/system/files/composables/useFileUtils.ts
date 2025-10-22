@@ -84,13 +84,6 @@ export function useFileUtils() {
     }
   };
 
-  // 哈希算法映射
-  const hashAlgorithmMap = {
-    MD5: "MD5",
-    SHA1: "SHA1",
-    SHA256: "SHA256",
-    CRC32: "CRC32"
-  };
 
   /**
    * 根据文件扩展名获取文件类型
@@ -177,13 +170,21 @@ export function useFileUtils() {
   };
 
   /**
-   * 获取文件类型名称（优先使用扩展名）
+   * 获取文件类型(内部公用函数)
    */
-  const getFileTypeName = (extension: string, fileType?: string): string => {
+  const getFileType = (extension: string, fileType?: string): string => {
     let type = extension ? getFileTypeByExtension(extension) : "other";
     if (type === "other" && fileType) {
       type = getBaseFileType(fileType);
     }
+    return type;
+  };
+
+  /**
+   * 获取文件类型名称
+   */
+  const getFileTypeName = (extension: string, fileType?: string): string => {
+    const type = getFileType(extension, fileType);
     return fileTypeMap[type]?.name || "未知类型";
   };
 
@@ -191,10 +192,7 @@ export function useFileUtils() {
    * 获取文件类型图标类名 (FontAwesome)
    */
   const getFontAwesomeIcon = (extension: string, fileType?: string): string => {
-    let type = extension ? getFileTypeByExtension(extension) : "other";
-    if (type === "other" && fileType) {
-      type = getBaseFileType(fileType);
-    }
+    const type = getFileType(extension, fileType);
     return `fa ${fileTypeMap[type]?.icon || "fa-file"}`;
   };
 
@@ -202,10 +200,7 @@ export function useFileUtils() {
    * 获取文件类型 CSS类
    */
   const getFileTypeClass = (extension: string, fileType?: string): string => {
-    let type = extension ? getFileTypeByExtension(extension) : "other";
-    if (type === "other" && fileType) {
-      type = getBaseFileType(fileType);
-    }
+    const type = getFileType(extension, fileType);
     return fileTypeMap[type]?.class || "other-file";
   };
 
@@ -234,7 +229,7 @@ export function useFileUtils() {
    * 获取哈希算法名称
    */
   const getHashAlgorithmName = (algorithm: string): string => {
-    return hashAlgorithmMap[algorithm] || algorithm || "HASH";
+    return algorithm || "HASH";
   };
 
   /**
@@ -255,63 +250,17 @@ export function useFileUtils() {
   };
 
   /**
-   * 判断是否为图片
+   * 判断文件类型
    */
-  const isImage = (extension: string) => {
-    const imageExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "webp"];
-    return imageExtensions.includes(extension.toLowerCase());
-  };
-
-  /**
-   * 判断是否为视频
-   */
-  const isVideo = (extension: string) => {
-    const videoExtensions = ["mp4", "webm", "ogg", "mov", "avi"];
-    return videoExtensions.includes(extension.toLowerCase());
-  };
-
-  /**
-   * 判断是否为音频
-   */
-  const isAudio = (extension: string) => {
-    const audioExtensions = ["mp3", "wav", "ogg", "flac"];
-    return audioExtensions.includes(extension.toLowerCase());
-  };
-
-  /**
-   * 判断是否为文本文件
-   */
+  const isImage = (extension: string) => getFileTypeByExtension(extension) === "image";
+  const isVideo = (extension: string) => getFileTypeByExtension(extension) === "video";
+  const isAudio = (extension: string) => getFileTypeByExtension(extension) === "audio";
+  const isWord = (extension: string) => getFileTypeByExtension(extension) === "word";
+  const isExcel = (extension: string) => getFileTypeByExtension(extension) === "excel";
+  const isPdf = (extension: string) => getFileTypeByExtension(extension) === "pdf";
   const isText = (extension: string) => {
-    if (!extension) return false;
-    const textExtensions = [
-      "txt", "log", "md", "json", "xml", "html", "htm", "css", "js", "ts",
-      "vue", "jsx", "tsx", "php", "java", "py", "c", "cpp", "h", "go",
-      "sql", "yaml", "yml", "ini", "conf", "sh", "bat", "csv"
-    ];
-    return textExtensions.includes(extension.toLowerCase());
-  };
-
-  /**
-   * 判断是否为Word文档
-   */
-  const isWord = (extension: string) => {
-    const wordExtensions = ["doc", "docx"];
-    return wordExtensions.includes(extension.toLowerCase());
-  };
-
-  /**
-   * 判断是否为Excel文档
-   */
-  const isExcel = (extension: string) => {
-    const excelExtensions = ["xls", "xlsx"];
-    return excelExtensions.includes(extension.toLowerCase());
-  };
-
-  /**
-   * 判断是否为PDF文档
-   */
-  const isPdf = (extension: string) => {
-    return extension.toLowerCase() === "pdf";
+    const type = getFileTypeByExtension(extension);
+    return type === "text" || type === "code";
   };
 
   /**
@@ -329,17 +278,6 @@ export function useFileUtils() {
     );
   };
 
-  /**
-   * 获取文件缩略图
-   */
-  const getFileThumbnail = (file: FileInfo) => {
-    // 如果有缩略图URL，返回缩略图
-    if (file.http_url && isImage(file.file_extension)) {
-      return file.http_url;
-    }
-    // 默认返回文件类型图标
-    return "";
-  };
 
   return {
     formatFileSize,
@@ -358,7 +296,6 @@ export function useFileUtils() {
     isWord,
     isExcel,
     isPdf,
-    canPreview,
-    getFileThumbnail
+    canPreview
   };
 }
