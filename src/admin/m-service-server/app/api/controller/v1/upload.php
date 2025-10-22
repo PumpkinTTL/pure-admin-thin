@@ -146,7 +146,7 @@ class Upload
                     'store_name' => $newName,
                     'file_path' => $relativePath,
                     'file_size' => $fileSize,
-                    'file_type' => $mimeType,
+                    'file_type' => $fileType,
                     'file_extension' => $ext,
                     'file_hash' => $fileHash,
                     'hash_algorithm' => 'MD5',

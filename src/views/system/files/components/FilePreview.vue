@@ -68,6 +68,51 @@
             <p>{{ textError }}</p>
           </div>
         </div>
+        <!-- Word预览 -->
+        <div v-else-if="isWordFile" class="preview-dialog__office">
+          <div class="office-header">
+            <i class="fa fa-file-word"></i>
+            <span class="office-title">{{ fileData?.original_name }}</span>
+            <span class="office-type">Word文档</span>
+          </div>
+          <div class="office-content">
+            <vue-office-docx
+              :src="getProxyUrl(fileData?.file_id)"
+              @rendered="handleOfficeRendered"
+              @error="handleOfficeError"
+            />
+          </div>
+        </div>
+        <!-- Excel预览 -->
+        <div v-else-if="isExcelFile" class="preview-dialog__office">
+          <div class="office-header">
+            <i class="fa fa-file-excel"></i>
+            <span class="office-title">{{ fileData?.original_name }}</span>
+            <span class="office-type">Excel表格</span>
+          </div>
+          <div class="office-content">
+            <vue-office-excel
+              :src="getProxyUrl(fileData?.file_id)"
+              @rendered="handleOfficeRendered"
+              @error="handleOfficeError"
+            />
+          </div>
+        </div>
+        <!-- PDF预览 -->
+        <div v-else-if="isPdfFile" class="preview-dialog__office">
+          <div class="office-header">
+            <i class="fa fa-file-pdf"></i>
+            <span class="office-title">{{ fileData?.original_name }}</span>
+            <span class="office-type">PDF文档</span>
+          </div>
+          <div class="office-content">
+            <vue-office-pdf
+              :src="getProxyUrl(fileData?.file_id)"
+              @rendered="handleOfficeRendered"
+              @error="handleOfficeError"
+            />
+          </div>
+        </div>
         <!-- 不支持预览 -->
         <div v-else class="preview-dialog__empty">
           <i class="fa fa-eye-slash" />
@@ -84,6 +129,12 @@ import type { FileInfo } from "@/api/fileManage";
 import { getFileContent } from "@/api/fileManage";
 import { useFileUtils } from "../composables/useFileUtils";
 import { message } from "@/utils/message";
+import VueOfficeDocx from "@vue-office/docx";
+import VueOfficeExcel from "@vue-office/excel";
+import VueOfficePdf from "@vue-office/pdf";
+import "@vue-office/docx/lib/index.css";
+import "@vue-office/excel/lib/index.css";
+import { baseUrlApi } from "@/api/utils";
 
 // Props
 interface Props {
@@ -102,7 +153,7 @@ const emit = defineEmits<{
 }>();
 
 // Hooks
-const { isImage, isVideo, isAudio, isText } = useFileUtils();
+const { isImage, isVideo, isAudio, isText, isWord, isExcel, isPdf } = useFileUtils();
 
 // 状态
 const fileData = ref<FileInfo | null>(null);
@@ -131,6 +182,18 @@ const isAudioFile = computed(() => {
 
 const isTextFile = computed(() => {
   return fileData.value ? isText(fileData.value.file_extension) : false;
+});
+
+const isWordFile = computed(() => {
+  return fileData.value ? isWord(fileData.value.file_extension) : false;
+});
+
+const isExcelFile = computed(() => {
+  return fileData.value ? isExcel(fileData.value.file_extension) : false;
+});
+
+const isPdfFile = computed(() => {
+  return fileData.value ? isPdf(fileData.value.file_extension) : false;
 });
 
 const textLines = computed(() => {
@@ -229,12 +292,40 @@ watch(
   }
 );
 
+// 获取代理URL
+const getProxyUrl = (fileId: number | undefined) => {
+  if (!fileId) return '';
+  return `${baseUrlApi}/file/proxy?file_id=${fileId}`;
+};
+
+// Office文件渲染成功
+const handleOfficeRendered = () => {
+  loading.value = false;
+};
+
+// Office文件加载错误
+const handleOfficeError = (error: any) => {
+  console.error("Office文件预览失败:", error);
+  message("文件预览失败，请下载后查看", { type: "error" });
+  loading.value = false;
+};
+
 // 关闭事件
 const handleClose = () => {
   // 不再清空 fileData，保持数据
   textContent.value = "";
   textError.value = "";
   textEncoding.value = "";
+};
+</script>
+
+<script lang="ts">
+export default {
+  components: {
+    VueOfficeDocx,
+    VueOfficeExcel,
+    VueOfficePdf
+  }
 };
 </script>
 
@@ -276,6 +367,17 @@ const handleClose = () => {
     width: 100%;
   }
 
+  &__office {
+    width: 100%;
+    height: 70vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--el-bg-color);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px 0 rgb(0 0 0 / 5%);
+  }
+
   &__empty {
     display: flex;
     flex-direction: column;
@@ -300,6 +402,42 @@ const handleClose = () => {
       color: var(--el-text-color-regular);
     }
   }
+}
+
+// Office头部
+.office-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background: var(--el-fill-color-light);
+
+  i {
+    font-size: 18px;
+    color: var(--el-color-primary);
+  }
+  .office-title {
+    flex: 1;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
+  .office-type {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+    background: var(--el-fill-color);
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 4px;
+    padding: 2px 6px;
+  }
+}
+
+// Office内容区
+.office-content {
+  flex: 1;
+  padding: 12px 16px;
+  overflow: auto;
+  background: var(--el-bg-color);
 }
 
 // 图片加载错误样式
@@ -334,6 +472,7 @@ const handleClose = () => {
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 8px;
   box-shadow: 0 2px 12px 0 rgb(0 0 0 / 5%);
+  margin-top: 10px;
 }
 
 // 文本信息栏

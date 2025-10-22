@@ -225,9 +225,11 @@ Route::group('/:version/file', function () {
     Route::rule('update', ':version.File/updateFile');
     // 读取文件内容（文本预览）
     Route::rule('content', ':version.File/readFileContent');
+    // 创建文件记录（手动添加）
+    Route::rule('createRecord', ':version.File/createFileRecord');
+    // 文件代理访问（解决CORS）
+    Route::rule('proxy', ':version.FileProxy/proxy');
 });
-
-// 接口管理路由组
 Route::group('/:version/api', function () {
     // 获取接口列表
     Route::rule('list', ':version.ApiManager/getApiList');

@@ -22,10 +22,35 @@ export function useFileUtils() {
       icon: "fa-headphones",
       class: "audio-file"
     },
-    document: {
-      name: "文档",
+    word: {
+      name: "Word文档",
+      icon: "fa-file-word",
+      class: "word-file"
+    },
+    excel: {
+      name: "Excel表格",
+      icon: "fa-file-excel",
+      class: "excel-file"
+    },
+    pdf: {
+      name: "PDF文档",
+      icon: "fa-file-pdf",
+      class: "pdf-file"
+    },
+    ppt: {
+      name: "PPT演示",
+      icon: "fa-file-powerpoint",
+      class: "ppt-file"
+    },
+    text: {
+      name: "文本文件",
       icon: "fa-file-alt",
-      class: "document-file"
+      class: "text-file"
+    },
+    code: {
+      name: "代码文件",
+      icon: "fa-file-code",
+      class: "code-file"
     },
     archive: {
       name: "压缩包",
@@ -68,6 +93,58 @@ export function useFileUtils() {
   };
 
   /**
+   * 根据文件扩展名获取文件类型
+   */
+  const getFileTypeByExtension = (extension: string): string => {
+    if (!extension) return "other";
+    const ext = extension.toLowerCase();
+
+    // 图片
+    if (["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "ico"].includes(ext)) {
+      return "image";
+    }
+    // 视频
+    if (["mp4", "webm", "ogg", "mov", "avi", "mkv", "flv", "wmv"].includes(ext)) {
+      return "video";
+    }
+    // 音频
+    if (["mp3", "wav", "ogg", "flac", "aac", "m4a", "wma"].includes(ext)) {
+      return "audio";
+    }
+    // Word
+    if (["doc", "docx"].includes(ext)) {
+      return "word";
+    }
+    // Excel
+    if (["xls", "xlsx", "csv"].includes(ext)) {
+      return "excel";
+    }
+    // PDF
+    if (ext === "pdf") {
+      return "pdf";
+    }
+    // PPT
+    if (["ppt", "pptx"].includes(ext)) {
+      return "ppt";
+    }
+    // 代码文件
+    if (["js", "ts", "jsx", "tsx", "vue", "html", "css", "scss", "less", 
+         "php", "java", "py", "c", "cpp", "h", "go", "rs", "rb", "sql"].includes(ext)) {
+      return "code";
+    }
+    // 文本文件
+    if (["txt", "log", "md", "json", "xml", "yaml", "yml", "ini", "conf"].includes(ext)) {
+      return "text";
+    }
+    // 压缩包
+    if (["zip", "rar", "7z", "tar", "gz", "bz2"].includes(ext)) {
+      return "archive";
+    }
+
+    return "other";
+  };
+
+  /**
    * 获取基本文件类型
    */
   const getBaseFileType = (fileType: string): string => {
@@ -100,26 +177,35 @@ export function useFileUtils() {
   };
 
   /**
-   * 获取文件类型名称
+   * 获取文件类型名称（优先使用扩展名）
    */
-  const getFileTypeName = (fileType: string): string => {
-    const type = getBaseFileType(fileType);
+  const getFileTypeName = (extension: string, fileType?: string): string => {
+    let type = extension ? getFileTypeByExtension(extension) : "other";
+    if (type === "other" && fileType) {
+      type = getBaseFileType(fileType);
+    }
     return fileTypeMap[type]?.name || "未知类型";
   };
 
   /**
    * 获取文件类型图标类名 (FontAwesome)
    */
-  const getFontAwesomeIcon = (fileType: string): string => {
-    const type = getBaseFileType(fileType);
+  const getFontAwesomeIcon = (extension: string, fileType?: string): string => {
+    let type = extension ? getFileTypeByExtension(extension) : "other";
+    if (type === "other" && fileType) {
+      type = getBaseFileType(fileType);
+    }
     return `fa ${fileTypeMap[type]?.icon || "fa-file"}`;
   };
 
   /**
-   * 获取文件类型CSS类
+   * 获取文件类型 CSS类
    */
-  const getFileTypeClass = (fileType: string): string => {
-    const type = getBaseFileType(fileType);
+  const getFileTypeClass = (extension: string, fileType?: string): string => {
+    let type = extension ? getFileTypeByExtension(extension) : "other";
+    if (type === "other" && fileType) {
+      type = getBaseFileType(fileType);
+    }
     return fileTypeMap[type]?.class || "other-file";
   };
 
@@ -206,6 +292,29 @@ export function useFileUtils() {
   };
 
   /**
+   * 判断是否为Word文档
+   */
+  const isWord = (extension: string) => {
+    const wordExtensions = ["doc", "docx"];
+    return wordExtensions.includes(extension.toLowerCase());
+  };
+
+  /**
+   * 判断是否为Excel文档
+   */
+  const isExcel = (extension: string) => {
+    const excelExtensions = ["xls", "xlsx"];
+    return excelExtensions.includes(extension.toLowerCase());
+  };
+
+  /**
+   * 判断是否为PDF文档
+   */
+  const isPdf = (extension: string) => {
+    return extension.toLowerCase() === "pdf";
+  };
+
+  /**
    * 检查是否可预览
    */
   const canPreview = (file: FileInfo) => {
@@ -213,7 +322,10 @@ export function useFileUtils() {
       isImage(file.file_extension) ||
       isVideo(file.file_extension) ||
       isAudio(file.file_extension) ||
-      isText(file.file_extension)
+      isText(file.file_extension) ||
+      isWord(file.file_extension) ||
+      isExcel(file.file_extension) ||
+      isPdf(file.file_extension)
     );
   };
 
@@ -243,6 +355,9 @@ export function useFileUtils() {
     isVideo,
     isAudio,
     isText,
+    isWord,
+    isExcel,
+    isPdf,
     canPreview,
     getFileThumbnail
   };

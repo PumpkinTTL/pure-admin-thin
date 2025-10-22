@@ -13,12 +13,12 @@
       @selection-change="handleSelectionChange"
     >
       <el-table-column type="selection" width="40" align="center" />
-      <el-table-column label="文件信息" min-width="180">
+      <el-table-column label="文件信息" min-width="220">
         <template #default="{ row }">
           <div class="file-item">
             <div
               class="file-item__icon"
-              :class="getFileTypeClass(row.file_type)"
+              :class="getFileTypeClass(row.file_extension, row.file_type)"
             >
               <el-image
                 v-if="isImage(row.file_extension)"
@@ -34,7 +34,7 @@
                   </div>
                 </template>
               </el-image>
-              <i v-else :class="getFontAwesomeIcon(row.file_type)" />
+              <i v-else :class="getFontAwesomeIcon(row.file_extension, row.file_type)" />
             </div>
             <div class="file-item__details">
               <div class="file-item__name" :title="row.original_name">
@@ -44,7 +44,7 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column label="存储名称" min-width="240" show-overflow-tooltip>
+      <el-table-column label="存储名称" min-width="260" show-overflow-tooltip>
         <template #default="{ row }">
           <div class="store-name">
             <i class="fa fa-save" />
@@ -57,12 +57,12 @@
           <span class="file-size">{{ formatFileSize(row.file_size) }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="文件类型" min-width="100" align="center">
+      <el-table-column label="文件类型" width="130" align="center">
         <template #default="{ row }">
           <div class="file-type-item">
-            <i :class="getFontAwesomeIcon(row.file_type)" />
+            <i :class="getFontAwesomeIcon(row.file_extension, row.file_type)" />
             <span class="file-type-name">
-              {{ getFileTypeName(row.file_type) }}
+              {{ getFileTypeName(row.file_extension, row.file_type) }}
             </span>
           </div>
         </template>
@@ -375,8 +375,33 @@ defineExpose({
         background-color: transparent;
       }
 
-      &.document-file {
-        color: #409eff;
+      &.word-file {
+        color: #2b579a;
+        background-color: transparent;
+      }
+
+      &.excel-file {
+        color: #207245;
+        background-color: transparent;
+      }
+
+      &.pdf-file {
+        color: #d7282f;
+        background-color: transparent;
+      }
+
+      &.ppt-file {
+        color: #d24726;
+        background-color: transparent;
+      }
+
+      &.text-file {
+        color: #606266;
+        background-color: transparent;
+      }
+
+      &.code-file {
+        color: #9254de;
         background-color: transparent;
       }
 
@@ -453,12 +478,14 @@ defineExpose({
   // 文件类型项目
   .file-type-item {
     display: flex;
-    gap: 4px;
+    gap: 6px;
     align-items: center;
     justify-content: center;
+    white-space: nowrap;
 
     i {
-      font-size: 14px;
+      flex-shrink: 0;
+      font-size: 16px;
 
       &.fa-image {
         color: #1890ff;
@@ -472,8 +499,28 @@ defineExpose({
         color: #f56c6c;
       }
 
+      &.fa-file-word {
+        color: #2b579a;
+      }
+
+      &.fa-file-excel {
+        color: #207245;
+      }
+
+      &.fa-file-pdf {
+        color: #d7282f;
+      }
+
+      &.fa-file-powerpoint {
+        color: #d24726;
+      }
+
       &.fa-file-alt {
-        color: #409eff;
+        color: #606266;
+      }
+
+      &.fa-file-code {
+        color: #9254de;
       }
 
       &.fa-file-archive {
@@ -486,7 +533,9 @@ defineExpose({
     }
 
     .file-type-name {
-      font-size: 12px;
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
     }
   }
 
