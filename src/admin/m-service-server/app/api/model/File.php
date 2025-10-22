@@ -55,26 +55,4 @@ class File extends Model
         }
         return round($size, 2) . ' ' . $units[$i];
     }
-    
-    // 获取文件完整URL
-    public function getFileUrlAttr($value, $data)
-    {
-        // 根据不同的存储类型返回不同的URL前缀
-        $prefix = '';
-        switch ($data['storage_type']) {
-            case 0: // 本地存储
-                $prefix = request()->domain() . '/storage/';
-                break;
-            case 1: // 阿里云OSS
-                $prefix = 'https://' . $data['bucket_name'] . '.aliyuncs.com/';
-                break;
-            case 2: // 七牛云
-                $prefix = 'https://' . $data['bucket_name'] . '.qiniucdn.com/';
-                break;
-            case 3: // 腾讯云COS
-                $prefix = 'https://' . $data['bucket_name'] . '.cos.ap-beijing.myqcloud.com/';
-                break;
-        }
-        return $prefix . $data['file_path'];
-    }
 } 

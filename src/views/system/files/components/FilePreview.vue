@@ -13,23 +13,32 @@
         element-loading-text="加载中..."
       >
         <!-- 图片预览 -->
-        <img
+        <el-image
           v-if="isImageFile"
-          :src="convertToProxyUrl(fileData?.http_url || '')"
+          :src="fileData?.http_url"
+          :preview-src-list="[fileData?.http_url]"
+          :preview-teleported="true"
+          fit="contain"
           class="preview-dialog__image"
-          alt="图片预览"
-        />
+        >
+          <template #error>
+            <div class="image-error">
+              <i class="fa fa-image" />
+              <p>图片加载失败</p>
+            </div>
+          </template>
+        </el-image>
         <!-- 视频预览 -->
         <video
           v-else-if="isVideoFile"
-          :src="convertToProxyUrl(fileData?.http_url || '')"
+          :src="fileData?.http_url"
           controls
           class="preview-dialog__video"
         />
         <!-- 音频预览 -->
         <audio
           v-else-if="isAudioFile"
-          :src="convertToProxyUrl(fileData?.http_url || '')"
+          :src="fileData?.http_url"
           controls
           class="preview-dialog__audio"
         />
@@ -94,14 +103,6 @@ const emit = defineEmits<{
 
 // Hooks
 const { isImage, isVideo, isAudio, isText } = useFileUtils();
-
-// URL转换函数，处理CORS问题
-const convertToProxyUrl = (url: string) => {
-  if (url && url.startsWith("http://localhost/pics/")) {
-    return url.replace("http://localhost/pics/", "/pics/");
-  }
-  return url;
-};
 
 // 状态
 const fileData = ref<FileInfo | null>(null);
@@ -249,9 +250,14 @@ const handleClose = () => {
   &__image {
     max-width: 100%;
     max-height: 70vh;
-    object-fit: contain;
     border-radius: 8px;
     box-shadow: 0 2px 12px 0 rgb(0 0 0 / 10%);
+
+    :deep(.el-image__inner) {
+      max-width: 100%;
+      max-height: 70vh;
+      object-fit: contain;
+    }
   }
 
   &__video {
@@ -293,6 +299,30 @@ const handleClose = () => {
       margin: 0;
       color: var(--el-text-color-regular);
     }
+  }
+}
+
+// 图片加载错误样式
+.image-error {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 200px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  border-radius: 8px;
+
+  i {
+    font-size: 48px;
+    color: var(--el-text-color-placeholder);
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
   }
 }
 
