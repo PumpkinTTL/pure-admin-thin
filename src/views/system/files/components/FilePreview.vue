@@ -7,58 +7,64 @@
       align-center
       @close="handleClose"
     >
-    <div class="preview-dialog" v-loading="loading" element-loading-text="加载中...">
-      <!-- 图片预览 -->
-      <img
-        v-if="isImageFile"
-        :src="fileData?.http_url"
-        class="preview-dialog__image"
-        alt="图片预览"
-      />
-      <!-- 视频预览 -->
-      <video
-        v-else-if="isVideoFile"
-        :src="fileData?.http_url"
-        controls
-        class="preview-dialog__video"
-      ></video>
-      <!-- 音频预览 -->
-      <audio
-        v-else-if="isAudioFile"
-        :src="fileData?.http_url"
-        controls
-        class="preview-dialog__audio"
-      ></audio>
-      <!-- 文本预览 -->
-      <div v-else-if="isTextFile" class="preview-dialog__text">
-        <div v-if="textContent" class="text-content-wrapper">
-          <div class="text-info">
-            <span class="text-info-item">
-              <i class="fa fa-file-alt"></i>
-              扩展名: {{ fileData?.file_extension?.toUpperCase() }}
-            </span>
-            <span class="text-info-item">
-              <i class="fa fa-font"></i>
-              编码: {{ textEncoding }}
-            </span>
-            <span class="text-info-item">
-              <i class="fa fa-code"></i>
-              {{ textLines }} 行
-            </span>
+      <div
+        v-loading="loading"
+        class="preview-dialog"
+        element-loading-text="加载中..."
+      >
+        <!-- 图片预览 -->
+        <img
+          v-if="isImageFile"
+          :src="convertToProxyUrl(fileData?.http_url || '')"
+          class="preview-dialog__image"
+          alt="图片预览"
+        />
+        <!-- 视频预览 -->
+        <video
+          v-else-if="isVideoFile"
+          :src="convertToProxyUrl(fileData?.http_url || '')"
+          controls
+          class="preview-dialog__video"
+        />
+        <!-- 音频预览 -->
+        <audio
+          v-else-if="isAudioFile"
+          :src="convertToProxyUrl(fileData?.http_url || '')"
+          controls
+          class="preview-dialog__audio"
+        />
+        <!-- 文本预览 -->
+        <div v-else-if="isTextFile" class="preview-dialog__text">
+          <div v-if="textContent" class="text-content-wrapper">
+            <div class="text-info">
+              <span class="text-info-item">
+                <i class="fa fa-file-alt" />
+                扩展名: {{ fileData?.file_extension?.toUpperCase() }}
+              </span>
+              <span class="text-info-item">
+                <i class="fa fa-font" />
+                编码: {{ textEncoding }}
+              </span>
+              <span class="text-info-item">
+                <i class="fa fa-code" />
+                {{ textLines }} 行
+              </span>
+            </div>
+            <pre
+              class="text-content"
+            ><code :class="getLanguageClass()">{{ textContent }}</code></pre>
           </div>
-          <pre class="text-content"><code :class="getLanguageClass()">{{ textContent }}</code></pre>
+          <div v-else-if="textError" class="preview-error">
+            <i class="fa fa-exclamation-triangle" />
+            <p>{{ textError }}</p>
+          </div>
         </div>
-        <div v-else-if="textError" class="preview-error">
-          <i class="fa fa-exclamation-triangle"></i>
-          <p>{{ textError }}</p>
+        <!-- 不支持预览 -->
+        <div v-else class="preview-dialog__empty">
+          <i class="fa fa-eye-slash" />
+          <p>该文件类型暂不支持预览</p>
         </div>
       </div>
-      <!-- 不支持预览 -->
-      <div v-else class="preview-dialog__empty">
-        <i class="fa fa-eye-slash"></i>
-        <p>该文件类型暂不支持预览</p>
-      </div>
-    </div>
     </el-dialog>
   </div>
 </template>
@@ -88,6 +94,14 @@ const emit = defineEmits<{
 
 // Hooks
 const { isImage, isVideo, isAudio, isText } = useFileUtils();
+
+// URL转换函数，处理CORS问题
+const convertToProxyUrl = (url: string) => {
+  if (url && url.startsWith("http://localhost/pics/")) {
+    return url.replace("http://localhost/pics/", "/pics/");
+  }
+  return url;
+};
 
 // 状态
 const fileData = ref<FileInfo | null>(null);
@@ -156,12 +170,12 @@ const getLanguageClass = () => {
 // 加载文本文件内容
 const loadTextContent = async (file: FileInfo) => {
   if (!isText(file.file_extension)) return;
-  
+
   loading.value = true;
   textContent.value = "";
   textError.value = "";
   textEncoding.value = "";
-  
+
   try {
     const res: any = await getFileContent(file.file_id);
     if (res?.code === 200 && res?.data) {
@@ -198,12 +212,16 @@ watch(
 // 监听对话框显示状态
 watch(
   () => props.modelValue,
-  (newVal) => {
+  newVal => {
     if (newVal && props.file) {
       // 对话框打开时，重新设置 fileData
       fileData.value = props.file;
       // 如果是文本文件且内容为空，加载内容
-      if (props.file.file_extension && isText(props.file.file_extension) && !textContent.value) {
+      if (
+        props.file.file_extension &&
+        isText(props.file.file_extension) &&
+        !textContent.value
+      ) {
         loadTextContent(props.file);
       }
     }
@@ -222,8 +240,8 @@ const handleClose = () => {
 <style lang="scss" scoped>
 .preview-dialog {
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   min-height: 200px;
   background-color: transparent;
   border-radius: 0;
@@ -233,14 +251,14 @@ const handleClose = () => {
     max-height: 70vh;
     object-fit: contain;
     border-radius: 8px;
-    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 12px 0 rgb(0 0 0 / 10%);
   }
 
   &__video {
     width: 100%;
     max-height: 70vh;
     border-radius: 8px;
-    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 12px 0 rgb(0 0 0 / 10%);
   }
 
   &__audio {
@@ -253,17 +271,17 @@ const handleClose = () => {
   }
 
   &__empty {
-    color: var(--el-text-color-secondary);
-    font-size: 14px;
-    text-align: center;
-    padding: 60px 20px;
     display: flex;
     flex-direction: column;
-    align-items: center;
     gap: 16px;
+    align-items: center;
+    padding: 60px 20px;
+    font-size: 14px;
+    color: var(--el-text-color-secondary);
+    text-align: center;
     background: var(--el-fill-color-light);
-    border-radius: 8px;
     border: 1px dashed var(--el-border-color);
+    border-radius: 8px;
 
     i {
       font-size: 56px;
@@ -281,34 +299,34 @@ const handleClose = () => {
 // 文本内容区域
 .text-content-wrapper {
   width: 100%;
-  background: var(--el-bg-color);
-  border-radius: 8px;
   overflow: hidden;
+  background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgb(0 0 0 / 5%);
 }
 
 // 文本信息栏
 .text-info {
   display: flex;
-  align-items: center;
   gap: 24px;
+  align-items: center;
   padding: 14px 20px;
-  background: var(--el-fill-color-light);
-  border-bottom: 1px solid var(--el-border-color-lighter);
   font-size: 13px;
   color: var(--el-text-color-regular);
+  background: var(--el-fill-color-light);
   backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--el-border-color-lighter);
 
   &-item {
     display: flex;
-    align-items: center;
     gap: 8px;
+    align-items: center;
     padding: 6px 12px;
     background: var(--el-bg-color);
+    border: 1px solid var(--el-border-color-light);
     border-radius: 6px;
     transition: all 0.2s;
-    border: 1px solid var(--el-border-color-light);
 
     &:hover {
       background: var(--el-fill-color);
@@ -316,26 +334,26 @@ const handleClose = () => {
     }
 
     i {
-      color: var(--el-color-primary);
       font-size: 14px;
+      color: var(--el-color-primary);
     }
   }
 }
 
 // 文本内容区
 .text-content {
-  margin: 0;
+  max-height: calc(70vh - 120px);
   padding: 20px;
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-primary);
-  font-family: 'Consolas', 'Monaco', 'Courier New', 'Courier', monospace;
+  margin: 0;
+  overflow: auto;
+  font-family: Consolas, Monaco, "Courier New", Courier, monospace;
   font-size: 13px;
   line-height: 1.8;
-  overflow: auto;
-  max-height: calc(70vh - 120px);
-  white-space: pre;
+  color: var(--el-text-color-primary);
   tab-size: 4;
-  
+  white-space: pre;
+  background: var(--el-fill-color-light);
+
   code {
     font-family: inherit;
     color: inherit;
@@ -367,20 +385,20 @@ const handleClose = () => {
 .preview-error {
   display: flex;
   flex-direction: column;
+  gap: 16px;
   align-items: center;
   justify-content: center;
-  gap: 16px;
   padding: 60px 20px;
   color: var(--el-color-danger);
   background: var(--el-color-danger-light-9);
-  border-radius: 8px;
   border: 1px solid var(--el-color-danger-light-7);
-  
+  border-radius: 8px;
+
   i {
     font-size: 56px;
     opacity: 0.6;
   }
-  
+
   p {
     margin: 0;
     font-size: 14px;
@@ -391,9 +409,9 @@ const handleClose = () => {
 // 深色模式专用样式
 html.dark {
   .text-content {
-    background: #1e1e1e;
     color: #d4d4d4;
-    
+    background: #1e1e1e;
+
     // 深色模式下的滚动条
     &::-webkit-scrollbar-track {
       background: #2d2d2d;
@@ -409,12 +427,12 @@ html.dark {
   }
 
   .text-content-wrapper {
-    box-shadow: 0 2px 16px 0 rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 16px 0 rgb(0 0 0 / 30%);
   }
 
   .preview-dialog__image,
   .preview-dialog__video {
-    box-shadow: 0 2px 16px 0 rgba(0, 0, 0, 0.4);
+    box-shadow: 0 2px 16px 0 rgb(0 0 0 / 40%);
   }
 }
 </style>
