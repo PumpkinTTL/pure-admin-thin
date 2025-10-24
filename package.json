@@ -68,6 +68,7 @@
   },
   "dependencies": {
     "@fingerprintjs/fingerprintjs": "^4.6.2",
+    "@fortawesome/fontawesome-free": "^7.1.0",
     "@fortawesome/fontawesome-svg-core": "^6.7.2",
     "@fortawesome/free-brands-svg-icons": "^6.7.2",
     "@fortawesome/free-regular-svg-icons": "^6.7.2",

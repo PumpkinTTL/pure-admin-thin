@@ -21,6 +21,8 @@ import "./style/tailwind.css";
 import "element-plus/dist/index.css";
 // 导入 FontAwesome 样式
 import "@fortawesome/fontawesome-svg-core/styles.css";
+// 导入 FontAwesome Free 完整样式（支持 <i class="fa fa-xxx"> 方式）
+import "@fortawesome/fontawesome-free/css/all.min.css";
 // 导入字体图标
 import "./assets/iconfont/iconfont.js";
 import "./assets/iconfont/iconfont.css";

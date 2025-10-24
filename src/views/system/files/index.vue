@@ -293,7 +293,7 @@
         <div v-if="currentStatus === 'active'" style="margin-top: 20px">
           <div style="margin-bottom: 15px">
             <el-checkbox v-model="batchDeleteForce">
-              <span style=" font-weight: 500;color: #f56c6c">
+              <span style="font-weight: 500; color: #f56c6c">
                 永久删除（删除数据库记录和物理文件，不可恢复）
               </span>
             </el-checkbox>
@@ -663,7 +663,7 @@ onMounted(() => {
   padding: 8px;
 
   // 移动端适配
-  @media (width <= 768px) {
+  @media (width <=768px) {
     padding: 4px;
 
     .content-card {
@@ -689,7 +689,7 @@ onMounted(() => {
     margin-bottom: 10px;
 
     // 移动端适配
-    @media (width <= 768px) {
+    @media (width <=768px) {
       flex-direction: column;
       gap: 8px;
 
@@ -736,7 +736,7 @@ onMounted(() => {
         margin-bottom: 12px;
 
         // 移动端适配
-        @media (width <= 768px) {
+        @media (width <=768px) {
           gap: 10px;
 
           .el-form-item {

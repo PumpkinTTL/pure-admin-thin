@@ -5,6 +5,7 @@
       :title="fileData?.original_name || '文件预览'"
       :width="isTextFile ? '80%' : '70%'"
       align-center
+      destroy-on-close
       @close="handleClose"
     >
       <div
@@ -33,6 +34,7 @@
         <!-- 视频预览 -->
         <video
           v-else-if="isVideoFile"
+          ref="videoRef"
           :src="fileData?.http_url"
           controls
           class="preview-dialog__video"
@@ -40,6 +42,7 @@
         <!-- 音频预览 -->
         <audio
           v-else-if="isAudioFile"
+          ref="audioRef"
           :src="fileData?.http_url"
           controls
           class="preview-dialog__audio"
@@ -181,6 +184,10 @@ const textContent = ref("");
 const textEncoding = ref("");
 const textError = ref("");
 
+// 媒体元素引用
+const videoRef = ref<HTMLVideoElement | null>(null);
+const audioRef = ref<HTMLAudioElement | null>(null);
+
 // 计算属性
 const visible = computed({
   get: () => props.modelValue,
@@ -304,12 +311,8 @@ watch(
         officeLoading.value = true;
       }
 
-      // 如果是文本文件且内容为空，加载内容
-      if (
-        props.file.file_extension &&
-        isText(props.file.file_extension) &&
-        !textContent.value
-      ) {
+      // 如果是文本文件，总是重新加载内容（不依赖缓存）
+      if (props.file.file_extension && isText(props.file.file_extension)) {
         loadTextContent(props.file);
       }
     }
@@ -319,6 +322,7 @@ watch(
 // 获取代理URL
 const getProxyUrl = (fileId: number | undefined) => {
   if (!fileId) return "";
+  // 组件销毁后重建，不需要时间戳
   return `${baseUrlApi}/file/proxy?file_id=${fileId}`;
 };
 
@@ -326,6 +330,7 @@ const getProxyUrl = (fileId: number | undefined) => {
 const handleOfficeRendered = () => {
   officeLoading.value = false;
   loading.value = false;
+  // 组件销毁后重建，每次都是新实例，只会触发一次
   message("文档加载成功", { type: "success" });
 };
 
@@ -339,7 +344,17 @@ const handleOfficeError = (error: any) => {
 
 // 关闭事件
 const handleClose = () => {
-  // 不再清空 fileData，保持数据
+  // 停止音频/视频播放
+  if (videoRef.value) {
+    videoRef.value.pause();
+    videoRef.value.currentTime = 0;
+  }
+  if (audioRef.value) {
+    audioRef.value.pause();
+    audioRef.value.currentTime = 0;
+  }
+
+  // 清空文本内容
   textContent.value = "";
   textError.value = "";
   textEncoding.value = "";

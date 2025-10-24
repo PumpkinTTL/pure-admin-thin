@@ -32,13 +32,13 @@ class File extends BaseController
     public function getFileById(): Json
     {
         $fileId = request()->param('file_id');
-        
+
         if (!$fileId || !is_numeric($fileId)) {
             return json(['code' => 400, 'message' => '无效的文件ID']);
         }
 
         $result = FileService::getFileById((int)$fileId);
-        
+
         return json([
             'code' => $result['success'] ? 200 : 500,
             'data' => $result['data'] ?? null,
@@ -53,13 +53,13 @@ class File extends BaseController
     public function deleteFile(): Json
     {
         $fileId = request()->param('file_id');
-        
+
         if (!$fileId || !is_numeric($fileId)) {
             return json(['code' => 400, 'message' => '无效的文件ID']);
         }
 
         $result = FileService::deleteFile((int)$fileId);
-        
+
         return json([
             'code' => $result['success'] ? 200 : 500,
             'message' => $result['message']
@@ -73,13 +73,13 @@ class File extends BaseController
     public function restoreFile(): Json
     {
         $fileId = request()->param('file_id');
-        
+
         if (!$fileId || !is_numeric($fileId)) {
             return json(['code' => 400, 'message' => '无效的文件ID']);
         }
 
         $result = FileService::restoreFile((int)$fileId);
-        
+
         return json([
             'code' => $result['success'] ? 200 : 500,
             'message' => $result['message']
@@ -155,7 +155,7 @@ class File extends BaseController
     public function getFileStats(): Json
     {
         $result = FileService::getFileStats();
-        
+
         return json([
             'code' => $result['success'] ? 200 : 500,
             'data' => $result['data'] ?? null,
@@ -216,13 +216,13 @@ class File extends BaseController
     {
         try {
             $fileId = request()->param('file_id');
-            
+
             if (!$fileId || !is_numeric($fileId)) {
                 return json(['code' => 400, 'message' => '无效的文件ID']);
             }
 
             $result = FileService::readFileContent((int)$fileId);
-            
+
             return json([
                 'code' => $result['success'] ? 200 : 500,
                 'data' => $result['data'] ?? null,
