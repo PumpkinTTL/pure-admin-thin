@@ -352,85 +352,86 @@ defineExpose({
     align-items: center;
 
     &__icon {
+      position: relative;
       display: flex;
       flex-shrink: 0;
       align-items: center;
       justify-content: center;
-      width: 48px;
-      height: 48px;
-      font-size: 22px;
-      border-radius: 8px;
+      width: 50px;
+      height: 50px;
+      font-size: 24px;
+      border-radius: 12px;
 
       i {
         font-weight: 400;
       }
 
       &.image-file {
-        color: #3b82f6;
-        background: #eff6ff;
+        color: #0ea5e9;
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
       }
 
       &.video-file {
         color: #f59e0b;
-        background: #fffbeb;
+        background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
       }
 
       &.audio-file {
         color: #ec4899;
-        background: #fdf2f8;
+        background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
       }
 
       &.word-file {
-        color: #2563eb;
-        background: #eff6ff;
+        color: #3b82f6;
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
       }
 
       &.excel-file {
         color: #10b981;
-        background: #f0fdf4;
+        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
       }
 
       &.pdf-file {
         color: #ef4444;
-        background: #fef2f2;
+        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
       }
 
       &.ppt-file {
         color: #f97316;
-        background: #fff7ed;
+        background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
       }
 
       &.text-file {
-        color: #6b7280;
-        background: #f9fafb;
+        color: #64748b;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
       }
 
       &.code-file {
         color: #8b5cf6;
-        background: #f5f3ff;
+        background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
       }
 
       &.archive-file {
-        color: #f59e0b;
-        background: #fffbeb;
+        color: #eab308;
+        background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%);
       }
 
       &.other-file {
-        color: #9ca3af;
-        background: #f9fafb;
+        color: #94a3b8;
+        background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
       }
     }
 
     &__preview {
-      width: 48px;
-      height: 48px;
+      width: 50px;
+      height: 50px;
       overflow: hidden;
       cursor: pointer;
-      border-radius: 8px;
+      border-radius: 12px;
 
       :deep(.el-image__inner) {
-        width: 48px;
-        height: 48px;
+        width: 50px;
+        height: 50px;
         object-fit: cover;
       }
     }
