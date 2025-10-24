@@ -387,6 +387,7 @@ import { baseUrlApi } from "@/api/utils";
 import { getToken } from "@/utils/auth";
 import { message } from "@/utils/message";
 import { getFingerprint } from "@/utils/fingerprint";
+import { validateFile, validateFiles } from "@/constants/fileUpload";
 
 // Props
 interface Props {
@@ -492,28 +493,25 @@ const handleFileSelect = (event: Event) => {
   const input = event.target as HTMLInputElement;
   if (input.files && input.files.length > 0) {
     const files = Array.from(input.files);
-    const maxSize = 8 * 1024 * 1024; // 8MB
 
-    // 过滤过大的文件
-    const validFiles: File[] = [];
-    const invalidFiles: string[] = [];
+    // 使用新的验证逻辑
+    const { validFiles, invalidFiles } = validateFiles(files);
 
-    files.forEach(file => {
-      if (file.size > maxSize) {
-        invalidFiles.push(file.name);
-      } else {
-        validFiles.push(file);
-      }
-    });
-
+    // 显示被过滤的文件信息
     if (invalidFiles.length > 0) {
-      message(`以下文件超过8MB已被过滤：${invalidFiles.join(", ")}`, {
-        type: "warning"
+      const messages = invalidFiles.map(item => item.message).join("\n");
+      message(messages, {
+        type: "warning",
+        duration: 5000
       });
     }
 
     // 追加有效文件到已选列表
-    selectedLocalFiles.value = [...selectedLocalFiles.value, ...validFiles];
+    if (validFiles.length > 0) {
+      selectedLocalFiles.value = [...selectedLocalFiles.value, ...validFiles];
+      message(`成功添加 ${validFiles.length} 个文件`, { type: "success" });
+    }
+
     // 清空 input 以便下次选择相同文件时也能触发 change 事件
     input.value = "";
   }
@@ -646,10 +644,11 @@ const uploadHeaderText = computed(() => {
 
 // 上传前检查
 const beforeUpload: UploadProps["beforeUpload"] = file => {
-  // 检查文件大小，限制为8MB
-  const maxSize = 8 * 1024 * 1024;
-  if (file.size > maxSize) {
-    message(`文件 ${file.name} 超过8MB，已跳过`, { type: "error" });
+  // 使用新的验证逻辑
+  const validation = validateFile(file);
+
+  if (!validation.valid) {
+    message(validation.message, { type: "error" });
     return false;
   }
 

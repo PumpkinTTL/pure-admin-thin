@@ -18,20 +18,106 @@ class FileConfig
         return [
             // 最大文件大小 (字节)
             'max_size' => 8 * 1024 * 1024, // 8MB
-            
+
             // 最大上传文件数量
             'max_count' => 8,
-            
-            // 允许的文件类型
+
+            // 允许的文件类型（移除可执行脚本类型以提高安全性）
             'allowed_types' => [
                 'image' => ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'],
                 'video' => ['mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv', 'webm'],
-                'document' => ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv'],
-                'audio' => ['mp3', 'wav', 'ogg', 'aac', 'flac'],
+                'document' => ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'md'],
+                'audio' => ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a'],
                 'archive' => ['zip', 'rar', '7z', 'tar', 'gz'],
-                'code' => ['js', 'ts', 'php', 'java', 'py', 'c', 'cpp', 'go', 'html', 'css', 'vue']
+                // 注意：为了安全，不允许上传可执行脚本文件（php、java、py、js等）
+                // 如需上传代码文件，请使用文本格式（.txt）或压缩包
             ],
-            
+
+            // 禁止上传的危险文件扩展名（可执行脚本和系统文件）
+            'forbidden_extensions' => [
+                // 可执行文件
+                'exe',
+                'bat',
+                'cmd',
+                'com',
+                'pif',
+                'scr',
+                'msi',
+                'app',
+                'deb',
+                'rpm',
+                // 脚本文件
+                'php',
+                'php3',
+                'php4',
+                'php5',
+                'phtml',
+                'phar',
+                'jsp',
+                'jspx',
+                'jsw',
+                'jsv',
+                'jspf',
+                'asp',
+                'aspx',
+                'asa',
+                'asax',
+                'ascx',
+                'ashx',
+                'asmx',
+                'cer',
+                'aSp',
+                'aSpx',
+                'asA',
+                'py',
+                'pyc',
+                'pyo',
+                'pyw',
+                'pyz',
+                'rb',
+                'rbw',
+                'pl',
+                'pm',
+                'cgi',
+                'sh',
+                'bash',
+                'zsh',
+                'fish',
+                'ps1',
+                'psm1',
+                'psd1',
+                'ps1xml',
+                'pssc',
+                'psrc',
+                'cdxml',
+                'vbs',
+                'vbe',
+                'vba',
+                'vbscript',
+                'js',
+                'jse',
+                'ws',
+                'wsf',
+                'wsc',
+                'wsh',
+                'jar',
+                'war',
+                'ear',
+                'java',
+                'class',
+                // 系统文件
+                'dll',
+                'sys',
+                'drv',
+                'ocx',
+                // 其他危险文件
+                'htaccess',
+                'htpasswd',
+                'ini',
+                'config',
+                'conf'
+            ],
+
             // 存储路径配置
             'storage' => [
                 'development' => [
@@ -43,22 +129,22 @@ class FileConfig
                     'base_url' => 'https://your-domain.com/files/'
                 ]
             ],
-            
+
             // 启用MIME类型验证
             'enable_mime_check' => true,
-            
+
             // 启用文件哈希去重
             'enable_deduplication' => true,
-            
+
             // 文件命名策略: md5 | uuid | timestamp
             'naming_strategy' => 'md5',
-            
+
             // 是否按日期分目录
             'date_directory' => true,
-            
+
             // 日期目录格式
             'date_format' => 'Ymd',
-            
+
             // 是否按文件类型分目录
             'type_directory' => true
         ];
@@ -73,10 +159,10 @@ class FileConfig
     {
         // 通过操作系统类型判断环境
         $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
-        
+
         // 也可以通过配置文件或环境变量判断
         // return env('app.environment', $isWindows ? 'development' : 'production');
-        
+
         return $isWindows ? 'development' : 'production';
     }
 
@@ -89,7 +175,7 @@ class FileConfig
     {
         $config = self::getUploadConfig();
         $env = self::getEnvironment();
-        
+
         return $config['storage'][$env] ?? $config['storage']['development'];
     }
 
@@ -127,21 +213,52 @@ class FileConfig
     }
 
     /**
+     * 获取禁止的文件扩展名列表
+     *
+     * @return array
+     */
+    public static function getForbiddenExtensions()
+    {
+        $config = self::getUploadConfig();
+        return $config['forbidden_extensions'] ?? [];
+    }
+
+    /**
+     * 检查扩展名是否被禁止
+     *
+     * @param string $extension
+     * @return bool
+     */
+    public static function isForbiddenExtension($extension)
+    {
+        $forbiddenExtensions = self::getForbiddenExtensions();
+        return in_array(strtolower($extension), array_map('strtolower', $forbiddenExtensions));
+    }
+
+    /**
      * 检查扩展名是否允许
-     * 
+     *
      * @param string $extension
      * @return bool
      */
     public static function isAllowedExtension($extension)
     {
+        $extension = strtolower($extension);
+
+        // 首先检查是否在禁止列表中
+        if (self::isForbiddenExtension($extension)) {
+            return false;
+        }
+
+        // 然后检查是否在允许列表中
         $allowedTypes = self::getAllowedTypes();
-        
-        foreach ($allowedTypes as $type => $extensions) {
-            if (in_array(strtolower($extension), $extensions)) {
+
+        foreach ($allowedTypes as $extensions) {
+            if (in_array($extension, $extensions)) {
                 return true;
             }
         }
-        
+
         return false;
     }
 
