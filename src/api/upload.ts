@@ -44,19 +44,21 @@ export interface UploadOptions {
  */
 export const uploadSingleFile = (file: File, options: UploadOptions = {}) => {
   const formData = new FormData();
-  formData.append('file', file);
+  formData.append("file", file);
 
   // 添加可选参数
-  if (options.userId) formData.append('user_id', options.userId.toString());
-  if (options.storageType !== undefined) formData.append('storage_type', options.storageType.toString());
-  if (options.bucketName) formData.append('bucket_name', options.bucketName);
-  if (options.deviceFingerprint) formData.append('device_fingerprint', options.deviceFingerprint);
-  if (options.remark) formData.append('remark', options.remark);
+  if (options.userId) formData.append("user_id", options.userId.toString());
+  if (options.storageType !== undefined)
+    formData.append("storage_type", options.storageType.toString());
+  if (options.bucketName) formData.append("bucket_name", options.bucketName);
+  if (options.deviceFingerprint)
+    formData.append("device_fingerprint", options.deviceFingerprint);
+  if (options.remark) formData.append("remark", options.remark);
 
   return http.request<UploadResult>("post", "/api/v1/upload/uploadFile", {
     data: formData,
     headers: {
-      'Content-Type': 'multipart/form-data'
+      "Content-Type": "multipart/form-data"
     }
   });
 };
@@ -67,25 +69,30 @@ export const uploadSingleFile = (file: File, options: UploadOptions = {}) => {
  * @param options 上传选项
  * @returns 上传结果
  */
-export const uploadMultipleFiles = (files: File[], options: UploadOptions = {}) => {
+export const uploadMultipleFiles = (
+  files: File[],
+  options: UploadOptions = {}
+) => {
   const formData = new FormData();
 
   // 添加多个文件
   files.forEach(file => {
-    formData.append('files[]', file);
+    formData.append("files[]", file);
   });
 
   // 添加可选参数
-  if (options.userId) formData.append('user_id', options.userId.toString());
-  if (options.storageType !== undefined) formData.append('storage_type', options.storageType.toString());
-  if (options.bucketName) formData.append('bucket_name', options.bucketName);
-  if (options.deviceFingerprint) formData.append('device_fingerprint', options.deviceFingerprint);
-  if (options.remark) formData.append('remark', options.remark);
+  if (options.userId) formData.append("user_id", options.userId.toString());
+  if (options.storageType !== undefined)
+    formData.append("storage_type", options.storageType.toString());
+  if (options.bucketName) formData.append("bucket_name", options.bucketName);
+  if (options.deviceFingerprint)
+    formData.append("device_fingerprint", options.deviceFingerprint);
+  if (options.remark) formData.append("remark", options.remark);
 
   return http.request<UploadResult>("post", "/api/v1/upload/uploadFile", {
     data: formData,
     headers: {
-      'Content-Type': 'multipart/form-data'
+      "Content-Type": "multipart/form-data"
     }
   });
 };
@@ -106,13 +113,16 @@ export const uploadImage = (file: File, options: UploadOptions = {}) => {
  * @param fileName 上传字段名称，默认为'file'
  * @returns 上传结果
  */
-export const uploadFile = (files: File | FormData, fileName: string = 'file') => {
+export const uploadFile = (
+  files: File | FormData,
+  fileName: string = "file"
+) => {
   // 如果传入的已经是FormData，直接使用
   if (files instanceof FormData) {
     return http.request<UploadResult>("post", "/api/v1/upload/uploadFile", {
       data: files,
       headers: {
-        'Content-Type': 'multipart/form-data'
+        "Content-Type": "multipart/form-data"
       }
     });
   }
@@ -124,7 +134,7 @@ export const uploadFile = (files: File | FormData, fileName: string = 'file') =>
   return http.request<UploadResult>("post", "/api/v1/upload/uploadFile", {
     data: formData,
     headers: {
-      'Content-Type': 'multipart/form-data'
+      "Content-Type": "multipart/form-data"
     }
   });
 };
@@ -146,7 +156,7 @@ export const deleteFiles = (urls: string[]) => {
  * @returns 图片链接数组
  */
 export const extractImageUrls = (content: string): string[] => {
-  if (!content || typeof content !== 'string') {
+  if (!content || typeof content !== "string") {
     return [];
   }
 
@@ -167,7 +177,8 @@ export const extractImageUrls = (content: string): string[] => {
   }
 
   // 匹配直接的图片URL（以图片扩展名结尾的URL）
-  const directUrlRegex = /https?:\/\/[^\s<>"]+\.(?:jpg|jpeg|png|gif|bmp|webp)(?:\?[^\s<>"]*)?/gi;
+  const directUrlRegex =
+    /https?:\/\/[^\s<>"]+\.(?:jpg|jpeg|png|gif|bmp|webp)(?:\?[^\s<>"]*)?/gi;
   let urlMatch: RegExpExecArray | null;
   while ((urlMatch = directUrlRegex.exec(content)) !== null) {
     imageUrls.add(urlMatch[0]);
@@ -187,7 +198,7 @@ export const extractAndDeleteImages = async (content: string) => {
   if (imageUrls.length === 0) {
     return {
       code: 200,
-      msg: '没有找到图片',
+      msg: "没有找到图片",
       data: {
         success_count: 0,
         failed_count: 0,
@@ -217,7 +228,7 @@ export const batchExtractAndDeleteImages = async (contents: string[]) => {
   if (uniqueUrls.length === 0) {
     return {
       code: 200,
-      msg: '没有找到图片',
+      msg: "没有找到图片",
       data: {
         success_count: 0,
         failed_count: 0,

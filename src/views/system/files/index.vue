@@ -19,16 +19,18 @@
             class="toolbar-btn"
             @click="handleBatchDelete"
           >
-            <i class="fa fa-trash-alt mr-1"></i>
+            <i class="fa fa-trash-alt mr-1" />
             批量删除
-            <span v-if="selectedFiles.length">({{ selectedFiles.length }})</span>
+            <span v-if="selectedFiles.length">
+              ({{ selectedFiles.length }})
+            </span>
           </el-button>
 
-          <el-dropdown @command="handleStatusCommand" trigger="click">
+          <el-dropdown trigger="click" @command="handleStatusCommand">
             <el-button size="small" class="toolbar-btn status-btn">
-              <i class="fa fa-filter mr-1"></i>
+              <i class="fa fa-filter mr-1" />
               {{ searchParams.status === "active" ? "活跃文件" : "已删除文件" }}
-              <i class="fa fa-chevron-down ml-1"></i>
+              <i class="fa fa-chevron-down ml-1" />
             </el-button>
             <template #dropdown>
               <el-dropdown-menu>
@@ -36,23 +38,23 @@
                   command="active"
                   :class="{ 'is-active': searchParams.status === 'active' }"
                 >
-                  <i class="fa fa-file mr-2 text-blue-500"></i>
+                  <i class="fa fa-file mr-2 text-blue-500" />
                   <span>活跃文件</span>
                   <i
                     v-if="searchParams.status === 'active'"
                     class="fa fa-check ml-auto text-blue-500"
-                  ></i>
+                  />
                 </el-dropdown-item>
                 <el-dropdown-item
                   command="deleted"
                   :class="{ 'is-active': searchParams.status === 'deleted' }"
                 >
-                  <i class="fa fa-trash mr-2 text-red-500"></i>
+                  <i class="fa fa-trash mr-2 text-red-500" />
                   <span>已删除文件</span>
                   <i
                     v-if="searchParams.status === 'deleted'"
                     class="fa fa-check ml-auto text-red-500"
-                  ></i>
+                  />
                 </el-dropdown-item>
               </el-dropdown-menu>
             </template>
@@ -75,22 +77,32 @@
             </template>
           </el-input>
 
-          <el-button type="primary" size="small" @click="handleSearch" class="search-btn">
-            <i class="fa fa-search mr-1"></i>
+          <el-button
+            type="primary"
+            size="small"
+            class="search-btn"
+            @click="handleSearch"
+          >
+            <i class="fa fa-search mr-1" />
             搜索
           </el-button>
 
           <el-button
             size="small"
-            @click="showAdvancedSearch = !showAdvancedSearch"
             class="search-btn"
+            @click="showAdvancedSearch = !showAdvancedSearch"
           >
-            <i class="fa fa-cog mr-1"></i>
+            <i class="fa fa-cog mr-1" />
             {{ showAdvancedSearch ? "收起" : "高级" }}
           </el-button>
 
-          <el-button type="info" size="small" @click="fetchFileList" class="search-btn">
-            <i class="fa fa-sync-alt mr-1"></i>
+          <el-button
+            type="info"
+            size="small"
+            class="search-btn"
+            @click="fetchFileList"
+          >
+            <i class="fa fa-sync-alt mr-1" />
             刷新
           </el-button>
         </div>
@@ -173,12 +185,17 @@
               </el-form-item>
             </div>
             <div class="form-actions">
-              <el-button size="small" @click="resetSearch" class="form-btn">
-                <i class="fa fa-undo mr-1"></i>
+              <el-button size="small" class="form-btn" @click="resetSearch">
+                <i class="fa fa-undo mr-1" />
                 重置
               </el-button>
-              <el-button type="primary" size="small" @click="handleSearch" class="form-btn">
-                <i class="fa fa-search mr-1"></i>
+              <el-button
+                type="primary"
+                size="small"
+                class="form-btn"
+                @click="handleSearch"
+              >
+                <i class="fa fa-search mr-1" />
                 搜索
               </el-button>
             </div>
@@ -189,10 +206,10 @@
       <!-- 文件表格组件 -->
       <FileTable
         ref="fileTableRef"
-        :file-list="fileList"
-        :total="totalCount"
         v-model:page="searchParams.page"
         v-model:page-size="searchParams.page_size"
+        :file-list="fileList"
+        :total="totalCount"
         :loading="tableLoading"
         :status="searchParams.status"
         :table-key="tableKey"
@@ -228,29 +245,29 @@
       <div v-if="currentDeleteFile">
         <p>确定要删除文件 "{{ currentDeleteFile.original_name }}" 吗？</p>
         <div style="margin-top: 15px">
-          <el-checkbox v-model="isPermanentDelete"
-            >永久删除，数据将无法恢复</el-checkbox
-          >
+          <el-checkbox v-model="isPermanentDelete">
+            永久删除，数据将无法恢复
+          </el-checkbox>
         </div>
       </div>
       <template #footer>
         <span class="dialog-footer">
           <el-button
-            @click="deleteConfirmVisible = false"
             size="small"
             class="dialog-btn"
+            @click="deleteConfirmVisible = false"
           >
-            <i class="fa fa-times mr-1"></i>
+            <i class="fa fa-times mr-1" />
             取消
           </el-button>
           <el-button
             type="danger"
-            @click="confirmDelete"
             :loading="deleteLoading"
             size="small"
             class="dialog-btn"
+            @click="confirmDelete"
           >
-            <i class="fa fa-trash-alt mr-1"></i>
+            <i class="fa fa-trash-alt mr-1" />
             确定删除
           </el-button>
         </span>
@@ -268,16 +285,17 @@
       <div>
         <p>
           确定要删除选中的
-          <strong>{{ selectedFiles.length }}</strong> 个文件吗？
+          <strong>{{ selectedFiles.length }}</strong>
+          个文件吗？
         </p>
 
         <!-- 正常文件的删除选项 -->
         <div v-if="currentStatus === 'active'" style="margin-top: 20px">
           <div style="margin-bottom: 15px">
             <el-checkbox v-model="batchDeleteForce">
-              <span style="color: #f56c6c; font-weight: 500"
-                >永久删除（删除数据库记录和物理文件，不可恢复）</span
-              >
+              <span style=" font-weight: 500;color: #f56c6c">
+                永久删除（删除数据库记录和物理文件，不可恢复）
+              </span>
             </el-checkbox>
           </div>
 
@@ -313,15 +331,20 @@
       <template #footer>
         <span class="dialog-footer">
           <el-button
-            @click="batchDeleteDialogVisible = false"
             size="small"
             class="dialog-btn"
+            @click="batchDeleteDialogVisible = false"
           >
-            <i class="fa fa-times mr-1"></i>
+            <i class="fa fa-times mr-1" />
             取消
           </el-button>
-          <el-button type="danger" @click="confirmBatchDelete" size="small" class="dialog-btn">
-            <i class="fa fa-trash-alt mr-1"></i>
+          <el-button
+            type="danger"
+            size="small"
+            class="dialog-btn"
+            @click="confirmBatchDelete"
+          >
+            <i class="fa fa-trash-alt mr-1" />
             {{ getDeleteButtonText() }}
           </el-button>
         </span>
@@ -338,11 +361,7 @@ defineOptions({
 import { ref, reactive, computed, onMounted, watch } from "vue";
 import { ElMessageBox } from "element-plus";
 import { Search } from "@element-plus/icons-vue";
-import {
-  getFileList,
-  getFileDetail,
-  type FileInfo
-} from "@/api/fileManage";
+import { getFileList, getFileDetail, type FileInfo } from "@/api/fileManage";
 import { storageTypeTextMap } from "@/api/utils";
 import { message } from "@/utils/message";
 import { getFingerprint } from "@/utils/fingerprint";
@@ -429,7 +448,6 @@ watch(dateRange, val => {
     searchParams.end_date = "";
   }
 });
-
 
 // 获取文件列表
 const fetchFileList = async () => {
@@ -641,8 +659,19 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .files-container {
-  padding: 8px;
   min-height: calc(100vh - 84px);
+  padding: 8px;
+
+  // 移动端适配
+  @media (width <= 768px) {
+    padding: 4px;
+
+    .content-card {
+      :deep(.el-card__body) {
+        padding: 8px;
+      }
+    }
+  }
 
   .content-card {
     margin-bottom: 10px;
@@ -655,12 +684,32 @@ onMounted(() => {
   // 工具栏
   .toolbar {
     display: flex;
+    gap: 10px;
     justify-content: space-between;
     margin-bottom: 10px;
+
+    // 移动端适配
+    @media (width <= 768px) {
+      flex-direction: column;
+      gap: 8px;
+
+      &__actions,
+      &__search {
+        justify-content: flex-start;
+        width: 100%;
+      }
+
+      &__search {
+        .el-input {
+          flex: 1;
+        }
+      }
+    }
 
     &__actions,
     &__search {
       display: flex;
+      flex-wrap: wrap;
       gap: 6px;
       align-items: center;
     }
@@ -668,14 +717,14 @@ onMounted(() => {
 
   // 高级搜索
   .advanced-search {
-    background-color: transparent;
     padding: 15px;
-    border-radius: 0;
     margin-bottom: 15px;
-    border-bottom: 1px solid #ebeef5;
+    background-color: transparent;
     border-top: none;
-    border-left: none;
     border-right: none;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    border-left: none;
+    border-radius: 0;
 
     .el-form {
       width: 100%;
@@ -685,6 +734,16 @@ onMounted(() => {
         flex-wrap: wrap;
         gap: 15px;
         margin-bottom: 12px;
+
+        // 移动端适配
+        @media (width <= 768px) {
+          gap: 10px;
+
+          .el-form-item {
+            flex: 1 1 100%;
+            min-width: 100%;
+          }
+        }
 
         .el-form-item {
           flex: 1;
@@ -711,27 +770,27 @@ onMounted(() => {
 
     .form-actions {
       display: flex;
-      justify-content: flex-end;
       gap: 8px;
+      justify-content: flex-end;
       margin-top: 5px;
     }
   }
 
   // 按钮样式
   .toolbar-btn {
-    border-radius: 4px;
     font-weight: 500;
+    border-radius: 4px;
   }
 
   .search-btn {
-    border-radius: 4px;
     font-weight: 500;
+    border-radius: 4px;
   }
 
   .form-btn {
-    border-radius: 4px;
-    font-weight: 500;
     padding: 8px 16px;
+    font-weight: 500;
+    border-radius: 4px;
   }
 
   .status-btn {
@@ -744,15 +803,15 @@ onMounted(() => {
   }
 
   .dialog-btn {
-    border-radius: 4px;
-    font-weight: 500;
     padding: 8px 16px;
+    font-weight: 500;
+    border-radius: 4px;
   }
 
   .dialog-footer {
     display: flex;
-    justify-content: flex-end;
     gap: 8px;
+    justify-content: flex-end;
   }
 
   // 下拉菜单样式
@@ -762,8 +821,8 @@ onMounted(() => {
     padding: 8px 16px;
 
     &.is-active {
-      background-color: var(--el-color-primary-light-9);
       color: var(--el-color-primary);
+      background-color: var(--el-color-primary-light-9);
     }
 
     .fa {

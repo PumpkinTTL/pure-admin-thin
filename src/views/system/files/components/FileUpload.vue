@@ -3,7 +3,7 @@
     <!-- 上传方式选择下拉菜单 -->
     <el-dropdown @command="handleCommand">
       <el-button type="primary" size="small" class="toolbar-btn">
-        <i class="fa fa-cloud-upload-alt mr-1"></i>
+        <i class="fa fa-cloud-upload-alt mr-1" />
         上传文件
         <el-icon class="el-icon--right">
           <arrow-down />
@@ -12,15 +12,21 @@
       <template #dropdown>
         <el-dropdown-menu>
           <el-dropdown-item command="local">
-            <el-icon><Upload /></el-icon>
+            <el-icon>
+              <Upload />
+            </el-icon>
             <span style="margin-left: 8px">本地上传</span>
           </el-dropdown-item>
           <el-dropdown-item command="cloud">
-            <el-icon><Cloudy /></el-icon>
+            <el-icon>
+              <Cloudy />
+            </el-icon>
             <span style="margin-left: 8px">云存储上传</span>
           </el-dropdown-item>
           <el-dropdown-item command="record" divided>
-            <el-icon><DocumentAdd /></el-icon>
+            <el-icon>
+              <DocumentAdd />
+            </el-icon>
             <span style="margin-left: 8px">添加记录</span>
           </el-dropdown-item>
         </el-dropdown-menu>
@@ -51,8 +57,7 @@
       :show-file-list="false"
       :auto-upload="false"
       style="display: none"
-    >
-    </el-upload>
+    />
 
     <!-- 上传进度对话框 -->
     <el-dialog
@@ -64,23 +69,43 @@
     >
       <template #header>
         <div class="dialog-header">
-          <i class="fa fa-spinner fa-spin"></i>
+          <i class="fa fa-spinner fa-spin" />
           <span>上传进度</span>
         </div>
       </template>
       <div class="upload-progress-container">
-        <div v-for="(item, index) in uploadFiles" :key="index" class="upload-progress-item">
-          <div class="progress-info">
-            <i class="fa fa-file"></i>
-            <span class="file-name">{{ item.name }}</span>
+        <div
+          v-for="(item, index) in uploadFiles"
+          :key="index"
+          class="upload-progress-item"
+        >
+          <div class="progress-header">
+            <div class="progress-info">
+              <i class="fa fa-file" :class="getFileStatusIcon(item.status)" />
+              <span class="file-name">{{ item.name }}</span>
+            </div>
+            <span class="file-size">{{ formatSize(item.size) }}</span>
           </div>
-          <el-progress :percentage="item.percentage" :status="item.status" />
+          <el-progress
+            :percentage="item.percentage"
+            :status="item.status"
+            :stroke-width="8"
+            :show-text="true"
+          >
+            <template #default="{ percentage }">
+              <span class="progress-text">{{ percentage }}%</span>
+            </template>
+          </el-progress>
         </div>
       </div>
       <template #footer>
         <div class="dialog-footer-modern">
-          <el-button @click="progressDialogVisible = false" size="small">关闭</el-button>
-          <el-button type="primary" @click="continueUpload" size="small">继续上传</el-button>
+          <el-button size="small" @click="progressDialogVisible = false">
+            关闭
+          </el-button>
+          <el-button type="primary" size="small" @click="continueUpload">
+            继续上传
+          </el-button>
         </div>
       </template>
     </el-dialog>
@@ -95,7 +120,7 @@
     >
       <template #header>
         <div class="dialog-header">
-          <i class="fa fa-upload"></i>
+          <i class="fa fa-upload" />
           <span>本地上传</span>
         </div>
       </template>
@@ -105,9 +130,15 @@
           <div class="local-upload-area" @click="triggerFileInput">
             <el-icon class="upload-icon-local"><upload-filled /></el-icon>
             <div class="upload-text-local">
-              {{ selectedLocalFiles.length > 0 ? `已选择 ${selectedLocalFiles.length} 个文件` : '将文件拖到此处，或点击选择' }}
+              {{
+                selectedLocalFiles.length > 0
+                  ? `已选择 ${selectedLocalFiles.length} 个文件`
+                  : "将文件拖到此处，或点击选择"
+              }}
             </div>
-            <div class="upload-hint-local">支持批量上传,单个文件大小不超过 8MB</div>
+            <div class="upload-hint-local">
+              支持批量上传,单个文件大小不超过 8MB
+            </div>
           </div>
         </div>
         <div v-if="selectedLocalFiles.length > 0" class="file-preview-box">
@@ -116,10 +147,14 @@
             :key="index"
             class="file-preview-item"
           >
-            <i class="fa fa-file"></i>
+            <i class="fa fa-file" />
             <span class="name">{{ file.name }}</span>
             <span class="size">{{ formatSize(file.size) }}</span>
-            <i class="fa fa-times remove-btn" @click="removeFile(index)" title="移除"></i>
+            <i
+              class="fa fa-times remove-btn"
+              title="移除"
+              @click="removeFile(index)"
+            />
           </div>
         </div>
         <el-form-item label="备注">
@@ -136,9 +171,16 @@
       </el-form>
       <template #footer>
         <div class="dialog-footer-modern">
-          <el-button @click="handleCancelLocalUpload" size="default">取消</el-button>
-          <el-button type="primary" @click="handleStartLocalUpload" :disabled="selectedLocalFiles.length === 0" size="default">
-            <i class="fa fa-cloud-upload-alt" style="margin-right: 4px"></i>
+          <el-button size="default" @click="handleCancelLocalUpload">
+            取消
+          </el-button>
+          <el-button
+            type="primary"
+            :disabled="selectedLocalFiles.length === 0"
+            size="default"
+            @click="handleStartLocalUpload"
+          >
+            <i class="fa fa-cloud-upload-alt" style="margin-right: 4px" />
             开始上传
           </el-button>
         </div>
@@ -155,28 +197,45 @@
     >
       <template #header>
         <div class="dialog-header">
-          <i class="fa fa-cloud"></i>
+          <i class="fa fa-cloud" />
           <span>云存储上传</span>
         </div>
       </template>
-      <el-form :model="cloudForm" label-position="top" class="modern-form cloud-form">
+      <el-form
+        :model="cloudForm"
+        label-position="top"
+        class="modern-form cloud-form"
+      >
         <el-form-item label="存储平台">
-          <el-select v-model="cloudForm.platform" placeholder="请选择云存储平台" size="default" style="width: 100%">
+          <el-select
+            v-model="cloudForm.platform"
+            placeholder="请选择云存储平台"
+            size="default"
+            style="width: 100%"
+          >
             <el-option label="阿里云 OSS" value="aliyun">
               <span style="float: left">阿里云 OSS</span>
-              <span style="float: right; color: #8492a6; font-size: 12px">Aliyun</span>
+              <span style="float: right; font-size: 12px; color: #8492a6">
+                Aliyun
+              </span>
             </el-option>
             <el-option label="腾讯云 COS" value="tencent">
               <span style="float: left">腾讯云 COS</span>
-              <span style="float: right; color: #8492a6; font-size: 12px">Tencent</span>
+              <span style="float: right; font-size: 12px; color: #8492a6">
+                Tencent
+              </span>
             </el-option>
             <el-option label="七牛云" value="qiniu">
               <span style="float: left">七牛云</span>
-              <span style="float: right; color: #8492a6; font-size: 12px">Qiniu</span>
+              <span style="float: right; font-size: 12px; color: #8492a6">
+                Qiniu
+              </span>
             </el-option>
             <el-option label="AWS S3" value="aws">
               <span style="float: left">AWS S3</span>
-              <span style="float: right; color: #8492a6; font-size: 12px">Amazon</span>
+              <span style="float: right; font-size: 12px; color: #8492a6">
+                Amazon
+              </span>
             </el-option>
           </el-select>
         </el-form-item>
@@ -199,9 +258,11 @@
       </div>
       <template #footer>
         <div class="dialog-footer-modern">
-          <el-button @click="cloudDialogVisible = false" size="default">取消</el-button>
-          <el-button type="primary" @click="handleCloudUpload" size="default">
-            <i class="fa fa-cloud-upload-alt" style="margin-right: 4px"></i>
+          <el-button size="default" @click="cloudDialogVisible = false">
+            取消
+          </el-button>
+          <el-button type="primary" size="default" @click="handleCloudUpload">
+            <i class="fa fa-cloud-upload-alt" style="margin-right: 4px" />
             开始上传
           </el-button>
         </div>
@@ -218,7 +279,7 @@
     >
       <template #header>
         <div class="dialog-header">
-          <i class="fa fa-plus-circle"></i>
+          <i class="fa fa-plus-circle" />
           <span>添加文件记录</span>
         </div>
       </template>
@@ -231,32 +292,78 @@
       >
         <div class="form-row">
           <el-form-item label="文件名称" prop="filename" class="form-item-flex">
-            <el-input v-model="recordForm.filename" placeholder="例如: document.pdf" clearable size="default" />
+            <el-input
+              v-model="recordForm.filename"
+              placeholder="例如: document.pdf"
+              clearable
+              size="default"
+            />
           </el-form-item>
-          <el-form-item label="MIME 类型" prop="mime_type" class="form-item-small">
-            <el-input v-model="recordForm.mime_type" placeholder="image/png" clearable size="default" />
+          <el-form-item
+            label="MIME 类型"
+            prop="mime_type"
+            class="form-item-small"
+          >
+            <el-input
+              v-model="recordForm.mime_type"
+              placeholder="image/png"
+              clearable
+              size="default"
+            />
           </el-form-item>
         </div>
         <el-form-item label="访问 URL" prop="url">
-          <el-input v-model="recordForm.url" placeholder="https://example.com/file.pdf" size="default" />
+          <el-input
+            v-model="recordForm.url"
+            placeholder="https://example.com/file.pdf"
+            size="default"
+          />
         </el-form-item>
         <div class="form-row">
-          <el-form-item label="文件大小（字节）" prop="size" class="form-item-flex">
-            <el-input-number v-model="recordForm.size" :min="0" :step="1024" controls-position="right" size="default" style="width: 100%" />
+          <el-form-item
+            label="文件大小（字节）"
+            prop="size"
+            class="form-item-flex"
+          >
+            <el-input-number
+              v-model="recordForm.size"
+              :min="0"
+              :step="1024"
+              controls-position="right"
+              size="default"
+              style="width: 100%"
+            />
           </el-form-item>
           <el-form-item label="格式化显示" class="form-item-small">
-            <el-input :value="recordForm.size > 0 ? formatSize(recordForm.size) : '-'" size="default" disabled />
+            <el-input
+              :value="recordForm.size > 0 ? formatSize(recordForm.size) : '-'"
+              size="default"
+              disabled
+            />
           </el-form-item>
         </div>
         <el-form-item label="备注信息">
-          <el-input v-model="recordForm.remark" placeholder="选填备注信息" type="textarea" :rows="3" maxlength="200" show-word-limit size="default" />
+          <el-input
+            v-model="recordForm.remark"
+            placeholder="选填备注信息"
+            type="textarea"
+            :rows="3"
+            maxlength="200"
+            show-word-limit
+            size="default"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
         <div class="dialog-footer-modern">
-          <el-button @click="handleCancelRecord" size="default">取消</el-button>
-          <el-button type="primary" @click="handleAddRecord" :loading="recordLoading" size="default">
-            <i class="fa fa-save" style="margin-right: 4px"></i>
+          <el-button size="default" @click="handleCancelRecord">取消</el-button>
+          <el-button
+            type="primary"
+            :loading="recordLoading"
+            size="default"
+            @click="handleAddRecord"
+          >
+            <i class="fa fa-save" style="margin-right: 4px" />
             保存记录
           </el-button>
         </div>
@@ -386,11 +493,11 @@ const handleFileSelect = (event: Event) => {
   if (input.files && input.files.length > 0) {
     const files = Array.from(input.files);
     const maxSize = 8 * 1024 * 1024; // 8MB
-    
+
     // 过滤过大的文件
     const validFiles: File[] = [];
     const invalidFiles: string[] = [];
-    
+
     files.forEach(file => {
       if (file.size > maxSize) {
         invalidFiles.push(file.name);
@@ -398,11 +505,13 @@ const handleFileSelect = (event: Event) => {
         validFiles.push(file);
       }
     });
-    
+
     if (invalidFiles.length > 0) {
-      message(`以下文件超过8MB已被过滤：${invalidFiles.join(", ")}`, { type: "warning" });
+      message(`以下文件超过8MB已被过滤：${invalidFiles.join(", ")}`, {
+        type: "warning"
+      });
     }
-    
+
     // 追加有效文件到已选列表
     selectedLocalFiles.value = [...selectedLocalFiles.value, ...validFiles];
     // 清空 input 以便下次选择相同文件时也能触发 change 事件
@@ -425,13 +534,19 @@ const handleStartLocalUpload = () => {
   }
 
   const maxSize = 8 * 1024 * 1024; // 8MB
-  
+
   // 再次验证文件大小
-  const validFiles = selectedLocalFiles.value.filter(file => file.size <= maxSize);
-  const invalidFiles = selectedLocalFiles.value.filter(file => file.size > maxSize);
-  
+  const validFiles = selectedLocalFiles.value.filter(
+    file => file.size <= maxSize
+  );
+  const invalidFiles = selectedLocalFiles.value.filter(
+    file => file.size > maxSize
+  );
+
   if (invalidFiles.length > 0) {
-    message(`有 ${invalidFiles.length} 个文件超过8MB，无法上传`, { type: "error" });
+    message(`有 ${invalidFiles.length} 个文件超过8MB，无法上传`, {
+      type: "error"
+    });
     return;
   }
 
@@ -476,7 +591,17 @@ const formatSize = (bytes: number) => {
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + " " + sizes[i];
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
+};
+
+// 获取文件状态图标
+const getFileStatusIcon = (status: string) => {
+  const iconMap: Record<string, string> = {
+    success: "file-status-success",
+    exception: "file-status-error",
+    uploading: "file-status-uploading"
+  };
+  return iconMap[status] || "";
 };
 
 // 上传前检查
@@ -501,7 +626,9 @@ const beforeUpload: UploadProps["beforeUpload"] = file => {
 
 // 上传进度
 const handleProgress: UploadProps["onProgress"] = (event, file) => {
-  const fileIndex = uploadFiles.value.findIndex(item => item.name === file.name);
+  const fileIndex = uploadFiles.value.findIndex(
+    item => item.name === file.name
+  );
   if (fileIndex !== -1) {
     uploadFiles.value[fileIndex].percentage = Math.round(event.percent);
   }
@@ -509,7 +636,9 @@ const handleProgress: UploadProps["onProgress"] = (event, file) => {
 
 // 上传成功
 const handleSuccess: UploadProps["onSuccess"] = (response: any, file) => {
-  const fileIndex = uploadFiles.value.findIndex(item => item.name === file.name);
+  const fileIndex = uploadFiles.value.findIndex(
+    item => item.name === file.name
+  );
   if (fileIndex !== -1) {
     uploadFiles.value[fileIndex].status = "success";
   }
@@ -537,7 +666,9 @@ const handleSuccess: UploadProps["onSuccess"] = (response: any, file) => {
 
 // 上传失败
 const handleError: UploadProps["onError"] = (error, file) => {
-  const fileIndex = uploadFiles.value.findIndex(item => item.name === file.name);
+  const fileIndex = uploadFiles.value.findIndex(
+    item => item.name === file.name
+  );
   if (fileIndex !== -1) {
     uploadFiles.value[fileIndex].status = "exception";
   }
@@ -607,11 +738,13 @@ const handleAddRecord = async () => {
       try {
         // TODO: 调用后端接口添加记录
         // const res = await addFileRecord(recordForm);
-        
+
         // 模拟成功
         await new Promise(resolve => setTimeout(resolve, 500));
-        
-        message(`文件记录 "${recordForm.filename}" 添加成功`, { type: "success" });
+
+        message(`文件记录 "${recordForm.filename}" 添加成功`, {
+          type: "success"
+        });
 
         // 关闭对话框并清空表单
         recordDialogVisible.value = false;
@@ -652,83 +785,42 @@ defineExpose({
     margin-bottom: 8px;
 
     .el-icon {
-      color: #409eff;
       margin-right: 8px;
+      color: #409eff;
     }
 
     &__name {
       flex: 1;
       overflow: hidden;
+      font-size: 13px;
       text-overflow: ellipsis;
       white-space: nowrap;
-      font-size: 13px;
     }
   }
 }
 
 .dialog-footer {
   display: flex;
-  justify-content: flex-end;
   gap: 8px;
+  justify-content: flex-end;
 }
 
 .toolbar-btn {
-  border-radius: 4px;
   font-weight: 500;
-}
-
-// 上传进度容器
-.upload-progress-container {
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-// 上传进度项
-.upload-progress-item {
-  padding: 14px;
-  margin-bottom: 12px;
-  background: #f7f8fa;
   border-radius: 4px;
-  border: 1px solid #e8eaed;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-
-  .progress-info {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
-    font-size: 13px;
-
-    i {
-      color: #409eff;
-      font-size: 15px;
-    }
-
-    .file-name {
-      flex: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      color: #303133;
-      font-weight: 500;
-    }
-  }
 }
 
 // 简洁对话框样式
 .modern-dialog {
   :deep(.el-dialog) {
-    border-radius: 6px;
     overflow: hidden;
+    border-radius: 6px;
   }
 
   :deep(.el-dialog__header) {
     padding: 16px 20px;
-    border-bottom: 1px solid #e4e7ed;
     background: #fafbfc;
+    border-bottom: 1px solid #e4e7ed;
   }
 
   :deep(.el-dialog__body) {
@@ -737,15 +829,15 @@ defineExpose({
 
   :deep(.el-dialog__footer) {
     padding: 14px 20px;
-    border-top: 1px solid #e4e7ed;
     background: #fafbfc;
+    border-top: 1px solid #e4e7ed;
   }
 }
 
 .dialog-header {
   display: flex;
-  align-items: center;
   gap: 10px;
+  align-items: center;
   font-size: 16px;
   font-weight: 600;
   color: #303133;
@@ -758,8 +850,8 @@ defineExpose({
 
 .dialog-footer-modern {
   display: flex;
-  justify-content: flex-end;
   gap: 8px;
+  justify-content: flex-end;
 }
 
 .modern-form {
@@ -772,9 +864,9 @@ defineExpose({
   }
 
   :deep(.el-form-item__label) {
+    padding-bottom: 10px;
     font-size: 14px;
     font-weight: 600;
-    padding-bottom: 10px;
     color: #303133;
   }
 
@@ -806,8 +898,8 @@ defineExpose({
     }
 
     .form-item-small {
-      width: 180px;
       flex-shrink: 0;
+      width: 180px;
       margin-bottom: 0;
     }
   }
@@ -815,23 +907,23 @@ defineExpose({
 
 // 文件预览框
 .file-preview-box {
+  max-height: 200px;
   margin-top: -4px;
   margin-bottom: 16px;
-  max-height: 200px;
   overflow-y: auto;
+  background: #f7f8fa;
   border: 1px solid #e4e7ed;
   border-radius: 4px;
-  background: #f7f8fa;
 }
 
 .file-preview-item {
   display: flex;
-  align-items: center;
   gap: 10px;
+  align-items: center;
   padding: 11px 14px;
   font-size: 13px;
-  border-bottom: 1px solid #e8eaed;
   background: white;
+  border-bottom: 1px solid #e8eaed;
 
   &:last-child {
     border-bottom: none;
@@ -846,27 +938,27 @@ defineExpose({
   }
 
   > i.fa-file {
-    color: #409eff;
     font-size: 15px;
+    color: #409eff;
   }
 
   .name {
     flex: 1;
     overflow: hidden;
+    font-weight: 500;
+    color: #303133;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: #303133;
-    font-weight: 500;
   }
 
   .size {
-    color: #909399;
     font-size: 12px;
+    color: #909399;
   }
 
   .remove-btn {
-    color: #f56c6c;
     font-size: 14px;
+    color: #f56c6c;
     cursor: pointer;
     opacity: 0.4;
 
@@ -877,17 +969,21 @@ defineExpose({
   }
 }
 
-
 // 云存储上传区域和表单区块
 .cloud-upload-section,
 .form-section {
   padding: 0 20px 20px;
 
+  // 移动端适配
+  @media (width <= 768px) {
+    padding: 0 12px 16px;
+  }
+
   .section-label {
+    margin-bottom: 10px;
     font-size: 14px;
     font-weight: 600;
     color: #303133;
-    margin-bottom: 10px;
   }
 }
 
@@ -907,68 +1003,156 @@ defineExpose({
 
   :deep(.el-upload-dragger) {
     padding: 40px 24px;
-    border-radius: 6px;
-    border: 2px dashed #d0d4d9;
     background: #fafbfc;
+    border: 2px dashed #d0d4d9;
+    border-radius: 6px;
 
     &:hover {
-      border-color: #409eff;
       background: #f0f7ff;
+      border-color: #409eff;
     }
   }
 
   .upload-icon {
+    margin-bottom: 16px;
     font-size: 48px;
     color: #409eff;
-    margin-bottom: 16px;
   }
 
   .upload-text {
-    font-size: 14px;
-    color: #303133;
-    font-weight: 500;
     margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #303133;
   }
 
   .upload-hint {
     font-size: 12px;
-    color: #909399;
     line-height: 1.6;
+    color: #909399;
   }
 }
 
 // 本地上传区域
 .local-upload-area {
   padding: 40px 24px;
-  border-radius: 6px;
-  border: 2px dashed #d0d4d9;
-  background: #fafbfc;
   text-align: center;
   cursor: pointer;
+  background: #fafbfc;
+  border: 2px dashed #d0d4d9;
+  border-radius: 6px;
   transition: all 0.3s;
 
   &:hover {
-    border-color: #409eff;
     background: #f0f7ff;
+    border-color: #409eff;
   }
 
   .upload-icon-local {
+    margin-bottom: 16px;
     font-size: 48px;
     color: #409eff;
-    margin-bottom: 16px;
   }
 
   .upload-text-local {
-    font-size: 14px;
-    color: #303133;
-    font-weight: 500;
     margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #303133;
   }
 
   .upload-hint-local {
     font-size: 12px;
-    color: #909399;
     line-height: 1.6;
+    color: #909399;
+  }
+}
+
+// 上传进度容器
+.upload-progress-container {
+  max-height: 400px;
+  padding: 4px;
+  overflow-y: auto;
+}
+
+.upload-progress-item {
+  padding: 16px;
+  margin-bottom: 12px;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  transition: all 0.2s;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  &:hover {
+    background: var(--el-fill-color);
+    border-color: var(--el-border-color-light);
+  }
+
+  .progress-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .progress-info {
+    display: flex;
+    flex: 1;
+    gap: 10px;
+    align-items: center;
+    min-width: 0;
+
+    i {
+      flex-shrink: 0;
+      font-size: 16px;
+      color: var(--el-color-primary);
+
+      &.file-status-success {
+        color: var(--el-color-success);
+      }
+
+      &.file-status-error {
+        color: var(--el-color-danger);
+      }
+
+      &.file-status-uploading {
+        color: var(--el-color-primary);
+      }
+    }
+
+    .file-name {
+      flex: 1;
+      overflow: hidden;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--el-text-color-primary);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  .file-size {
+    margin-left: 12px;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+    white-space: nowrap;
+  }
+
+  .progress-text {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--el-text-color-regular);
+  }
+
+  :deep(.el-progress) {
+    .el-progress__text {
+      font-size: 12px !important;
+      font-weight: 600;
+    }
   }
 }
 
@@ -976,15 +1160,15 @@ defineExpose({
 .selected-files {
   min-height: 100px;
   padding: 12px;
+  background-color: #fafafa;
   border: 1px dashed #dcdfe6;
   border-radius: 4px;
-  background-color: #fafafa;
 
   .empty-text {
-    text-align: center;
-    color: #909399;
     padding: 30px 0;
     font-size: 13px;
+    color: #909399;
+    text-align: center;
   }
 
   .file-list {
@@ -994,30 +1178,30 @@ defineExpose({
 
   .file-item-small {
     display: flex;
-    align-items: center;
     gap: 8px;
+    align-items: center;
     padding: 8px;
     margin-bottom: 6px;
+    font-size: 13px;
     background-color: white;
     border-radius: 4px;
-    font-size: 13px;
 
     i {
-      color: #409eff;
       font-size: 14px;
+      color: #409eff;
     }
 
     .file-name {
       flex: 1;
       overflow: hidden;
+      color: #303133;
       text-overflow: ellipsis;
       white-space: nowrap;
-      color: #303133;
     }
 
     .file-size-small {
-      color: #909399;
       font-size: 12px;
+      color: #909399;
     }
   }
 }

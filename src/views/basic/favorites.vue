@@ -7,10 +7,21 @@
             <span class="header-title">收藏管理</span>
           </el-col>
           <el-col :xs="24" :sm="12" :md="4" :lg="3" :xl="3">
-            <el-input v-model="searchForm.user_id" placeholder="用户ID" clearable size="default" />
+            <el-input
+              v-model="searchForm.user_id"
+              placeholder="用户ID"
+              clearable
+              size="default"
+            />
           </el-col>
           <el-col :xs="24" :sm="12" :md="4" :lg="3" :xl="3">
-            <el-select v-model="searchForm.target_type" placeholder="类型" clearable style="width: 100%" size="default">
+            <el-select
+              v-model="searchForm.target_type"
+              placeholder="类型"
+              clearable
+              style="width: 100%"
+              size="default"
+            >
               <el-option label="全部" value="" />
               <el-option label="文章" value="article" />
               <el-option label="商品" value="product" />
@@ -23,17 +34,24 @@
             </el-button>
           </el-col>
           <el-col :xs="12" :sm="6" :md="3" :lg="2" :xl="2">
-            <el-button :icon="RefreshLeft" @click="handleReset">
-              重置
-            </el-button>
+            <el-button :icon="RefreshLeft" @click="handleReset">重置</el-button>
           </el-col>
           <el-col :xs="24" :sm="24" :md="10" :lg="8" :xl="8">
             <div class="test-buttons">
-              <el-button type="success" size="small" @click="showTestFavoriteDialog">
+              <el-button
+                type="success"
+                size="small"
+                @click="showTestFavoriteDialog"
+              >
                 测试收藏/取消
               </el-button>
-              <el-button type="danger" size="small" @click="batchDelete" :disabled="selectedRows.length === 0">
-                批量删除({{selectedRows.length}})
+              <el-button
+                type="danger"
+                size="small"
+                :disabled="selectedRows.length === 0"
+                @click="batchDelete"
+              >
+                批量删除({{ selectedRows.length }})
               </el-button>
             </div>
           </el-col>
@@ -42,31 +60,38 @@
 
       <el-divider content-position="left">
         数据列表
-        <el-tag size="small" type="info" class="ml-2" v-if="pagination.total > 0">
+        <el-tag
+          v-if="pagination.total > 0"
+          size="small"
+          type="info"
+          class="ml-2"
+        >
           共 {{ pagination.total }} 条记录
         </el-tag>
       </el-divider>
 
       <!-- 表格 -->
       <el-table
+        v-loading="loading"
         border
         :data="tableData"
         :cell-style="{ textAlign: 'center' }"
         style="width: 100%"
         :header-cell-style="{ textAlign: 'center', backgroundColor: '#F5F7FA' }"
         size="small"
-        v-loading="loading"
         @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="50" />
         <el-table-column label="ID" prop="id" width="60" />
-        
+
         <el-table-column label="用户" min-width="160">
           <template #default="{ row }">
             <div class="user-cell">
               <el-avatar :size="32" :src="row.user?.avatar || defaultAvatar" />
               <div class="user-info">
-                <div class="username">{{ row.user?.username || '未知用户' }}</div>
+                <div class="username">
+                  {{ row.user?.username || "未知用户" }}
+                </div>
                 <div class="user-id">ID: {{ row.user_id }}</div>
               </div>
             </div>
@@ -132,20 +157,35 @@
     </el-card>
 
     <!-- 测试收藏对话框 -->
-    <el-dialog v-model="testFavoriteDialog.visible" title="测试收藏/取消" width="400px">
+    <el-dialog
+      v-model="testFavoriteDialog.visible"
+      title="测试收藏/取消"
+      width="400px"
+    >
       <el-form :model="testFavoriteDialog.form" label-width="80px">
         <el-form-item label="类型">
-          <el-select v-model="testFavoriteDialog.form.target_type" style="width: 100%">
+          <el-select
+            v-model="testFavoriteDialog.form.target_type"
+            style="width: 100%"
+          >
             <el-option label="文章" value="article" />
             <el-option label="商品" value="product" />
             <el-option label="评论" value="comment" />
           </el-select>
         </el-form-item>
         <el-form-item label="目标ID">
-          <el-input-number v-model="testFavoriteDialog.form.target_id" :min="1" style="width: 100%" />
+          <el-input-number
+            v-model="testFavoriteDialog.form.target_id"
+            :min="1"
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="用户ID">
-          <el-input-number v-model="testFavoriteDialog.form.user_id" :min="1" style="width: 100%" />
+          <el-input-number
+            v-model="testFavoriteDialog.form.user_id"
+            :min="1"
+            style="width: 100%"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -160,14 +200,19 @@
 import { ref, reactive, onMounted } from "vue";
 import { message } from "@/utils/message";
 import { Search, RefreshLeft } from "@element-plus/icons-vue";
-import { getFavoritesList, toggleFavorite, type FavoriteRecord } from "@/api/favorites";
+import {
+  getFavoritesList,
+  toggleFavorite,
+  type FavoriteRecord
+} from "@/api/favorites";
 
 defineOptions({
   name: "Favorites"
 });
 
 // 默认头像
-const defaultAvatar = "https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png";
+const defaultAvatar =
+  "https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png";
 
 // 搜索表单
 const searchForm = reactive({
@@ -184,7 +229,7 @@ const selectedRows = ref<FavoriteRecord[]>([]);
 const testFavoriteDialog = reactive({
   visible: false,
   form: {
-    target_type: 'article',
+    target_type: "article",
     target_id: 11355,
     user_id: 1001
   }
@@ -208,8 +253,13 @@ const getTypeName = (type: string): string => {
 };
 
 // 获取类型标签类型
-const getTypeTagType = (type: string): "success" | "warning" | "primary" | "info" | "danger" => {
-  const typeMap: Record<string, "success" | "warning" | "primary" | "info" | "danger"> = {
+const getTypeTagType = (
+  type: string
+): "success" | "warning" | "primary" | "info" | "danger" => {
+  const typeMap: Record<
+    string,
+    "success" | "warning" | "primary" | "info" | "danger"
+  > = {
     article: "success",
     product: "warning",
     comment: "primary"
@@ -220,7 +270,7 @@ const getTypeTagType = (type: string): "success" | "warning" | "primary" | "info
 // 格式化时间
 const formatDateTime = (timestamp: any): string => {
   if (!timestamp) return "-";
-  
+
   if (typeof timestamp === "number") {
     const date = new Date(timestamp * 1000);
     return date.toLocaleString("zh-CN", {
@@ -232,7 +282,7 @@ const formatDateTime = (timestamp: any): string => {
       second: "2-digit"
     });
   }
-  
+
   return timestamp;
 };
 
@@ -244,17 +294,17 @@ const loadList = async () => {
       page: pagination.currentPage,
       limit: pagination.pageSize
     };
-    
+
     if (searchForm.user_id) {
       params.user_id = Number(searchForm.user_id);
     }
-    
+
     if (searchForm.target_type) {
       params.target_type = searchForm.target_type;
     }
-    
+
     const response = await getFavoritesList(params);
-    
+
     if (response.code === 200 && response.data) {
       tableData.value = response.data.list || [];
       pagination.total = response.data.total || 0;
@@ -295,7 +345,9 @@ const handleCurrentChange = (page: number) => {
 
 // 查看目标
 const handleViewTarget = (row: FavoriteRecord) => {
-  message(`查看 ${getTypeName(row.target_type)} ID: ${row.target_id}`, { type: "info" });
+  message(`查看 ${getTypeName(row.target_type)} ID: ${row.target_id}`, {
+    type: "info"
+  });
 };
 
 // 选择变化
@@ -312,23 +364,23 @@ const handleDelete = async (row: FavoriteRecord) => {
       user_id: row.user_id
     });
     if (response.code === 200) {
-      message('删除成功', { type: "success" });
+      message("删除成功", { type: "success" });
       loadList();
     } else {
-      message(response.msg || '删除失败', { type: "error" });
+      message(response.msg || "删除失败", { type: "error" });
     }
   } catch (error: any) {
-    message('删除失败', { type: "error" });
+    message("删除失败", { type: "error" });
   }
 };
 
 // 批量删除
 const batchDelete = async () => {
   if (selectedRows.value.length === 0) {
-    message('请选择要删除的数据', { type: "warning" });
+    message("请选择要删除的数据", { type: "warning" });
     return;
   }
-  
+
   try {
     let successCount = 0;
     for (const row of selectedRows.value) {
@@ -341,12 +393,12 @@ const batchDelete = async () => {
         successCount++;
       }
     }
-    
+
     message(`成功删除 ${successCount} 条记录`, { type: "success" });
     selectedRows.value = [];
     loadList();
   } catch (error: any) {
-    message('批量删除失败', { type: "error" });
+    message("批量删除失败", { type: "error" });
   }
 };
 
@@ -384,42 +436,42 @@ onMounted(() => {
 <style lang="scss" scoped>
 .favorites-container {
   padding: 16px;
-  
+
   .header-title {
-    font-weight: 600;
     font-size: 16px;
+    font-weight: 600;
     line-height: 32px;
   }
-  
+
   .user-cell {
     display: flex;
-    align-items: center;
     gap: 12px;
+    align-items: center;
     padding: 4px 0;
-    
+
     .user-info {
       text-align: left;
-      
+
       .username {
+        font-size: 14px;
         font-weight: 500;
         color: var(--el-text-color-primary);
-        font-size: 14px;
       }
-      
+
       .user-id {
+        margin-top: 2px;
         font-size: 12px;
         color: var(--el-text-color-secondary);
-        margin-top: 2px;
       }
     }
   }
-  
+
   .test-buttons {
     display: flex;
-    gap: 8px;
     flex-wrap: wrap;
+    gap: 8px;
     justify-content: flex-end;
-    
+
     .el-button {
       margin-left: 0;
     }

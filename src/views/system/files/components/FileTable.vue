@@ -3,17 +3,17 @@
     <el-table
       ref="tableRef"
       :key="tableKey"
+      v-loading="loading"
       :data="fileList"
       style="width: 100%"
-      v-loading="loading"
       row-key="file_id"
       highlight-current-row
       :header-cell-style="tableHeaderStyle"
       :cell-style="tableCellStyle"
       @selection-change="handleSelectionChange"
     >
-      <el-table-column type="selection" width="40" align="center" />
-      <el-table-column label="文件信息" min-width="220">
+      <el-table-column type="selection" width="45" align="center" fixed />
+      <el-table-column label="文件信息" min-width="260" fixed>
         <template #default="{ row }">
           <div class="file-item">
             <div
@@ -27,14 +27,23 @@
                 :preview-teleported="true"
                 fit="cover"
                 class="file-item__preview"
+                lazy
               >
+                <template #placeholder>
+                  <div class="image-loading">
+                    <i class="fa fa-spinner fa-spin" />
+                  </div>
+                </template>
                 <template #error>
                   <div class="image-slot">
                     <i class="fa fa-image" />
                   </div>
                 </template>
               </el-image>
-              <i v-else :class="getFontAwesomeIcon(row.file_extension, row.file_type)" />
+              <i
+                v-else
+                :class="getFontAwesomeIcon(row.file_extension, row.file_type)"
+              />
             </div>
             <div class="file-item__details">
               <div class="file-item__name" :title="row.original_name">
@@ -57,7 +66,7 @@
           <span class="file-size">{{ formatFileSize(row.file_size) }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="文件类型" width="130" align="center">
+      <el-table-column label="类型" width="100" align="center">
         <template #default="{ row }">
           <div class="file-type-item">
             <i :class="getFontAwesomeIcon(row.file_extension, row.file_type)" />
@@ -67,14 +76,14 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column label="扩展名" min-width="80" align="center">
+      <el-table-column label="扩展名" width="85" align="center">
         <template #default="{ row }">
           <span class="file-ext-tag">
             {{ row.file_extension.toUpperCase() }}
           </span>
         </template>
       </el-table-column>
-      <el-table-column label="存储位置" min-width="110" align="center">
+      <el-table-column label="存储" width="100" align="center">
         <template #default="{ row }">
           <div class="storage-type" :class="getStorageClass(row.storage_type)">
             <i :class="getStorageIcon(row.storage_type)" />
@@ -82,7 +91,7 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column label="文件哈希" min-width="180" show-overflow-tooltip>
+      <el-table-column label="文件哈希" width="160" show-overflow-tooltip>
         <template #default="{ row }">
           <el-tooltip :content="row.file_hash" placement="top">
             <div class="hash-info">
@@ -96,22 +105,17 @@
           </el-tooltip>
         </template>
       </el-table-column>
-      <el-table-column label="备注" min-width="150" show-overflow-tooltip>
+      <el-table-column label="备注" min-width="120" show-overflow-tooltip>
         <template #default="{ row }">
           <span class="remark-text">{{ row.remark || "-" }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="上传时间" min-width="150" align="center">
+      <el-table-column label="上传时间" width="145" align="center">
         <template #default="{ row }">
           <span class="create-time">{{ formatDate(row.create_time) }}</span>
         </template>
       </el-table-column>
-      <el-table-column
-        label="操作"
-        min-width="200"
-        fixed="right"
-        align="center"
-      >
+      <el-table-column label="操作" width="200" fixed="right" align="center">
         <template #default="{ row }">
           <div class="file-actions">
             <!-- 预览按钮 -->
@@ -347,17 +351,18 @@ defineExpose({
 
   .file-item {
     display: flex;
+    gap: 10px;
     align-items: center;
 
     &__icon {
       display: flex;
+      flex-shrink: 0;
       align-items: center;
       justify-content: center;
-      width: 32px;
-      height: 32px;
-      margin-right: 8px;
-      font-size: 16px;
-      border-radius: 4px;
+      width: 36px;
+      height: 36px;
+      font-size: 18px;
+      border-radius: 6px;
 
       &.image-file {
         color: #1890ff;
@@ -416,14 +421,15 @@ defineExpose({
     }
 
     &__preview {
-      width: 32px;
-      height: 32px;
+      width: 36px;
+      height: 36px;
+      overflow: hidden;
       cursor: pointer;
-      border-radius: 4px;
+      border-radius: 6px;
 
       :deep(.el-image__inner) {
-        width: 32px;
-        height: 32px;
+        width: 36px;
+        height: 36px;
         object-fit: cover;
       }
     }
@@ -438,10 +444,23 @@ defineExpose({
       overflow: hidden;
       font-size: 13px;
       font-weight: 500;
-      color: #303133;
+      line-height: 1.4;
+      color: var(--el-text-color-primary);
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+  }
+
+  // 图片加载中样式
+  .image-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    font-size: 14px;
+    color: var(--el-color-primary);
+    background: var(--el-fill-color-light);
   }
 
   // 存储名称
@@ -541,10 +560,10 @@ defineExpose({
   // 文件扩展名标签
   .file-ext-tag {
     display: inline-block;
-    height: 20px;
-    padding: 0 6px;
+    height: 22px;
+    padding: 0 8px;
     font-size: 12px;
-    line-height: 18px;
+    line-height: 20px;
     color: #606266;
     background-color: transparent;
     border: 1px solid #e4e7ed;
@@ -664,7 +683,33 @@ defineExpose({
     justify-content: flex-end;
     padding: 12px 0;
     margin-top: 18px;
-    border-top: 1px solid #e4e7ed;
+    border-top: 1px solid var(--el-border-color-lighter);
+
+    // 移动端适配
+    @media (width <= 768px) {
+      justify-content: center;
+      padding: 10px 0;
+
+      :deep(.el-pagination) {
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+
+        .el-pagination__total,
+        .el-pagination__sizes {
+          margin-bottom: 8px;
+        }
+
+        .el-pager {
+          li {
+            min-width: 28px;
+            height: 28px;
+            font-size: 12px;
+            line-height: 28px;
+          }
+        }
+      }
+    }
   }
 }
 
@@ -673,5 +718,11 @@ defineExpose({
   margin: 0 2px;
   font-weight: 500;
   border-radius: 4px;
+
+  // 移动端适配
+  @media (width <= 768px) {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
 }
 </style>

@@ -11,6 +11,8 @@
         v-loading="loading"
         class="preview-dialog"
         element-loading-text="加载中..."
+        element-loading-spinner="fa fa-spinner fa-spin"
+        element-loading-svg-view-box="-10, -10, 50, 50"
       >
         <!-- 图片预览 -->
         <el-image
@@ -71,7 +73,7 @@
         <!-- Word预览 -->
         <div v-else-if="isWordFile" class="preview-dialog__office">
           <div class="office-header">
-            <i class="fa fa-file-word"></i>
+            <i class="fa fa-file-word" />
             <span class="office-title">{{ fileData?.original_name }}</span>
             <span class="office-type">Word文档</span>
           </div>
@@ -86,7 +88,7 @@
         <!-- Excel预览 -->
         <div v-else-if="isExcelFile" class="preview-dialog__office">
           <div class="office-header">
-            <i class="fa fa-file-excel"></i>
+            <i class="fa fa-file-excel" />
             <span class="office-title">{{ fileData?.original_name }}</span>
             <span class="office-type">Excel表格</span>
           </div>
@@ -101,7 +103,7 @@
         <!-- PDF预览 -->
         <div v-else-if="isPdfFile" class="preview-dialog__office">
           <div class="office-header">
-            <i class="fa fa-file-pdf"></i>
+            <i class="fa fa-file-pdf" />
             <span class="office-title">{{ fileData?.original_name }}</span>
             <span class="office-type">PDF文档</span>
           </div>
@@ -153,7 +155,8 @@ const emit = defineEmits<{
 }>();
 
 // Hooks
-const { isImage, isVideo, isAudio, isText, isWord, isExcel, isPdf } = useFileUtils();
+const { isImage, isVideo, isAudio, isText, isWord, isExcel, isPdf } =
+  useFileUtils();
 
 // 状态
 const fileData = ref<FileInfo | null>(null);
@@ -168,13 +171,27 @@ const visible = computed({
   set: (val: boolean) => emit("update:modelValue", val)
 });
 
-const isImageFile = computed(() => fileData.value && isImage(fileData.value.file_extension));
-const isVideoFile = computed(() => fileData.value && isVideo(fileData.value.file_extension));
-const isAudioFile = computed(() => fileData.value && isAudio(fileData.value.file_extension));
-const isTextFile = computed(() => fileData.value && isText(fileData.value.file_extension));
-const isWordFile = computed(() => fileData.value && isWord(fileData.value.file_extension));
-const isExcelFile = computed(() => fileData.value && isExcel(fileData.value.file_extension));
-const isPdfFile = computed(() => fileData.value && isPdf(fileData.value.file_extension));
+const isImageFile = computed(
+  () => fileData.value && isImage(fileData.value.file_extension)
+);
+const isVideoFile = computed(
+  () => fileData.value && isVideo(fileData.value.file_extension)
+);
+const isAudioFile = computed(
+  () => fileData.value && isAudio(fileData.value.file_extension)
+);
+const isTextFile = computed(
+  () => fileData.value && isText(fileData.value.file_extension)
+);
+const isWordFile = computed(
+  () => fileData.value && isWord(fileData.value.file_extension)
+);
+const isExcelFile = computed(
+  () => fileData.value && isExcel(fileData.value.file_extension)
+);
+const isPdfFile = computed(
+  () => fileData.value && isPdf(fileData.value.file_extension)
+);
 
 const textLines = computed(() => {
   if (!textContent.value) return 0;
@@ -274,13 +291,14 @@ watch(
 
 // 获取代理URL
 const getProxyUrl = (fileId: number | undefined) => {
-  if (!fileId) return '';
+  if (!fileId) return "";
   return `${baseUrlApi}/file/proxy?file_id=${fileId}`;
 };
 
 // Office文件渲染成功
 const handleOfficeRendered = () => {
   loading.value = false;
+  message("文档加载成功", { type: "success" });
 };
 
 // Office文件加载错误
@@ -348,13 +366,13 @@ export default {
   }
 
   &__office {
-    width: 100%;
-    height: 70vh;
     display: flex;
     flex-direction: column;
+    width: 100%;
+    height: 70vh;
+    overflow: hidden;
     background: var(--el-bg-color);
     border-radius: 8px;
-    overflow: hidden;
     box-shadow: 0 2px 12px 0 rgb(0 0 0 / 5%);
   }
 
@@ -370,6 +388,19 @@ export default {
     background: var(--el-fill-color-light);
     border: 1px dashed var(--el-border-color);
     border-radius: 8px;
+
+    // 移动端适配
+    @media (width <= 768px) {
+      padding: 40px 16px;
+
+      i {
+        font-size: 42px;
+      }
+
+      p {
+        font-size: 13px;
+      }
+    }
 
     i {
       font-size: 56px;
@@ -387,28 +418,30 @@ export default {
 // Office头部
 .office-header {
   display: flex;
-  align-items: center;
   gap: 12px;
+  align-items: center;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
   background: var(--el-fill-color-light);
+  border-bottom: 1px solid var(--el-border-color-lighter);
 
   i {
     font-size: 18px;
     color: var(--el-color-primary);
   }
+
   .office-title {
     flex: 1;
     font-weight: 600;
     color: var(--el-text-color-primary);
   }
+
   .office-type {
+    padding: 2px 6px;
     font-size: 12px;
     color: var(--el-text-color-secondary);
     background: var(--el-fill-color);
     border: 1px solid var(--el-border-color-lighter);
     border-radius: 4px;
-    padding: 2px 6px;
   }
 }
 
@@ -447,12 +480,12 @@ export default {
 // 文本内容区域
 .text-content-wrapper {
   width: 100%;
+  margin-top: 10px;
   overflow: hidden;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 8px;
   box-shadow: 0 2px 12px 0 rgb(0 0 0 / 5%);
-  margin-top: 10px;
 }
 
 // 文本信息栏

@@ -60,7 +60,7 @@ Route::group('/:version/article', function () {
 })->middleware([
     app\api\middleware\ArticleAuth::class
 ]);
-// 评论组
+// 评论组  use
 Route::group('/:version/comments', function () {
     // 查询接口
     Route::rule('list', ':version.comments/getList'); // 获取评论列表（分页）
@@ -69,7 +69,7 @@ Route::group('/:version/comments', function () {
 
     // 通用评论接口（推荐使用）
     Route::rule('getTargetComments/:target_id/:target_type', ':version.comments/getTargetComments'); // 获取目标对象评论树
-
+ 
     // 兼容接口（保留）
     Route::rule('getCommentsByArticleId', ':version.comments/getCommentsByArticleId');
     Route::rule('getComments/:article_id', ':version.comments/getComments');
