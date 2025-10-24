@@ -69,8 +69,8 @@
     >
       <template #header>
         <div class="dialog-header">
-          <i class="fa fa-spinner fa-spin" />
-          <span>上传进度</span>
+          <i :class="getUploadHeaderIcon" />
+          <span>{{ uploadHeaderText }}</span>
         </div>
       </template>
       <div class="upload-progress-container">
@@ -604,6 +604,46 @@ const getFileStatusIcon = (status: string) => {
   return iconMap[status] || "";
 };
 
+// 计算上传对话框标题图标
+const getUploadHeaderIcon = computed(() => {
+  const allSuccess =
+    uploadFiles.value.length > 0 &&
+    uploadFiles.value.every(f => f.status === "success");
+  const hasError = uploadFiles.value.some(f => f.status === "exception");
+  const isUploading = uploadFiles.value.some(
+    f => !f.status || f.status === "uploading"
+  );
+
+  if (allSuccess) {
+    return "fa fa-check-circle";
+  } else if (hasError) {
+    return "fa fa-exclamation-circle";
+  } else if (isUploading) {
+    return "fa fa-spinner fa-spin";
+  }
+  return "fa fa-spinner fa-spin";
+});
+
+// 计算上传对话框标题文本
+const uploadHeaderText = computed(() => {
+  const allSuccess =
+    uploadFiles.value.length > 0 &&
+    uploadFiles.value.every(f => f.status === "success");
+  const hasError = uploadFiles.value.some(f => f.status === "exception");
+  const isUploading = uploadFiles.value.some(
+    f => !f.status || f.status === "uploading"
+  );
+
+  if (allSuccess) {
+    return "上传完成";
+  } else if (hasError) {
+    return "上传失败";
+  } else if (isUploading) {
+    return "上传中...";
+  }
+  return "上传进度";
+});
+
 // 上传前检查
 const beforeUpload: UploadProps["beforeUpload"] = file => {
   // 检查文件大小，限制为8MB
@@ -844,7 +884,19 @@ defineExpose({
 
   i {
     font-size: 18px;
-    color: #409eff;
+    transition: color 0.3s;
+
+    &.fa-spinner {
+      color: #409eff;
+    }
+
+    &.fa-check-circle {
+      color: #67c23a;
+    }
+
+    &.fa-exclamation-circle {
+      color: #f56c6c;
+    }
   }
 }
 
@@ -975,7 +1027,7 @@ defineExpose({
   padding: 0 20px 20px;
 
   // 移动端适配
-  @media (width <= 768px) {
+  @media (width <=768px) {
     padding: 0 12px 16px;
   }
 

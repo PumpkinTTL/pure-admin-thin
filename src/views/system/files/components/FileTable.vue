@@ -61,22 +61,19 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column label="文件大小" min-width="80" align="center">
+      <el-table-column label="文件大小" width="100" align="center">
         <template #default="{ row }">
           <span class="file-size">{{ formatFileSize(row.file_size) }}</span>
         </template>
       </el-table-column>
       <el-table-column label="类型" width="100" align="center">
         <template #default="{ row }">
-          <div class="file-type-item">
-            <i :class="getFontAwesomeIcon(row.file_extension, row.file_type)" />
-            <span class="file-type-name">
-              {{ getFileTypeName(row.file_extension, row.file_type) }}
-            </span>
-          </div>
+          <span class="file-type-name">
+            {{ getFileTypeName(row.file_extension, row.file_type) }}
+          </span>
         </template>
       </el-table-column>
-      <el-table-column label="扩展名" width="85" align="center">
+      <el-table-column label="扩展名" width="100" align="center">
         <template #default="{ row }">
           <span class="file-ext-tag">
             {{ row.file_extension.toUpperCase() }}
@@ -359,77 +356,81 @@ defineExpose({
       flex-shrink: 0;
       align-items: center;
       justify-content: center;
-      width: 36px;
-      height: 36px;
-      font-size: 18px;
-      border-radius: 6px;
+      width: 48px;
+      height: 48px;
+      font-size: 22px;
+      border-radius: 8px;
+
+      i {
+        font-weight: 400;
+      }
 
       &.image-file {
-        color: #1890ff;
-        background-color: transparent;
+        color: #3b82f6;
+        background: #eff6ff;
       }
 
       &.video-file {
-        color: #e6a23c;
-        background-color: transparent;
+        color: #f59e0b;
+        background: #fffbeb;
       }
 
       &.audio-file {
-        color: #f56c6c;
-        background-color: transparent;
+        color: #ec4899;
+        background: #fdf2f8;
       }
 
       &.word-file {
-        color: #2b579a;
-        background-color: transparent;
+        color: #2563eb;
+        background: #eff6ff;
       }
 
       &.excel-file {
-        color: #207245;
-        background-color: transparent;
+        color: #10b981;
+        background: #f0fdf4;
       }
 
       &.pdf-file {
-        color: #d7282f;
-        background-color: transparent;
+        color: #ef4444;
+        background: #fef2f2;
       }
 
       &.ppt-file {
-        color: #d24726;
-        background-color: transparent;
+        color: #f97316;
+        background: #fff7ed;
       }
 
       &.text-file {
-        color: #606266;
-        background-color: transparent;
+        color: #6b7280;
+        background: #f9fafb;
       }
 
       &.code-file {
-        color: #9254de;
-        background-color: transparent;
+        color: #8b5cf6;
+        background: #f5f3ff;
       }
 
       &.archive-file {
-        color: #52c41a;
-        background-color: transparent;
+        color: #f59e0b;
+        background: #fffbeb;
       }
 
       &.other-file {
-        color: #909399;
-        background-color: transparent;
+        color: #9ca3af;
+        background: #f9fafb;
       }
     }
 
     &__preview {
-      width: 36px;
-      height: 36px;
+      width: 48px;
+      height: 48px;
       overflow: hidden;
       cursor: pointer;
-      border-radius: 6px;
+      border-radius: 8px;
 
       :deep(.el-image__inner) {
-        width: 36px;
-        height: 36px;
+        width: 48px;
+        height: 48px;
         object-fit: cover;
       }
     }
@@ -686,7 +687,7 @@ defineExpose({
     border-top: 1px solid var(--el-border-color-lighter);
 
     // 移动端适配
-    @media (width <= 768px) {
+    @media (width <=768px) {
       justify-content: center;
       padding: 10px 0;
 
@@ -720,7 +721,7 @@ defineExpose({
   border-radius: 4px;
 
   // 移动端适配
-  @media (width <= 768px) {
+  @media (width <=768px) {
     padding: 4px 8px;
     font-size: 12px;
   }

@@ -23,32 +23,32 @@ export function useFileUtils() {
       class: "audio-file"
     },
     word: {
-      name: "Word文档",
+      name: "Word",
       icon: "fa-file-word",
       class: "word-file"
     },
     excel: {
-      name: "Excel表格",
+      name: "Excel",
       icon: "fa-file-excel",
       class: "excel-file"
     },
     pdf: {
-      name: "PDF文档",
+      name: "PDF",
       icon: "fa-file-pdf",
       class: "pdf-file"
     },
     ppt: {
-      name: "PPT演示",
+      name: "PPT",
       icon: "fa-file-powerpoint",
       class: "ppt-file"
     },
     text: {
-      name: "文本文件",
+      name: "文本",
       icon: "fa-file-alt",
       class: "text-file"
     },
     code: {
-      name: "代码文件",
+      name: "代码",
       icon: "fa-file-code",
       class: "code-file"
     },
@@ -58,7 +58,7 @@ export function useFileUtils() {
       class: "archive-file"
     },
     other: {
-      name: "其他",
+      name: "文件",
       icon: "fa-file",
       class: "other-file"
     }
@@ -84,7 +84,6 @@ export function useFileUtils() {
     }
   };
 
-
   /**
    * 根据文件扩展名获取文件类型
    */
@@ -93,11 +92,15 @@ export function useFileUtils() {
     const ext = extension.toLowerCase();
 
     // 图片
-    if (["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "ico"].includes(ext)) {
+    if (
+      ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "ico"].includes(ext)
+    ) {
       return "image";
     }
     // 视频
-    if (["mp4", "webm", "ogg", "mov", "avi", "mkv", "flv", "wmv"].includes(ext)) {
+    if (
+      ["mp4", "webm", "ogg", "mov", "avi", "mkv", "flv", "wmv"].includes(ext)
+    ) {
       return "video";
     }
     // 音频
@@ -121,12 +124,45 @@ export function useFileUtils() {
       return "ppt";
     }
     // 代码文件
-    if (["js", "ts", "jsx", "tsx", "vue", "html", "css", "scss", "less", 
-         "php", "java", "py", "c", "cpp", "h", "go", "rs", "rb", "sql"].includes(ext)) {
+    if (
+      [
+        "js",
+        "ts",
+        "jsx",
+        "tsx",
+        "vue",
+        "html",
+        "css",
+        "scss",
+        "less",
+        "php",
+        "java",
+        "py",
+        "c",
+        "cpp",
+        "h",
+        "go",
+        "rs",
+        "rb",
+        "sql"
+      ].includes(ext)
+    ) {
       return "code";
     }
     // 文本文件
-    if (["txt", "log", "md", "json", "xml", "yaml", "yml", "ini", "conf"].includes(ext)) {
+    if (
+      [
+        "txt",
+        "log",
+        "md",
+        "json",
+        "xml",
+        "yaml",
+        "yml",
+        "ini",
+        "conf"
+      ].includes(ext)
+    ) {
       return "text";
     }
     // 压缩包
@@ -252,12 +288,18 @@ export function useFileUtils() {
   /**
    * 判断文件类型
    */
-  const isImage = (extension: string) => getFileTypeByExtension(extension) === "image";
-  const isVideo = (extension: string) => getFileTypeByExtension(extension) === "video";
-  const isAudio = (extension: string) => getFileTypeByExtension(extension) === "audio";
-  const isWord = (extension: string) => getFileTypeByExtension(extension) === "word";
-  const isExcel = (extension: string) => getFileTypeByExtension(extension) === "excel";
-  const isPdf = (extension: string) => getFileTypeByExtension(extension) === "pdf";
+  const isImage = (extension: string) =>
+    getFileTypeByExtension(extension) === "image";
+  const isVideo = (extension: string) =>
+    getFileTypeByExtension(extension) === "video";
+  const isAudio = (extension: string) =>
+    getFileTypeByExtension(extension) === "audio";
+  const isWord = (extension: string) =>
+    getFileTypeByExtension(extension) === "word";
+  const isExcel = (extension: string) =>
+    getFileTypeByExtension(extension) === "excel";
+  const isPdf = (extension: string) =>
+    getFileTypeByExtension(extension) === "pdf";
   const isText = (extension: string) => {
     const type = getFileTypeByExtension(extension);
     return type === "text" || type === "code";
@@ -277,7 +319,6 @@ export function useFileUtils() {
       isPdf(file.file_extension)
     );
   };
-
 
   return {
     formatFileSize,

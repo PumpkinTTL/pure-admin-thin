@@ -77,7 +77,12 @@
             <span class="office-title">{{ fileData?.original_name }}</span>
             <span class="office-type">Word文档</span>
           </div>
-          <div class="office-content">
+          <div
+            v-loading="officeLoading"
+            class="office-content"
+            element-loading-text="正在加载文档..."
+            element-loading-spinner="fa fa-spinner fa-spin"
+          >
             <vue-office-docx
               :src="getProxyUrl(fileData?.file_id)"
               @rendered="handleOfficeRendered"
@@ -92,7 +97,12 @@
             <span class="office-title">{{ fileData?.original_name }}</span>
             <span class="office-type">Excel表格</span>
           </div>
-          <div class="office-content">
+          <div
+            v-loading="officeLoading"
+            class="office-content"
+            element-loading-text="正在加载表格..."
+            element-loading-spinner="fa fa-spinner fa-spin"
+          >
             <vue-office-excel
               :src="getProxyUrl(fileData?.file_id)"
               @rendered="handleOfficeRendered"
@@ -107,7 +117,12 @@
             <span class="office-title">{{ fileData?.original_name }}</span>
             <span class="office-type">PDF文档</span>
           </div>
-          <div class="office-content">
+          <div
+            v-loading="officeLoading"
+            class="office-content"
+            element-loading-text="正在加载PDF..."
+            element-loading-spinner="fa fa-spinner fa-spin"
+          >
             <vue-office-pdf
               :src="getProxyUrl(fileData?.file_id)"
               @rendered="handleOfficeRendered"
@@ -161,6 +176,7 @@ const { isImage, isVideo, isAudio, isText, isWord, isExcel, isPdf } =
 // 状态
 const fileData = ref<FileInfo | null>(null);
 const loading = ref(false);
+const officeLoading = ref(false);
 const textContent = ref("");
 const textEncoding = ref("");
 const textError = ref("");
@@ -277,6 +293,17 @@ watch(
     if (newVal && props.file) {
       // 对话框打开时，重新设置 fileData
       fileData.value = props.file;
+
+      // 如果是Office文件，设置加载状态
+      if (
+        props.file.file_extension &&
+        (isWord(props.file.file_extension) ||
+          isExcel(props.file.file_extension) ||
+          isPdf(props.file.file_extension))
+      ) {
+        officeLoading.value = true;
+      }
+
       // 如果是文本文件且内容为空，加载内容
       if (
         props.file.file_extension &&
@@ -297,6 +324,7 @@ const getProxyUrl = (fileId: number | undefined) => {
 
 // Office文件渲染成功
 const handleOfficeRendered = () => {
+  officeLoading.value = false;
   loading.value = false;
   message("文档加载成功", { type: "success" });
 };
@@ -305,6 +333,7 @@ const handleOfficeRendered = () => {
 const handleOfficeError = (error: any) => {
   console.error("Office文件预览失败:", error);
   message("文件预览失败，请下载后查看", { type: "error" });
+  officeLoading.value = false;
   loading.value = false;
 };
 
@@ -390,7 +419,7 @@ export default {
     border-radius: 8px;
 
     // 移动端适配
-    @media (width <= 768px) {
+    @media (width <=768px) {
       padding: 40px 16px;
 
       i {
