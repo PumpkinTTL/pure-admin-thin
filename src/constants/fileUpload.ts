@@ -199,7 +199,7 @@ export function validateFile(file: File): {
   if (isForbiddenExtension(extension)) {
     return {
       valid: false,
-      message: `禁止上传 .${extension} 类型的文件（安全限制）`
+      message: `禁止上传 .${extension} 类型的文件`
     };
   }
 

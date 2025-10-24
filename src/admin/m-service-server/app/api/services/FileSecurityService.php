@@ -34,11 +34,16 @@ class FileSecurityService
 
         // 音频
         'audio/mpeg' => ['mp3'],
+        'audio/mp3' => ['mp3'],
         'audio/wav' => ['wav'],
+        'audio/x-wav' => ['wav'],
         'audio/ogg' => ['ogg'],
         'audio/aac' => ['aac'],
+        'audio/x-aac' => ['aac'],
         'audio/flac' => ['flac'],
+        'audio/x-flac' => ['flac'],
         'audio/x-m4a' => ['m4a'],
+        'audio/mp4' => ['m4a'],
 
         // 文档
         'application/pdf' => ['pdf'],
@@ -48,7 +53,7 @@ class FileSecurityService
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => ['xlsx'],
         'application/vnd.ms-powerpoint' => ['ppt'],
         'application/vnd.openxmlformats-officedocument.presentationml.presentation' => ['pptx'],
-        'text/plain' => ['txt'],
+        'text/plain' => ['txt', 'md', 'csv'], // 文本文件可能被识别为 text/plain
         'text/csv' => ['csv'],
         'text/html' => ['html', 'htm'],
         'text/css' => ['css'],
@@ -59,20 +64,16 @@ class FileSecurityService
 
         // 压缩包
         'application/zip' => ['zip'],
+        'application/x-zip-compressed' => ['zip'],
         'application/x-rar-compressed' => ['rar'],
+        'application/x-rar' => ['rar'],
         'application/x-7z-compressed' => ['7z'],
         'application/x-tar' => ['tar'],
         'application/gzip' => ['gz'],
+        'application/x-gzip' => ['gz'],
 
-        // 代码文件
-        'text/javascript' => ['js'],
-        'application/javascript' => ['js'],
-        'text/x-php' => ['php'],
-        'application/x-php' => ['php'],
-        'text/x-python' => ['py'],
-        'text/x-java' => ['java'],
-        'text/x-c' => ['c', 'h'],
-        'text/x-c++' => ['cpp', 'hpp'],
+        // 通用二进制流（需要特殊处理）
+        'application/octet-stream' => ['zip', 'rar', '7z', 'tar', 'gz', 'pdf', 'doc', 'xls', 'ppt'],
     ];
 
     /**
@@ -103,7 +104,7 @@ class FileSecurityService
 
             return [
                 'valid' => false,
-                'message' => "禁止上传 .{$extension} 类型的文件（安全限制）",
+                'message' => "禁止上传 .{$extension} 类型的文件",
                 'mime' => ''
             ];
         }
@@ -154,11 +155,43 @@ class FileSecurityService
             }
         }
 
-        // 5. 验证MIME类型和扩展名是否匹配
+        // 5. 验证MIME类型和扩展名是否匹配（仅对精确匹配的 MIME 类型进行严格验证）
         if (isset(self::$allowedMimeTypes[$realMime])) {
             $allowedExtensions = self::$allowedMimeTypes[$realMime];
 
+            // 检查扩展名是否在该 MIME 类型的允许列表中
             if (!in_array($extension, $allowedExtensions)) {
+                // 特殊处理：text/plain 可以匹配多种文本文件
+                // 如果是 text/plain，只要扩展名在允许的文档类型中就放行
+                if ($realMime === 'text/plain') {
+                    $textExtensions = ['txt', 'md', 'csv', 'log', 'json', 'xml', 'html', 'htm', 'css'];
+                    if (in_array($extension, $textExtensions)) {
+                        // 放行
+                        return [
+                            'valid' => true,
+                            'message' => '文件验证通过',
+                            'mime' => $realMime
+                        ];
+                    }
+                }
+
+                // 特殊处理：application/octet-stream 是通用二进制流
+                // 对于压缩包等文件，可能被识别为此类型
+                if ($realMime === 'application/octet-stream') {
+                    $binaryExtensions = ['zip', 'rar', '7z', 'tar', 'gz', 'exe', 'dll'];
+                    if (in_array($extension, $binaryExtensions)) {
+                        // 对于允许的压缩包格式放行，对于可执行文件拒绝
+                        $allowedBinary = ['zip', 'rar', '7z', 'tar', 'gz'];
+                        if (in_array($extension, $allowedBinary)) {
+                            return [
+                                'valid' => true,
+                                'message' => '文件验证通过',
+                                'mime' => $realMime
+                            ];
+                        }
+                    }
+                }
+
                 Log::warning('文件扩展名与MIME类型不匹配', [
                     'mime' => $realMime,
                     'extension' => $extension,
@@ -184,7 +217,7 @@ class FileSecurityService
 
     /**
      * 获取文件真实MIME类型(基于文件内容)
-     * 
+     *
      * @param string $filePath
      * @return string|false
      */
@@ -219,7 +252,7 @@ class FileSecurityService
 
     /**
      * 通过文件头(magic bytes)识别MIME类型
-     * 
+     *
      * @param string $filePath
      * @return string|false
      */
