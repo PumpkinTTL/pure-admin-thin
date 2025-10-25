@@ -898,30 +898,24 @@
             :loading="userSelectLoading"
             style="width: 100%"
             clearable
+            teleported
+            popper-class="user-select-dropdown"
             @focus="handleFocus"
           >
             <el-option
               v-for="item in userOptions"
               :key="item.id"
-              :label="item.username"
+              :label="`${item.username} (ID: ${item.id})`"
               :value="item.id"
             >
-              <div class="user-option">
-                <el-avatar :size="24" :src="item.avatar">
+              <div style="display: flex; gap: 10px; align-items: center">
+                <el-avatar :size="28" :src="item.avatar">
                   {{ item.username?.charAt(0) }}
                 </el-avatar>
-                <div class="user-info">
-                  <div class="username">{{ item.username }}</div>
-                  <div class="user-detail">
-                    <span class="user-id">ID: {{ item.id }}</span>
-                    <span
-                      v-if="item.roles && item.roles.length > 0"
-                      class="user-role"
-                    >
-                      {{ item.roles[0].name }}
-                    </span>
-                  </div>
-                </div>
+                <span style="font-weight: 500">{{ item.username }}</span>
+                <span style="font-size: 12px; color: #909399">
+                  ID: {{ item.id }}
+                </span>
               </div>
             </el-option>
           </el-select>
@@ -942,30 +936,24 @@
             :loading="userSelectLoading"
             style="width: 100%"
             clearable
+            teleported
+            popper-class="user-select-dropdown"
             @focus="handleFocus"
           >
             <el-option
               v-for="item in userOptions"
               :key="item.id"
-              :label="item.username"
+              :label="`${item.username} (ID: ${item.id})`"
               :value="item.id"
             >
-              <div class="user-option">
-                <el-avatar :size="24" :src="item.avatar">
+              <div style="display: flex; gap: 10px; align-items: center">
+                <el-avatar :size="28" :src="item.avatar">
                   {{ item.username?.charAt(0) }}
                 </el-avatar>
-                <div class="user-info">
-                  <div class="username">{{ item.username }}</div>
-                  <div class="user-detail">
-                    <span class="user-id">ID: {{ item.id }}</span>
-                    <span
-                      v-if="item.roles && item.roles.length > 0"
-                      class="user-role"
-                    >
-                      {{ item.roles[0].name }}
-                    </span>
-                  </div>
-                </div>
+                <span style="font-weight: 500">{{ item.username }}</span>
+                <span style="font-size: 12px; color: #909399">
+                  ID: {{ item.id }}
+                </span>
               </div>
             </el-option>
           </el-select>
@@ -1163,6 +1151,8 @@
             collapse-tags
             collapse-tags-tooltip
             :max-collapse-tags="3"
+            teleported
+            popper-class="user-select-dropdown"
             @focus="handleFocus"
           >
             <template #loading>
@@ -1178,26 +1168,17 @@
             <el-option
               v-for="item in userOptions"
               :key="item.id"
-              :label="`${item.username}`"
+              :label="`${item.username} (${item.email})`"
               :value="item.id"
             >
-              <div class="user-option">
+              <div style="display: flex; gap: 10px; align-items: center">
                 <el-avatar :size="28" :src="item.avatar">
                   {{ item.username?.charAt(0) }}
                 </el-avatar>
-                <div class="user-info">
-                  <div class="username">{{ item.username }}</div>
-                  <div class="user-detail">
-                    <span class="user-id">ID: {{ item.id }}</span>
-                    <span class="user-email">
-                      <font-awesome-icon
-                        :icon="['fas', 'envelope']"
-                        style="margin-right: 4px"
-                      />
-                      {{ item.email }}
-                    </span>
-                  </div>
-                </div>
+                <span style="font-weight: 500">{{ item.username }}</span>
+                <span style="font-size: 12px; color: #67c23a">
+                  {{ item.email }}
+                </span>
               </div>
             </el-option>
           </el-select>
@@ -1226,6 +1207,8 @@
             :loading="userSelectLoading"
             style="width: 100%"
             clearable
+            teleported
+            popper-class="user-select-dropdown"
             @focus="handleFocus"
           >
             <template #loading>
@@ -1241,26 +1224,17 @@
             <el-option
               v-for="item in userOptions"
               :key="item.id"
-              :label="`${item.username}`"
+              :label="`${item.username} (${item.email})`"
               :value="item.id"
             >
-              <div class="user-option">
+              <div style="display: flex; gap: 10px; align-items: center">
                 <el-avatar :size="28" :src="item.avatar">
                   {{ item.username?.charAt(0) }}
                 </el-avatar>
-                <div class="user-info">
-                  <div class="username">{{ item.username }}</div>
-                  <div class="user-detail">
-                    <span class="user-id">ID: {{ item.id }}</span>
-                    <span class="user-email">
-                      <font-awesome-icon
-                        :icon="['fas', 'envelope']"
-                        style="margin-right: 4px"
-                      />
-                      {{ item.email }}
-                    </span>
-                  </div>
-                </div>
+                <span style="font-weight: 500">{{ item.username }}</span>
+                <span style="font-size: 12px; color: #67c23a">
+                  {{ item.email }}
+                </span>
               </div>
             </el-option>
           </el-select>
@@ -1715,8 +1689,7 @@ const priorityOptions = [
 // 公告状态选项
 const statusOptions = [
   { id: 0, name: "草稿", color: "#d9d9d9" },
-  { id: 1, name: "已发布", color: "#52c41a" },
-  { id: 2, name: "已撤回", color: "#f5222d" }
+  { id: 1, name: "已发布", color: "#52c41a" }
 ];
 
 // 公告接收范围选项
@@ -2639,7 +2612,7 @@ onMounted(() => {
 }
 
 // 移动端适配
-@media (width <= 768px) {
+@media (width <=768px) {
   :deep(.el-dialog) {
     width: 95% !important;
     margin: 0 auto;
@@ -3052,7 +3025,7 @@ onMounted(() => {
 .user-option {
   display: flex;
   align-items: center;
-  padding: 8px 4px;
+  padding: 8px 12px;
   transition: all 0.2s ease;
 
   :deep(.el-avatar) {
@@ -3300,7 +3273,6 @@ onMounted(() => {
 // 邮件弹窗样式
 :deep(.el-dialog__header) {
   padding: 18px 24px;
-  background: linear-gradient(to right, #f8f9fa, #fff);
   border-bottom: 1px solid #ebeef5;
 }
 
@@ -3361,5 +3333,25 @@ onMounted(() => {
 :deep(.el-tag) {
   margin: 2px 4px 2px 0;
   border-radius: 4px;
+}
+</style>
+
+<style lang="scss">
+// 全局样式：修复用户选择下拉菜单被遮挡的问题
+.user-select-dropdown {
+  z-index: 9999 !important;
+  min-width: 450px !important;
+  max-width: 600px !important;
+
+  .el-select-dropdown__item {
+    height: auto !important;
+    padding: 8px 12px !important;
+    line-height: normal !important;
+  }
+
+  // 隐藏或修复popper箭头位置
+  .el-popper__arrow {
+    display: none !important;
+  }
 }
 </style>
