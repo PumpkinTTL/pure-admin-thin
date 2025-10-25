@@ -1166,7 +1166,7 @@
             @focus="handleFocus"
           >
             <template #loading>
-              <div style=" padding: 10px;text-align: center">
+              <div style="padding: 10px; text-align: center">
                 <font-awesome-icon
                   :icon="['fas', 'spinner']"
                   spin
@@ -1229,7 +1229,7 @@
             @focus="handleFocus"
           >
             <template #loading>
-              <div style=" padding: 10px;text-align: center">
+              <div style="padding: 10px; text-align: center">
                 <font-awesome-icon
                   :icon="['fas', 'spinner']"
                   spin
@@ -1424,6 +1424,7 @@ import { getUserList } from "@/api/user";
 import { sendEmail } from "@/api/emailRecord";
 import debounce from "lodash/debounce";
 import EmailRecordTable from "./components/EmailRecordTable.vue";
+import { useUserStoreHook } from "@/store/modules/user";
 
 // 定义API响应类型
 interface ApiResponse<T = any> {
@@ -1754,6 +1755,9 @@ const searchForm = reactive<NoticeParams>({
 const tableLoading = ref(false);
 const selectedNotices = ref<any[]>([]);
 
+// 获取用户store
+const userStore = useUserStoreHook();
+
 // 对话框相关状态
 const noticeDialogVisible = ref(false);
 const dialogTitle = ref("新增公告");
@@ -1768,7 +1772,7 @@ const noticeForm = reactive<
   content: "",
   notice_type: NOTICE_TYPES.ALL,
   category_type: CATEGORY_TYPES.SYSTEM_UPDATE,
-  publisher_id: 1, // 默认当前用户ID，实际应该从登录用户信息中获取
+  publisher_id: userStore.id || 1, // 从store获取当前用户ID
   target_uids: [],
   target_uid: undefined,
   status: NOTICE_STATUS.DRAFT,
@@ -2294,6 +2298,7 @@ const resetNoticeForm = () => {
   noticeForm.content = "";
   noticeForm.notice_type = NOTICE_TYPES.ALL;
   noticeForm.category_type = CATEGORY_TYPES.SYSTEM_UPDATE;
+  noticeForm.publisher_id = userStore.id || 1; // 重置时重新设置当前用户ID
   noticeForm.target_uids = [];
   noticeForm.target_uid = undefined;
   noticeForm.status = NOTICE_STATUS.DRAFT;
@@ -2553,8 +2558,8 @@ const submitEmailForm = async () => {
 
     emailSending.value = true;
     try {
-      // 获取当前登录用户ID (从store或其他地方获取)
-      const currentUserId = 1; // TODO: 从实际登录状态获取
+      // 从store获取当前登录用户ID
+      const currentUserId = userStore.id || 1;
 
       // 准备邮件数据
       const emailData: any = {
@@ -2620,8 +2625,6 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-
-
 @keyframes typing-animation {
   0%,
   100% {
@@ -3240,7 +3243,6 @@ onMounted(() => {
           #ec4899 50%,
           #8b5cf6 100%
         );
-        background-clip: text;
         background-clip: text;
         -webkit-text-fill-color: transparent;
       }

@@ -189,7 +189,11 @@
       >
         <template #default="{ row }">
           <el-tag :type="getReceiverTypeTag(row.receiver_type)" size="small">
-            {{ row.receiver_type_text }}
+            {{
+              row.receiver_type_text ||
+              RECEIVER_TYPE_TEXT[row.receiver_type] ||
+              "未知"
+            }}
           </el-tag>
         </template>
       </el-table-column>
@@ -216,7 +220,7 @@
       >
         <template #default="{ row }">
           <el-tag :type="getStatusTag(row.status)" size="small">
-            {{ row.status_text }}
+            {{ row.status_text || STATUS_TEXT[row.status] || "未知" }}
           </el-tag>
         </template>
       </el-table-column>
@@ -314,6 +318,23 @@ import {
   type EmailStatistics
 } from "@/api/emailRecord";
 import EmailRecordDetail from "./EmailRecordDetail.vue";
+
+// 接收方式映射
+const RECEIVER_TYPE_TEXT: Record<number, string> = {
+  1: "全部用户",
+  2: "指定多个用户",
+  3: "单个用户",
+  4: "指定邮箱"
+};
+
+// 发送状态映射
+const STATUS_TEXT: Record<number, string> = {
+  0: "待发送",
+  1: "发送中",
+  2: "发送完成",
+  3: "部分失败",
+  4: "全部失败"
+};
 
 // 搜索表单
 const searchForm = reactive({

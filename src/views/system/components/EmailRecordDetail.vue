@@ -27,13 +27,21 @@
               :type="getReceiverTypeTag(emailDetail.receiver_type)"
               size="small"
             >
-              {{ emailDetail.receiver_type_text }}
+              {{
+                emailDetail.receiver_type_text ||
+                RECEIVER_TYPE_TEXT[emailDetail.receiver_type || 0] ||
+                "未知"
+              }}
             </el-tag>
           </el-descriptions-item>
 
           <el-descriptions-item label="发送状态">
             <el-tag :type="getStatusTag(emailDetail.status)" size="small">
-              {{ emailDetail.status_text }}
+              {{
+                emailDetail.status_text ||
+                RECORD_STATUS_TEXT[emailDetail.status || 0] ||
+                "未知"
+              }}
             </el-tag>
           </el-descriptions-item>
 
@@ -131,7 +139,7 @@
           >
             <template #default="{ row }">
               <el-tag :type="row.user_id ? 'success' : 'info'" size="small">
-                {{ row.receiver_type_text }}
+                {{ row.user_id ? "系统用户" : "外部邮箱" }}
               </el-tag>
             </template>
           </el-table-column>
@@ -143,11 +151,10 @@
             align="center"
           >
             <template #default="{ row }">
-              <el-tag
-                :type="row.status === 1 ? 'success' : 'danger'"
-                size="small"
-              >
-                {{ row.status_text }}
+              <el-tag :type="getReceiverStatusTag(row.status)" size="small">
+                {{
+                  row.status_text || RECEIVER_STATUS_TEXT[row.status] || "未知"
+                }}
               </el-tag>
             </template>
           </el-table-column>
@@ -207,6 +214,30 @@ import {
   type EmailRecordData,
   type EmailReceiverData
 } from "@/api/emailRecord";
+
+// 接收方式映射
+const RECEIVER_TYPE_TEXT: Record<number, string> = {
+  1: "全部用户",
+  2: "指定多个用户",
+  3: "单个用户",
+  4: "指定邮箱"
+};
+
+// 邮件记录发送状态映射
+const RECORD_STATUS_TEXT: Record<number, string> = {
+  0: "待发送",
+  1: "发送中",
+  2: "发送完成",
+  3: "部分失败",
+  4: "全部失败"
+};
+
+// 接收者发送状态映射
+const RECEIVER_STATUS_TEXT: Record<number, string> = {
+  0: "待发送",
+  1: "发送成功",
+  2: "发送失败"
+};
 
 // Props
 const props = defineProps<{
@@ -354,7 +385,7 @@ const getReceiverTypeTag = (
   return tags[type] || "info";
 };
 
-// 获取状态标签类型
+// 获取邮件记录状态标签类型
 const getStatusTag = (
   status: number
 ): "success" | "warning" | "info" | "danger" | "primary" => {
@@ -367,6 +398,21 @@ const getStatusTag = (
     2: "success",
     3: "warning",
     4: "danger"
+  };
+  return tags[status] || "info";
+};
+
+// 获取接收者状态标签类型
+const getReceiverStatusTag = (
+  status: number
+): "success" | "warning" | "info" | "danger" | "primary" => {
+  const tags: Record<
+    number,
+    "success" | "warning" | "info" | "danger" | "primary"
+  > = {
+    0: "info", // 待发送
+    1: "success", // 发送成功
+    2: "danger" // 发送失败
   };
   return tags[status] || "info";
 };
