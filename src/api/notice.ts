@@ -25,28 +25,47 @@ export const updateNotice = (noticeId: number | string, data: any) => {
 };
 
 // 删除公告
-export const deleteNotice = (noticeId: number | string, isReal: boolean = false) => {
-  return http.request("get", `/api/v1/notice/delete/${noticeId}`, { params: { real: isReal } });
+export const deleteNotice = (
+  noticeId: number | string,
+  isReal: boolean = false
+) => {
+  return http.request("get", `/api/v1/notice/delete/${noticeId}`, {
+    params: { real: isReal }
+  });
 };
 
 // 批量删除公告
-export const batchDeleteNotice = (noticeIds: (number | string)[], isReal: boolean = false) => {
-  return http.request("post", "/api/v1/notice/batchDelete", { data: { ids: noticeIds, real: isReal } });
+export const batchDeleteNotice = (
+  noticeIds: (number | string)[],
+  isReal: boolean = false
+) => {
+  return http.request("post", "/api/v1/notice/batchDelete", {
+    data: { ids: noticeIds, real: isReal }
+  });
 };
 
 // 更新公告状态
-export const updateNoticeStatus = (noticeId: number | string, status: number) => {
-  return http.request("get", `/api/v1/notice/status/${noticeId}`, { params: { status } });
+export const updateNoticeStatus = (
+  noticeId: number | string,
+  status: number
+) => {
+  return http.request("get", `/api/v1/notice/status/${noticeId}`, {
+    params: { status }
+  });
 };
 
 // 发布公告
 export const publishNotice = (noticeId: number | string) => {
-  return http.request("get", `/api/v1/notice/status/${noticeId}`, { params: { status: 1 } });
+  return http.request("get", `/api/v1/notice/status/${noticeId}`, {
+    params: { status: 1 }
+  });
 };
 
 // 撤回公告
 export const revokeNotice = (noticeId: number | string) => {
-  return http.request("get", `/api/v1/notice/status/${noticeId}`, { params: { status: 2 } });
+  return http.request("get", `/api/v1/notice/status/${noticeId}`, {
+    params: { status: 2 }
+  });
 };
 
 // 切换公告置顶状态
@@ -55,8 +74,13 @@ export const toggleNoticeTop = (noticeId: number | string) => {
 };
 
 // 设置公告置顶状态
-export const setNoticeTopStatus = (noticeId: number | string, isTop: boolean) => {
-  return http.request("get", `/api/v1/notice/top/${noticeId}`, { params: { is_top: isTop } });
+export const setNoticeTopStatus = (
+  noticeId: number | string,
+  isTop: boolean
+) => {
+  return http.request("get", `/api/v1/notice/top/${noticeId}`, {
+    params: { is_top: isTop }
+  });
 };
 
 // 获取用户可见公告
@@ -67,6 +91,11 @@ export const getUserNotices = (userId: number | string, params?: any) => {
 // 恢复已删除的公告
 export const restoreNotice = (noticeId: number | string) => {
   return http.request("get", `/api/v1/notice/restore/${noticeId}`);
+};
+
+// 发送公告邮件通知
+export const sendNoticeEmail = (data: any) => {
+  return http.request("post", "/api/v1/notice/sendEmail", { data });
 };
 
 // 公告类型常量
@@ -158,4 +187,4 @@ export interface NoticeUpdateData {
   status?: number;
   priority?: number;
   is_top?: boolean;
-} 
+}

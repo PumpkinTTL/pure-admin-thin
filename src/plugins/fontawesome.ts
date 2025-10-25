@@ -131,7 +131,10 @@ import {
   faFileVideo,
   faFileZipper,
   faSquare,
-  faMagic
+  faMagic,
+  faRedo,
+  faSyncAlt,
+  faTimesCircle
 } from "@fortawesome/free-solid-svg-icons";
 // far格式图标
 import {
@@ -290,6 +293,9 @@ library.add(
   faFileZipper,
   faSquare,
   faMagic,
+  faRedo,
+  faSyncAlt,
+  faTimesCircle,
   farCheckCircle,
   farBell,
   faGithub,

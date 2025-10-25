@@ -69,7 +69,7 @@ Route::group('/:version/comments', function () {
 
     // 通用评论接口（推荐使用）
     Route::rule('getTargetComments/:target_id/:target_type', ':version.comments/getTargetComments'); // 获取目标对象评论树
- 
+
     // 兼容接口（保留）
     Route::rule('getCommentsByArticleId', ':version.comments/getCommentsByArticleId');
     Route::rule('getComments/:article_id', ':version.comments/getComments');
@@ -247,6 +247,28 @@ Route::group('/:version/api', function () {
     Route::rule('statusOptions', ':version.ApiManager/getStatusOptions');
     // 修复API路径格式
     Route::rule('fixPaths', ':version.ApiManager/fixApiPaths');
+});
+
+// 邮件记录路由组
+Route::group('/:version/emailRecord', function () {
+    // 获取邮件记录列表
+    Route::rule('list', ':version.emailRecord/getList');
+    // 获取邮件记录详情
+    Route::rule('detail', ':version.emailRecord/getDetail');
+    // 获取接收者列表
+    Route::rule('receivers', ':version.emailRecord/getReceivers');
+    // 发送邮件
+    Route::rule('send', ':version.emailRecord/send');
+    // 重新发送失败的邮件
+    Route::rule('resend', ':version.emailRecord/resend');
+    // 删除邮件记录
+    Route::rule('delete', ':version.emailRecord/delete');
+    // 批量删除邮件记录
+    Route::rule('batchDelete', ':version.emailRecord/batchDelete');
+    // 恢复邮件记录
+    Route::rule('restore', ':version.emailRecord/restore');
+    // 获取统计数据
+    Route::rule('statistics', ':version.emailRecord/getStatistics');
 });
 
 //支付方式分组

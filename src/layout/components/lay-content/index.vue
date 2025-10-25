@@ -203,4 +203,8 @@ const transitionMain = defineComponent({
   flex-direction: column;
   width: 100%;
 }
+
+:deep(.main-content) {
+  margin: 12px;
+}
 </style>
