@@ -8,10 +8,10 @@ export default {
     "body-leading-blank": [2, "always"],
     "footer-leading-blank": [1, "always"],
     "header-max-length": [2, "always", 108],
-    "subject-empty": [2, "never"],
-    "type-empty": [2, "never"],
+    "subject-empty": [0], // 改为0，不强制要求主题
+    "type-empty": [0], // 改为0，不强制要求类型
     "type-enum": [
-      2,
+      0, // 改为0，不强制限制类型
       "always",
       [
         "feat",
