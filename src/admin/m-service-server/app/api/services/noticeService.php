@@ -526,27 +526,26 @@ class noticeService
     {
         $currentUserId = $params['current_user_id'] ?? 0;
         $currentUserRoles = $params['current_user_roles'] ?? [];
-        $isAdmin = $params['is_admin'] ?? false; // 是否为管理端请求
+        $isAdmin = $params['is_admin'] ?? false;
 
-        error_log("[noticeService] applyPermissionFilter - userId: {$currentUserId}, roles: " . json_encode($currentUserRoles) . ", isAdmin: " . ($isAdmin ? 'true' : 'false'));
-
-        // 如果是管理端请求，不应用权限过滤（管理员可以看到所有公告）
+        // 如果是管理员，不应用权限过滤（管理员可以看到所有公告）
         if ($isAdmin) {
-            error_log("[noticeService] 管理端请求 - 跳过权限过滤");
             return $query;
         }
 
-        // 客户端请求：严格按照 visibility 权限过滤
+        // 非管理员：严格按照 visibility 权限过滤
         $query->where(function ($query) use ($currentUserId, $currentUserRoles) {
-            // 1. 公开公告（所有人可见，包括未登录用户）
-            $query->whereOr('visibility', 'public');
+            // ✅ 修复：第一个条件用 where，后续条件用 whereOr
+
+            // 1. 公开公告（所有人可见，包括未登录用户）- 第一个条件用 where
+            $query->where('visibility', 'public');
 
             // 2. 如果已登录
             if ($currentUserId > 0) {
-                // 2.1 登录可见的公告
+                // 2.1 登录可见的公告 - 用 whereOr
                 $query->whereOr('visibility', 'login_required');
 
-                // 2.2 指定用户可见（检查中间表）
+                // 2.2 指定用户可见（检查中间表）- 用 whereOr
                 $query->whereOr(function ($subQuery) use ($currentUserId) {
                     $subQuery->where('visibility', 'specific_users')
                         ->whereRaw("EXISTS (
@@ -561,9 +560,8 @@ class noticeService
             // 3. 如果有角色信息
             if (is_array($currentUserRoles) && count($currentUserRoles) > 0) {
                 $rolesStr = implode(',', array_map('intval', $currentUserRoles));
-                error_log("[noticeService] 角色过滤 - rolesStr: {$rolesStr}");
 
-                // 3.1 指定角色可见（检查中间表）
+                // 3.1 指定角色可见（检查中间表）- 用 whereOr
                 $query->whereOr(function ($subQuery) use ($rolesStr) {
                     $subQuery->where('visibility', 'specific_roles')
                         ->whereRaw("EXISTS (

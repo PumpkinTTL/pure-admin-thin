@@ -25,14 +25,12 @@ class notice extends BaseController
         // 从中间件获取用户信息和管理员标识
         $currentUserId = request()->currentUserId ?? 0;
         $currentUserRoles = request()->currentUserRoles ?? [];
-        $isAdmin = request()->isAdmin ?? false; // 从中间件获取管理员标识（基于 Token 中的角色）
-
-        error_log("[notice Controller] getNoticeList - userId: {$currentUserId}, roles: " . json_encode($currentUserRoles) . ", isAdmin: " . ($isAdmin ? 'true' : 'false'));
+        $isAdmin = request()->isAdmin ?? false;
 
         // 传递用户上下文到 Service
         $params['current_user_id'] = $currentUserId;
         $params['current_user_roles'] = $currentUserRoles;
-        $params['is_admin'] = $isAdmin; // 传递管理员标识
+        $params['is_admin'] = $isAdmin;
 
         $data = noticeService::getNoticeList($params);
 
