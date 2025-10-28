@@ -18,110 +18,117 @@ class articleService
         // 获取当前用户信息（优先从参数获取，其次从request，最后从session）
         $currentUserId = $params['current_user_id'] ?? request()->currentUserId ?? session('user_id') ?? 0;
         $currentUserRoles = $params['current_user_roles'] ?? request()->currentUserRoles ?? session('user_roles') ?? [];
-        
-        // ========== 强制调试输出 ==========
-        error_log("[Service] currentUserId: {$currentUserId}");
-        error_log("[Service] currentUserRoles: " . json_encode($currentUserRoles));
-        error_log("[Service] currentUserId > 0: " . ($currentUserId > 0 ? 'TRUE' : 'FALSE'));
-        error_log("[Service] count(roles): " . count($currentUserRoles));
-        // ========================================
-        
+        $isAdmin = $params['is_admin'] ?? request()->isAdmin ?? false;
+
+
+
         // 基础查询构建
         $query = articleModel::with([
-                'category' => function($query) {
-                    $query->field(['id', 'name', 'slug', 'meta_title', 'meta_keywords']);
-                },
-                'author' => function($query) {
-                    // 首先过滤 author 表的字段
-                    $query->field(['id', 'username', 'nickname', 'avatar', 'signature'])
-                          // 然后关联 roles 并过滤 roles 表的字段
-                          ->with(['roles' => function($query) {
-                              $query->field(['id', 'name', 'description','show_weight']); // roles 表需要的字段
-                          }]);
-                },
-            
-                'tags' => function($query) {
-                    $query->field(['name']);
-                },
-                // 加载权限关联数据，限制返回字段保护隐私
-                'accessUsers' => function($query) {
-                    $query->field(['bl_users.id', 'bl_users.username', 'bl_users.nickname']);
-                },
-                'accessRoles' => function($query) {
-                    $query->field(['bl_roles.id', 'bl_roles.name']);
-                }
-            ])
+            'category' => function ($query) {
+                $query->field(['id', 'name', 'slug', 'meta_title', 'meta_keywords']);
+            },
+            'author' => function ($query) {
+                // 首先过滤 author 表的字段
+                $query->field(['id', 'username', 'nickname', 'avatar', 'signature'])
+                    // 然后关联 roles 并过滤 roles 表的字段
+                    ->with(['roles' => function ($query) {
+                        $query->field(['id', 'name', 'description', 'show_weight']); // roles 表需要的字段
+                    }]);
+            },
+
+            'tags' => function ($query) {
+                $query->field(['name']);
+            },
+            // 加载权限关联数据，限制返回字段保护隐私
+            'accessUsers' => function ($query) {
+                $query->field(['bl_users.id', 'bl_users.username', 'bl_users.nickname']);
+            },
+            'accessRoles' => function ($query) {
+                $query->field(['bl_roles.id', 'bl_roles.name']);
+            }
+        ])
             ->withCount(['favorites', 'likes', 'comments']);
+
         // 权限过滤逻辑（除非禁用权限过滤）
         if (!isset($params['skip_permission_filter']) || !$params['skip_permission_filter']) {
-            error_log("[Service] ========== 开始权限过滤 ===========");
-            error_log("[Service] currentUserId: {$currentUserId}");
-            error_log("[Service] currentUserRoles: " . json_encode($currentUserRoles));
-            error_log("[Service] ======================================");
-            
-            // ✅ 修复：使用模型的 whereOr 而不是原生SQL，确保关联数据能正确加载
-            $query->where(function($query) use ($currentUserId, $currentUserRoles) {
-                // 1. 公开文章 - 所有人都能看
-                $query->whereOr('visibility', 'public');
-                error_log("[Service] ✅ 添加条件: visibility = 'public'");
-                
-                // 2. 作者自己的文章 - 作者始终可见（包括private）
-                if ($currentUserId > 0) {
-                    $query->whereOr('author_id', $currentUserId);
-                    error_log("[Service] ✅ 添加条件: author_id = {$currentUserId}");
-                }
-                
-                // 3. 登录可见 - 已登录用户能看
-                if ($currentUserId > 0) {
-                    $query->whereOr('visibility', 'login_required');
-                    error_log("[Service] ✅ 添加条件: visibility = 'login_required'");
-                } else {
-                    error_log("[Service] ⏭️  跳过 login_required (用户未登录)");
-                }
-                
-                // 4. 指定用户可见 - 使用原生 whereRaw 避免关联问题
-                if ($currentUserId > 0) {
-                    $query->whereOr(function($subQuery) use ($currentUserId) {
-                        $subQuery->where('visibility', 'specific_users')
+            error_log("========================================");
+            error_log("🔍 [articleService] 权限过滤判断:");
+            error_log("isAdmin 类型: " . gettype($isAdmin));
+            error_log("isAdmin 值: " . var_export($isAdmin, true));
+            error_log("isAdmin === true: " . ($isAdmin === true ? 'YES' : 'NO'));
+            error_log("isAdmin == true: " . ($isAdmin == true ? 'YES' : 'NO'));
+            error_log("isAdmin == 1: " . ($isAdmin == 1 ? 'YES' : 'NO'));
+            error_log("========================================");
+
+            // ✅ 如果是管理员，跳过权限过滤（管理员可以看到所有文章）
+            if ($isAdmin === true || $isAdmin === 1 || $isAdmin == true) {
+                error_log("========================================");
+                error_log("✅✅✅ [articleService] 管理员请求 - 跳过权限过滤 ✅✅✅");
+                error_log("========================================");
+            } else {
+                // 非管理员：应用权限过滤
+                $query->where(function ($query) use ($currentUserId, $currentUserRoles) {
+                    // ✅ 修复：第一个条件用 where，后续条件用 whereOr
+
+                    // 1. 公开文章 - 所有人都能看（第一个条件用 where）
+                    $query->where('visibility', 'public');
+
+                    // 2. 作者自己的文章 - 作者始终可见（包括private）
+                    if ($currentUserId > 0) {
+                        $query->whereOr('author_id', $currentUserId);
+                        error_log("[articleService] ✅ 添加条件: author_id = {$currentUserId} (用 whereOr)");
+                    }
+
+                    // 3. 登录可见 - 已登录用户能看
+                    if ($currentUserId > 0) {
+                        $query->whereOr('visibility', 'login_required');
+                        error_log("[articleService] ✅ 添加条件: visibility = 'login_required' (用 whereOr)");
+                    } else {
+                        error_log("[articleService] ⏭️  跳过 login_required (用户未登录)");
+                    }
+
+                    // 4. 指定用户可见 - 使用原生 whereRaw 避免关联问题
+                    if ($currentUserId > 0) {
+                        $query->whereOr(function ($subQuery) use ($currentUserId) {
+                            $subQuery->where('visibility', 'specific_users')
                                 ->whereRaw("EXISTS (SELECT 1 FROM bl_article_user_access WHERE bl_article_user_access.article_id = bl_article.id AND bl_article_user_access.user_id = ?)", [$currentUserId]);
-                    });
-                    error_log("[Service] ✅ 添加条件: specific_users (userId={$currentUserId})");
-                }
-                
-                // 5. 指定角色可见 - 使用原生 whereRaw 避免关联问题
-                if (is_array($currentUserRoles) && count($currentUserRoles) > 0) {
-                    $rolesStr = implode(',', $currentUserRoles);
-                    $query->whereOr(function($subQuery) use ($currentUserRoles, $rolesStr) {
-                        $subQuery->where('visibility', 'specific_roles')
+                        });
+                        error_log("[articleService] ✅ 添加条件: specific_users (userId={$currentUserId}) (用 whereOr)");
+                    }
+
+                    // 5. 指定角色可见 - 使用原生 whereRaw 避免关联问题
+                    if (is_array($currentUserRoles) && count($currentUserRoles) > 0) {
+                        $rolesStr = implode(',', array_map('intval', $currentUserRoles));
+
+                        $query->whereOr(function ($subQuery) use ($currentUserRoles, $rolesStr) {
+                            $subQuery->where('visibility', 'specific_roles')
                                 ->whereRaw("EXISTS (SELECT 1 FROM bl_article_role_access WHERE bl_article_role_access.article_id = bl_article.id AND bl_article_role_access.role_id IN ({$rolesStr}))");
-                    });
-                    error_log("[Service] ✅ 添加条件: specific_roles (roles=[{$rolesStr}])");
-                } else {
-                    error_log("[Service] ⏭️  跳过 specific_roles (用户无角色)");
-                }
-            });
+                        });
+                    }
+                });
+            }
         }
-    
+
         // ID精确查询
         if (!empty($params['id'])) {
             $query->where('id', $params['id']);
         }
-        
+
         // 标题模糊查询
         if (!empty($params['title'])) {
             $query->whereLike('title', '%' . $params['title'] . '%');
         }
-        
+
         // 作者ID精确查询
         if (!empty($params['author_id'])) {
             $query->where('author_id', $params['author_id']);
         }
-        
+
         // 用户ID查询 (与author_id同义，提供兼容)
         if (!empty($params['user_id'])) {
             $query->where('author_id', $params['user_id']);
         }
-        
+
         // 分类ID精确查询
         if (!empty($params['category_id'])) {
             $query->where('category_id', $params['category_id']);
@@ -160,7 +167,7 @@ class articleService
         if (!empty($params['create_time_lt'])) {
             $query->where('create_time', '<', $params['create_time_lt']);
         }
-    
+
         // update_time 时间范围查询
         if (!empty($params['update_time_start'])) {
             $query->where('update_time', '>=', $params['update_time_start']);
@@ -175,7 +182,7 @@ class articleService
         if (!empty($params['update_time_lt'])) {
             $query->where('update_time', '<', $params['update_time_lt']);
         }
-    
+
         // publish_time 时间范围查询
         if (!empty($params['publish_time_start'])) {
             $query->where('publish_time', '>=', $params['publish_time_start']);
@@ -200,48 +207,36 @@ class articleService
             }
             // 默认不使用withTrashed，查询未删除的数据
         }
-    
+
         // 排序条件
         $orderField = 'update_time'; // 默认按修改时间排序
         $orderDirection = 'desc';  // 默认排序方向
-        
+
         // 如果sort参数为true，则按sort字段排序
         if (isset($params['sort']) && ($params['sort'] === true || $params['sort'] === 'true' || $params['sort'] === 1 || $params['sort'] === '1')) {
             $orderField = 'sort';
         }
-        
+
         // 指定排序方向
         if (!empty($params['order'])) {
             $orderDirection = strtolower($params['order']) === 'asc' ? 'asc' : 'desc';
         }
-        
+
         // 应用排序
         $query->order($orderField, $orderDirection);
-    
+
         // 分页参数设置
         $page = !empty($params['page']) ? intval($params['page']) : 1;
         $pageSize = !empty($params['page_size']) ? intval($params['page_size']) : 10;
-    
+
         LogService::log("[Service] 开始执行分页查询 - page: {$page}, pageSize: {$pageSize}", [], 'info');
-        
-        // ========== 启用SQL监听 ==========
-        Db::listen(function($sql, $time, $explain) {
-            error_log("[Service] ========== SQL语句 ==========");
-            error_log("[Service] SQL: " . $sql);
-            error_log("[Service] 执行时间: {$time}ms");
-            error_log("[Service] ====================================");
-            LogService::log("[Service] SQL查询语句: " . $sql . " (时间: {$time}ms)", [], 'info');
-        });
-        // ========================================
-    
+
         // 执行分页查询
         $result = $query->paginate([
             'page' => $page,
             'list_rows' => $pageSize
         ]);
-        
-        LogService::log("[Service] 查询完成 - 结果数量: " . count($result->items()), [], 'info');
-        
+
         // 返回标准格式的分页数据
         return [
             'code' => 200,
@@ -267,33 +262,33 @@ class articleService
     {
         return articleModel::create($params);
     }
-    
+
     /**
      * 根据id查询文章详情
      * @param int $id 文章ID
      * @return array
      */
-    public static function selectArticleById($id)   
+    public static function selectArticleById($id)
     {
         $article = articleModel::with([
-            'category' => function($query) {
+            'category' => function ($query) {
                 $query->field(['id', 'name', 'slug', 'meta_title', 'meta_keywords']);
             },
-            
-            'author'=>function($query){
-                $query->field(['id','username','nickname','avatar','signature']);
+
+            'author' => function ($query) {
+                $query->field(['id', 'username', 'nickname', 'avatar', 'signature']);
             },
-            'tags'=>function($query){
+            'tags' => function ($query) {
                 $query->field(['name']);
-                },
-            'comments'=>function($query){
-                $query->field(['id','content','create_time','update_time','delete_time']);
+            },
+            'comments' => function ($query) {
+                $query->field(['id', 'content', 'create_time', 'update_time', 'delete_time']);
             },
             // 加载权限关联数据
             'accessUsers',
             'accessRoles'
-        ]) ->withCount(['favorites', 'likes', 'comments'])->where('id', $id)->find();
-        
+        ])->withCount(['favorites', 'likes', 'comments'])->where('id', $id)->find();
+
         if (!$article) {
             return [
                 'code' => 404,
@@ -301,14 +296,14 @@ class articleService
                 'data' => null
             ];
         }
-        
+
         return [
             'code' => 200,
             'msg' => '获取文章详情成功',
             'data' => $article
         ];
     }
-    
+
     /**
      * 删除文章
      * @param int $id 文章ID
@@ -324,7 +319,7 @@ class articleService
                 LogService::log("删除文章失败，ID不存在：{$id}", [], 'warning');
                 return ['code' => 404, 'msg' => '文章不存在'];
             }
-            
+
             // 根据real参数决定删除方式
             if ($real === true) {
                 // 物理删除
@@ -339,7 +334,7 @@ class articleService
                 $article->delete();
                 LogService::log("软删除文章成功，ID：{$id}，标题：{$article->title}");
             }
-            
+
             return [
                 'code' => 200,
                 'msg' => '删除成功'
@@ -349,7 +344,7 @@ class articleService
             return ['code' => 500, 'msg' => '删除失败：' . $e->getMessage()];
         }
     }
-    
+
     /**
      * 恢复已删除的文章
      * @param int $id 文章ID
@@ -364,12 +359,12 @@ class articleService
                 LogService::log("恢复文章失败，ID不存在或未被删除：{$id}", [], 'warning');
                 return ['code' => 404, 'msg' => '文章不存在或未被删除'];
             }
-            
+
             // 恢复文章
             $article->restore();
-            
+
             LogService::log("恢复文章成功，ID：{$id}，标题：{$article->title}");
-            
+
             return [
                 'code' => 200,
                 'msg' => '恢复成功',
@@ -380,7 +375,7 @@ class articleService
             return ['code' => 500, 'msg' => '恢复失败：' . $e->getMessage()];
         }
     }
-    
+
     /**
      * 获取已删除的文章列表
      * @param array $params 查询参数
@@ -392,7 +387,7 @@ class articleService
         $params['delete_status'] = 'only_deleted';
         return self::selectArticleAll($params);
     }
-    
+
     /**
      * 更新文章
      * @param int $id 文章ID
@@ -405,7 +400,7 @@ class articleService
         Db::startTrans();
         try {
             // 查询文章是否存在
-            $article = articleModel::find($id); 
+            $article = articleModel::find($id);
             if (!$article) {
                 LogService::log("更新文章失败，ID不存在：{$id}", [], 'warning');
                 return ['code' => 404, 'msg' => '文章不存在'];
@@ -424,7 +419,7 @@ class articleService
                     throw new \Exception('标签关联处理失败');
                 }
             }
-            
+
             // 如果有权限数据，需要更新权限关联
             if (isset($data['visibility']) && in_array($data['visibility'], ['specific_users', 'specific_roles'])) {
                 if (!self::saveArticleAccess($id, $data)) {
@@ -505,7 +500,7 @@ class articleService
             return false;
         }
     }
-    
+
     /**
      * 保存文章访问权限
      * @param int $articleId 文章ID
@@ -519,7 +514,7 @@ class articleService
             if (isset($data['access_users']) && is_array($data['access_users'])) {
                 // 先删除旧权限
                 Db::name('article_user_access')->where('article_id', $articleId)->delete();
-                
+
                 // 插入新权限
                 if (!empty($data['access_users'])) {
                     $accessData = [];
@@ -534,12 +529,12 @@ class articleService
                     LogService::log("保存文章用户权限成功，文章ID：{$articleId}，用户数：" . count($accessData));
                 }
             }
-            
+
             // 保存指定角色权限
             if (isset($data['access_roles']) && is_array($data['access_roles'])) {
                 // 先删除旧权限
                 Db::name('article_role_access')->where('article_id', $articleId)->delete();
-                
+
                 // 插入新权限
                 if (!empty($data['access_roles'])) {
                     $accessData = [];
@@ -554,7 +549,7 @@ class articleService
                     LogService::log("保存文章角色权限成功，文章ID：{$articleId}，角色数：" . count($accessData));
                 }
             }
-            
+
             return true;
         } catch (\Exception $e) {
             LogService::error($e);

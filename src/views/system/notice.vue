@@ -116,30 +116,48 @@
                     </el-form-item>
                   </el-col>
                   <el-col :xs="24" :sm="12" :md="8" :lg="6" :xl="4">
-                    <el-form-item label="接收对象">
+                    <el-form-item label="可见性">
                       <el-select
-                        v-model="searchForm.notice_type"
-                        placeholder="选择对象"
+                        v-model="searchForm.visibility"
+                        placeholder="选择可见性"
                         clearable
                         style="width: 100%"
                         size="default"
                       >
-                        <el-option :value="1" label="全部用户">
+                        <el-option value="public" label="公开">
                           <div class="option-with-icon">
                             <font-awesome-icon
-                              :icon="['fas', 'users']"
+                              :icon="['fas', 'globe']"
                               class="mr-1"
                             />
-                            <span>全部用户</span>
+                            <span>公开</span>
                           </div>
                         </el-option>
-                        <el-option :value="2" label="特定用户">
+                        <el-option value="login_required" label="登录可见">
+                          <div class="option-with-icon">
+                            <font-awesome-icon
+                              :icon="['fas', 'lock']"
+                              class="mr-1"
+                            />
+                            <span>登录可见</span>
+                          </div>
+                        </el-option>
+                        <el-option value="specific_users" label="指定用户">
                           <div class="option-with-icon">
                             <font-awesome-icon
                               :icon="['fas', 'user']"
                               class="mr-1"
                             />
-                            <span>特定用户</span>
+                            <span>指定用户</span>
+                          </div>
+                        </el-option>
+                        <el-option value="specific_roles" label="指定角色">
+                          <div class="option-with-icon">
+                            <font-awesome-icon
+                              :icon="['fas', 'users']"
+                              class="mr-1"
+                            />
+                            <span>指定角色</span>
                           </div>
                         </el-option>
                       </el-select>
@@ -417,129 +435,23 @@
                 </template>
               </el-table-column>
 
-              <!-- 接收范围 -->
-              <el-table-column label="接收对象" align="center" width="120">
+              <!-- 可见性 -->
+              <el-table-column label="可见性" align="center" width="110">
                 <template #default="{ row }">
-                  <div class="scope-info">
-                    <el-tag
-                      v-if="row.scope_type_id === 1"
-                      size="small"
-                      type="info"
-                      effect="plain"
-                    >
-                      <font-awesome-icon
-                        :icon="['fas', 'users']"
-                        class="mr-1"
-                      />
-                      全部用户
-                    </el-tag>
-
-                    <!-- 特定用户 - 单个用户时直接显示 -->
-                    <template v-else-if="row.scope_type_id === 2">
-                      <!-- 只有一个接收者时直接显示用户名 -->
-                      <el-tag
-                        v-if="row.receivers && row.receivers.length === 1"
-                        size="small"
-                        type="success"
-                        effect="plain"
-                      >
-                        <font-awesome-icon
-                          :icon="['fas', 'user']"
-                          class="mr-1"
-                        />
-                        {{ row.receivers[0].username }}
-                        <span
-                          class="status-dot"
-                          :class="
-                            row.receivers[0].read_status ? 'read' : 'unread'
-                          "
-                        />
-                      </el-tag>
-
-                      <!-- 无接收者时显示空标签 -->
-                      <el-tag
-                        v-else-if="!row.receivers || row.receivers.length === 0"
-                        size="small"
-                        type="warning"
-                        effect="plain"
-                      >
-                        <font-awesome-icon
-                          :icon="['fas', 'user-slash']"
-                          class="mr-1"
-                        />
-                        无接收者
-                      </el-tag>
-
-                      <!-- 多个接收者时使用弹出菜单 -->
-                      <el-popover
-                        v-else
-                        placement="top"
-                        :width="350"
-                        trigger="hover"
-                      >
-                        <template #reference>
-                          <el-tag
-                            size="small"
-                            type="warning"
-                            effect="plain"
-                            class="receiver-tag"
-                          >
-                            <font-awesome-icon
-                              :icon="['fas', 'users']"
-                              class="mr-1"
-                            />
-                            {{ row.receivers.length }}位用户
-                          </el-tag>
-                        </template>
-                        <div class="receivers-list">
-                          <div class="receivers-header">
-                            <font-awesome-icon
-                              :icon="['fas', 'users']"
-                              class="mr-1"
-                            />
-                            接收用户列表 ({{ row.receivers.length }}人)
-                          </div>
-                          <el-scrollbar
-                            max-height="200px"
-                            class="receivers-scrollbar"
-                          >
-                            <div class="receivers-table">
-                              <div class="table-header">
-                                <span class="col-name">用户名</span>
-                                <span class="col-status">状态</span>
-                              </div>
-                              <div class="table-body">
-                                <div
-                                  v-for="receiver in row.receivers"
-                                  :key="receiver.id"
-                                  class="table-row"
-                                >
-                                  <span class="col-name">
-                                    {{ receiver.username }}
-                                  </span>
-                                  <span class="col-status">
-                                    <el-tag
-                                      :type="
-                                        receiver.read_status
-                                          ? 'success'
-                                          : 'info'
-                                      "
-                                      size="small"
-                                      effect="light"
-                                    >
-                                      {{
-                                        receiver.read_status ? "已读" : "未读"
-                                      }}
-                                    </el-tag>
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </el-scrollbar>
-                        </div>
-                      </el-popover>
-                    </template>
-                  </div>
+                  <el-tag
+                    v-if="row.visibility"
+                    size="small"
+                    :type="getVisibilityTagType(row.visibility)"
+                    effect="plain"
+                  >
+                    {{
+                      NOTICE_VISIBILITY_MAP[row.visibility]?.label ||
+                      row.visibility
+                    }}
+                  </el-tag>
+                  <el-tag v-else size="small" type="info" effect="plain">
+                    未设置
+                  </el-tag>
                 </template>
               </el-table-column>
 
@@ -751,23 +663,6 @@
 
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="公告类型" prop="notice_type">
-              <el-select
-                v-model="noticeForm.notice_type"
-                placeholder="请选择公告类型"
-                style="width: 100%"
-              >
-                <el-option
-                  v-for="(value, key) in NOTICE_TYPES"
-                  :key="key"
-                  :label="getScopeTypeName(value)"
-                  :value="value"
-                />
-              </el-select>
-            </el-form-item>
-          </el-col>
-
-          <el-col :span="12">
             <el-form-item label="分类" prop="category_type">
               <el-select
                 v-model="noticeForm.category_type"
@@ -787,6 +682,98 @@
                       class="mr-1"
                     />
                     <span>{{ item.name }}</span>
+                  </div>
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="12">
+            <el-form-item label="可见性" prop="visibility">
+              <el-select
+                v-model="noticeForm.visibility"
+                placeholder="请选择可见性"
+                style="width: 100%"
+              >
+                <el-option
+                  v-for="item in NOTICE_VISIBILITY_OPTIONS"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                >
+                  <div class="option-with-icon">
+                    <span>{{ item.label }}</span>
+                    <span
+                      style=" margin-left: 8px; font-size: 12px;color: #999"
+                    >
+                      {{ item.tip }}
+                    </span>
+                  </div>
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <!-- 指定用户选择（当 visibility = 'specific_users' 时显示） -->
+        <el-row v-if="noticeForm.visibility === 'specific_users'" :gutter="20">
+          <el-col :span="24">
+            <el-form-item label="指定用户" prop="target_user_ids">
+              <el-select
+                v-model="noticeForm.target_user_ids"
+                multiple
+                filterable
+                remote
+                reserve-keyword
+                placeholder="请输入用户名或ID搜索"
+                :remote-method="remoteSearchUsers"
+                :loading="userSelectLoading"
+                style="width: 100%"
+                popper-class="user-select-dropdown"
+                @focus="handleFocus"
+              >
+                <el-option
+                  v-for="user in userOptions"
+                  :key="user.id"
+                  :label="`${user.username} (ID: ${user.id})`"
+                  :value="user.id"
+                >
+                  <div style="display: flex; align-items: center">
+                    <el-avatar
+                      :size="24"
+                      :src="user.avatar"
+                      style="margin-right: 8px"
+                    />
+                    <span>{{ user.username }}</span>
+                    <span style=" margin-left: 8px;color: #999">
+                      (ID: {{ user.id }})
+                    </span>
+                  </div>
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <!-- 指定角色选择（当 visibility = 'specific_roles' 时显示） -->
+        <el-row v-if="noticeForm.visibility === 'specific_roles'" :gutter="20">
+          <el-col :span="24">
+            <el-form-item label="指定角色" prop="target_role_ids">
+              <el-select
+                v-model="noticeForm.target_role_ids"
+                multiple
+                placeholder="请选择角色"
+                style="width: 100%"
+                popper-class="user-select-dropdown"
+              >
+                <el-option
+                  v-for="role in roleOptions"
+                  :key="role.id"
+                  :label="role.name"
+                  :value="role.id"
+                >
+                  <div style="display: flex; align-items: center">
+                    <span>{{ role.name }}</span>
                   </div>
                 </el-option>
               </el-select>
@@ -880,83 +867,6 @@
             active-text="置顶"
             inactive-text="不置顶"
           />
-        </el-form-item>
-
-        <el-form-item
-          v-if="noticeForm.notice_type === NOTICE_TYPES.PARTIAL"
-          label="接收用户"
-          prop="target_uids"
-        >
-          <el-select
-            v-model="noticeForm.target_uids"
-            multiple
-            filterable
-            remote
-            reserve-keyword
-            placeholder="请输入ID或用户名搜索"
-            :remote-method="remoteSearchUsers"
-            :loading="userSelectLoading"
-            style="width: 100%"
-            clearable
-            teleported
-            popper-class="user-select-dropdown"
-            @focus="handleFocus"
-          >
-            <el-option
-              v-for="item in userOptions"
-              :key="item.id"
-              :label="`${item.username} (ID: ${item.id})`"
-              :value="item.id"
-            >
-              <div style="display: flex; gap: 10px; align-items: center">
-                <el-avatar :size="28" :src="item.avatar">
-                  {{ item.username?.charAt(0) }}
-                </el-avatar>
-                <span style="font-weight: 500">{{ item.username }}</span>
-                <span style="font-size: 12px; color: #909399">
-                  ID: {{ item.id }}
-                </span>
-              </div>
-            </el-option>
-          </el-select>
-        </el-form-item>
-
-        <el-form-item
-          v-if="noticeForm.notice_type === NOTICE_TYPES.PERSONAL"
-          label="接收用户"
-          prop="target_uid"
-        >
-          <el-select
-            v-model="noticeForm.target_uid"
-            filterable
-            remote
-            reserve-keyword
-            placeholder="请输入ID或用户名搜索"
-            :remote-method="remoteSearchUsers"
-            :loading="userSelectLoading"
-            style="width: 100%"
-            clearable
-            teleported
-            popper-class="user-select-dropdown"
-            @focus="handleFocus"
-          >
-            <el-option
-              v-for="item in userOptions"
-              :key="item.id"
-              :label="`${item.username} (ID: ${item.id})`"
-              :value="item.id"
-            >
-              <div style="display: flex; gap: 10px; align-items: center">
-                <el-avatar :size="28" :src="item.avatar">
-                  {{ item.username?.charAt(0) }}
-                </el-avatar>
-                <span style="font-weight: 500">{{ item.username }}</span>
-                <span style="font-size: 12px; color: #909399">
-                  ID: {{ item.id }}
-                </span>
-              </div>
-            </el-option>
-          </el-select>
         </el-form-item>
 
         <el-divider content-position="left">
@@ -1386,15 +1296,17 @@ import {
   updateNotice,
   restoreNotice,
   sendNoticeEmail,
-  NOTICE_TYPES,
   CATEGORY_TYPES,
   NOTICE_STATUS,
   PRIORITY_LEVELS,
+  NOTICE_VISIBILITY_OPTIONS,
+  NOTICE_VISIBILITY_MAP,
   NoticeParams,
   NoticeData,
   NoticeCreateData
 } from "@/api/notice";
 import { getUserList } from "@/api/user";
+import { getRoleList } from "@/api/role";
 import { sendEmail } from "@/api/emailRecord";
 import debounce from "lodash/debounce";
 import EmailRecordTable from "./components/EmailRecordTable.vue";
@@ -1692,12 +1604,9 @@ const statusOptions = [
   { id: 1, name: "已发布", color: "#52c41a" }
 ];
 
-// 公告接收范围选项
-const scopeOptions = [
-  { id: 1, name: "全体公告", icon: "users" },
-  { id: 2, name: "部分用户公告", icon: "user-friends" },
-  { id: 3, name: "个人通知", icon: "user" }
-];
+// 角色选项（从API获取）
+const roleOptions = ref<any[]>([]);
+const roleLoading = ref(false);
 
 // 按钮尺寸
 const buttonSize = ref<"" | "default" | "small" | "large">("small");
@@ -1720,7 +1629,7 @@ const searchForm = reactive<NoticeParams>({
   category_type: undefined,
   status: undefined,
   priority: undefined,
-  notice_type: undefined,
+  visibility: undefined,
   is_top: undefined
 });
 
@@ -1738,16 +1647,14 @@ const noticeFormRef = ref<any>(null);
 const submitting = ref(false);
 
 // 表单数据
-const noticeForm = reactive<
-  NoticeCreateData & { target_uid?: number | string }
->({
+const noticeForm = reactive<NoticeCreateData>({
   title: "",
   content: "",
-  notice_type: NOTICE_TYPES.ALL,
   category_type: CATEGORY_TYPES.SYSTEM_UPDATE,
   publisher_id: userStore.id || 1, // 从store获取当前用户ID
-  target_uids: [],
-  target_uid: undefined,
+  visibility: "public", // 默认公开
+  target_user_ids: [], // 指定用户ID列表
+  target_role_ids: [], // 指定角色ID列表
   status: NOTICE_STATUS.DRAFT,
   priority: PRIORITY_LEVELS.NORMAL,
   is_top: false,
@@ -1758,37 +1665,38 @@ const noticeForm = reactive<
 const noticeRules = {
   title: [{ required: true, message: "请输入公告标题", trigger: "blur" }],
   content: [{ required: true, message: "请输入公告内容", trigger: "blur" }],
-  notice_type: [
-    { required: true, message: "请选择公告类型", trigger: "change" }
-  ],
   category_type: [
     { required: true, message: "请选择公告分类", trigger: "change" }
   ],
-  target_uids: [
+  visibility: [{ required: true, message: "请选择可见性", trigger: "change" }],
+  target_user_ids: [
     {
-      required: true,
+      required: false,
       message: "请选择接收用户",
       trigger: "change",
       validator: (rule: any, value: any, callback: any) => {
         if (
-          noticeForm.notice_type === NOTICE_TYPES.PARTIAL &&
+          noticeForm.visibility === "specific_users" &&
           (!value || value.length === 0)
         ) {
-          callback(new Error("请选择接收用户"));
+          callback(new Error("请选择至少一个接收用户"));
         } else {
           callback();
         }
       }
     }
   ],
-  target_uid: [
+  target_role_ids: [
     {
-      required: true,
-      message: "请选择接收用户",
+      required: false,
+      message: "请选择角色",
       trigger: "change",
       validator: (rule: any, value: any, callback: any) => {
-        if (noticeForm.notice_type === NOTICE_TYPES.PERSONAL && !value) {
-          callback(new Error("请选择接收用户"));
+        if (
+          noticeForm.visibility === "specific_roles" &&
+          (!value || value.length === 0)
+        ) {
+          callback(new Error("请选择至少一个角色"));
         } else {
           callback();
         }
@@ -1797,21 +1705,21 @@ const noticeRules = {
   ]
 };
 
-// 监听公告类型变化，重置目标用户并加载用户数据
+// 监听 visibility 变化，重置目标选择
 watch(
-  () => noticeForm.notice_type,
-  newVal => {
-    if (newVal === NOTICE_TYPES.ALL) {
-      noticeForm.target_uids = [];
-      noticeForm.target_uid = undefined;
-    } else if (newVal === NOTICE_TYPES.PARTIAL) {
-      noticeForm.target_uid = undefined;
-      // 如果是多用户通知，自动加载默认用户列表
-      loadDefaultUserOptions();
-    } else if (newVal === NOTICE_TYPES.PERSONAL) {
-      noticeForm.target_uids = [];
-      // 如果是个人通知，自动加载默认用户列表
-      loadDefaultUserOptions();
+  () => noticeForm.visibility,
+  (newVal, oldVal) => {
+    // 当 visibility 改变时，清空之前的目标选择
+    if (newVal !== oldVal) {
+      noticeForm.target_user_ids = [];
+      noticeForm.target_role_ids = [];
+
+      // 如果切换到需要选择用户或角色的模式，加载数据
+      if (newVal === "specific_users") {
+        loadDefaultUserOptions();
+      } else if (newVal === "specific_roles") {
+        loadRoleOptions();
+      }
     }
   }
 );
@@ -1839,10 +1747,28 @@ const loadDefaultUserOptions = async () => {
   }
 };
 
-// 获取接收范围类型名称
-const getScopeTypeName = (type: number) => {
-  const option = scopeOptions.find(item => item.id === type);
-  return option ? option.name : "未知";
+// 加载角色列表
+const loadRoleOptions = async () => {
+  if (roleOptions.value.length > 0) return; // 已有角色数据，不重新加载
+
+  roleLoading.value = true;
+  try {
+    const res: any = await getRoleList({
+      page_size: 200
+    });
+
+    if (res && res.code === 200 && res.data) {
+      roleOptions.value = res.data.list || [];
+    } else {
+      console.error("获取角色列表失败:", res.msg);
+      message("获取角色列表失败", { type: "error" });
+    }
+  } catch (error) {
+    console.error("加载角色列表出错:", error);
+    message("加载角色列表失败", { type: "error" });
+  } finally {
+    roleLoading.value = false;
+  }
 };
 
 // 获取公告列表
@@ -1855,6 +1781,7 @@ const fetchNoticeList = async () => {
       ...searchForm,
       sort_field: "publish_time",
       sort_order: "desc"
+      // 不需要传 is_admin 参数，后端会从 Token 中的角色自动判断
     };
 
     // 过滤掉空值
@@ -1911,36 +1838,6 @@ const formatNoticeItem = (item: any) => {
     };
   }
 
-  // 处理接收用户
-  let receivers = [];
-  if (item.notice_type === NOTICE_TYPES.PARTIAL && item.target_uid) {
-    const targetIds = item.target_uid.split(",").map(id => Number(id.trim()));
-    if (targetIds[0] !== 0) {
-      // 排除值为0的情况
-      receivers = targetIds.map(id => {
-        const user = mockUsers.find(u => u.id === id);
-        return {
-          id,
-          username: user ? user.username : `用户${id}`,
-          read_status: Math.random() > 0.5 // 模拟随机已读/未读状态
-        };
-      });
-    }
-  } else if (item.notice_type === NOTICE_TYPES.PERSONAL && item.target_uid) {
-    const id = Number(item.target_uid);
-    if (id !== 0) {
-      // 排除值为0的情况
-      const user = mockUsers.find(u => u.id === id);
-      receivers = [
-        {
-          id,
-          username: user ? user.username : `用户${id}`,
-          read_status: Math.random() > 0.5 // 模拟随机已读/未读状态
-        }
-      ];
-    }
-  }
-
   return {
     id: item.notice_id,
     title: item.title,
@@ -1951,12 +1848,13 @@ const formatNoticeItem = (item: any) => {
     status: statusInfo,
     priority_id: item.priority,
     priority: priorityInfo,
-    scope_type_id: item.notice_type,
+    visibility: item.visibility, // 可见性
     is_pinned: item.is_top ? 1 : 0,
     delete_time: item.delete_time, // 添加软删除时间字段
     publish_time: item.publish_time,
     publisher: publisher,
-    receivers: item.notice_type !== NOTICE_TYPES.ALL ? receivers : null,
+    target_users: item.target_users || [], // 目标用户列表
+    target_roles: item.target_roles || [], // 目标角色列表
     attachment: false // 暂不支持附件
   };
 };
@@ -2003,6 +1901,17 @@ const handleSelectionChange = (selection: any[]) => {
 // 格式化日期时间
 const formatDateTime = (dateStr: string) => {
   return dayjs(dateStr).format("YYYY-MM-DD HH:mm");
+};
+
+// 获取可见性标签类型
+const getVisibilityTagType = (visibility: string) => {
+  const typeMap: Record<string, any> = {
+    public: "success",
+    login_required: "info",
+    specific_users: "warning",
+    specific_roles: "primary"
+  };
+  return typeMap[visibility] || "info";
 };
 
 // 处理查看公告
@@ -2239,7 +2148,6 @@ const handleEditNotice = (row: any) => {
   // 加载公告数据到表单
   noticeForm.title = row.title;
   noticeForm.content = row.content;
-  noticeForm.notice_type = row.scope_type_id;
   noticeForm.category_type = row.type_id;
   noticeForm.status = row.status_id;
   noticeForm.priority = row.priority_id;
@@ -2247,15 +2155,28 @@ const handleEditNotice = (row: any) => {
   noticeForm.publish_time =
     row.publish_time || dayjs().format("YYYY-MM-DD HH:mm:ss");
 
-  // 处理接收用户
-  if (row.scope_type_id === NOTICE_TYPES.PARTIAL && row.receivers) {
-    noticeForm.target_uids = row.receivers.map(user => user.id);
-  } else if (
-    row.scope_type_id === NOTICE_TYPES.PERSONAL &&
-    row.receivers &&
-    row.receivers.length === 1
-  ) {
-    noticeForm.target_uid = row.receivers[0].id;
+  // 加载 visibility 数据
+  noticeForm.visibility = row.visibility || "public";
+
+  // 加载目标用户和角色数据
+  if (row.target_users && Array.isArray(row.target_users)) {
+    noticeForm.target_user_ids = row.target_users.map(
+      (item: any) => item.target_id
+    );
+    // 如果有指定用户，加载用户列表
+    if (noticeForm.target_user_ids.length > 0) {
+      loadDefaultUserOptions();
+    }
+  }
+
+  if (row.target_roles && Array.isArray(row.target_roles)) {
+    noticeForm.target_role_ids = row.target_roles.map(
+      (item: any) => item.target_id
+    );
+    // 如果有指定角色，加载角色列表
+    if (noticeForm.target_role_ids.length > 0) {
+      loadRoleOptions();
+    }
   }
 
   // 保存当前编辑的ID
@@ -2269,11 +2190,11 @@ const handleEditNotice = (row: any) => {
 const resetNoticeForm = () => {
   noticeForm.title = "";
   noticeForm.content = "";
-  noticeForm.notice_type = NOTICE_TYPES.ALL;
   noticeForm.category_type = CATEGORY_TYPES.SYSTEM_UPDATE;
   noticeForm.publisher_id = userStore.id || 1; // 重置时重新设置当前用户ID
-  noticeForm.target_uids = [];
-  noticeForm.target_uid = undefined;
+  noticeForm.visibility = "public"; // 重置为公开
+  noticeForm.target_user_ids = []; // 重置指定用户
+  noticeForm.target_role_ids = []; // 重置指定角色
   noticeForm.status = NOTICE_STATUS.DRAFT;
   noticeForm.priority = PRIORITY_LEVELS.NORMAL;
   noticeForm.is_top = false;
@@ -2301,19 +2222,21 @@ const submitNoticeForm = async () => {
       // 处理目标用户
       let submitData = { ...noticeForm };
 
-      // 个人通知处理
+      // 确保 visibility 和目标数据正确发送
+      // 根据 visibility 清理不需要的字段
       if (
-        noticeForm.notice_type === NOTICE_TYPES.PERSONAL &&
-        noticeForm.target_uid
+        submitData.visibility === "public" ||
+        submitData.visibility === "login_required"
       ) {
-        submitData.target_uids = [noticeForm.target_uid];
-        delete submitData.target_uid;
-      }
-
-      // 全体公告不需要目标用户
-      if (noticeForm.notice_type === NOTICE_TYPES.ALL) {
-        delete submitData.target_uids;
-        delete submitData.target_uid;
+        // 公开或登录可见不需要目标数据
+        submitData.target_user_ids = [];
+        submitData.target_role_ids = [];
+      } else if (submitData.visibility === "specific_users") {
+        // 指定用户时清空角色数据
+        submitData.target_role_ids = [];
+      } else if (submitData.visibility === "specific_roles") {
+        // 指定角色时清空用户数据
+        submitData.target_user_ids = [];
       }
 
       let res;
@@ -2336,12 +2259,7 @@ const submitNoticeForm = async () => {
             notice_id: res.data?.id || currentEditId.value,
             title: emailSettings.title || noticeForm.title,
             content: emailSettings.content || noticeForm.content,
-            receivers:
-              noticeForm.notice_type === NOTICE_TYPES.PERSONAL
-                ? [noticeForm.target_uid]
-                : noticeForm.notice_type === NOTICE_TYPES.PARTIAL
-                  ? noticeForm.target_uids
-                  : []
+            receivers: noticeForm.target_user_ids || []
           };
 
           console.log("准备发送邮件通知:", emailData);
@@ -2409,19 +2327,20 @@ const handleSendEmail = (row: any) => {
   emailForm.email_content = row.content;
   emailAiPrompt.value = "";
 
-  // 根据公告的接收范围预设接收对象
-  if (row.scope_type_id === NOTICE_TYPES.ALL) {
-    emailForm.receiver_type = 1;
-  } else if (row.scope_type_id === NOTICE_TYPES.PARTIAL && row.receivers) {
-    emailForm.receiver_type = 2;
-    emailForm.receiver_ids = row.receivers.map((user: any) => user.id);
+  // 根据公告的可见性预设接收对象
+  if (row.visibility === "public" || row.visibility === "login_required") {
+    emailForm.receiver_type = 1; // 全部用户
   } else if (
-    row.scope_type_id === NOTICE_TYPES.PERSONAL &&
-    row.receivers &&
-    row.receivers.length === 1
+    row.visibility === "specific_users" &&
+    row.target_users &&
+    row.target_users.length > 0
   ) {
-    emailForm.receiver_type = 3;
-    emailForm.receiver_id = row.receivers[0].id;
+    emailForm.receiver_type = 2; // 指定用户
+    emailForm.receiver_ids = row.target_users.map(
+      (item: any) => item.target_id
+    );
+  } else if (row.visibility === "specific_roles") {
+    emailForm.receiver_type = 1; // 角色用户，暂时按全部处理
   }
 
   emailDialogVisible.value = true;
@@ -2846,66 +2765,6 @@ onMounted(() => {
 
         &.receiver-tag {
           position: relative;
-        }
-      }
-    }
-
-    .receivers-list {
-      .receivers-header {
-        padding: 8px 0;
-        margin-bottom: 8px;
-        font-weight: bold;
-        color: #606266;
-        text-align: center;
-        border-bottom: 1px solid #ebeef5;
-      }
-
-      .receivers-scrollbar {
-        background-color: #fafafa;
-        border: 1px solid #f0f0f0;
-        border-radius: 4px;
-      }
-
-      .receivers-table {
-        .table-header {
-          display: flex;
-          padding: 8px 12px;
-          font-weight: 500;
-          color: #606266;
-          background-color: #f5f7fa;
-          border-bottom: 1px solid #ebeef5;
-
-          .col-name {
-            flex: 1;
-          }
-
-          .col-status {
-            width: 80px;
-            text-align: center;
-          }
-        }
-
-        .table-body {
-          .table-row {
-            display: flex;
-            align-items: center;
-            padding: 8px 12px;
-            border-bottom: 1px solid #ebeef5;
-
-            &:last-child {
-              border-bottom: none;
-            }
-
-            .col-name {
-              flex: 1;
-              font-size: 13px;
-            }
-
-            .col-status {
-              width: 80px;
-              text-align: center;
-            }
-          }
         }
       }
     }

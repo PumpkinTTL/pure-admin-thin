@@ -68,18 +68,25 @@ class article extends BaseController
     public function selectArticleAll()
     {
         $params = request()->param();
-        
-        // 从中间件获取用户信息
+
+        // 从中间件获取用户信息和管理员标识
         $params['current_user_id'] = request()->currentUserId ?? 0;
         $params['current_user_roles'] = request()->currentUserRoles ?? [];
-        
+        $params['is_admin'] = request()->isAdmin ?? false;
+
         // ========== 强制调试输出 ==========
-        error_log("[Controller] request()->currentUserId: " . (request()->currentUserId ?? 'NULL'));
-        error_log("[Controller] request()->currentUserRoles: " . json_encode(request()->currentUserRoles ?? 'NULL'));
-        error_log("[Controller] params userId: " . $params['current_user_id']);
-        error_log("[Controller] params roles: " . json_encode($params['current_user_roles']));
+        error_log("[article Controller] ========================================");
+        error_log("[article Controller] request()->currentUserId: " . var_export(request()->currentUserId, true));
+        error_log("[article Controller] request()->currentUserRoles: " . json_encode(request()->currentUserRoles ?? []));
+        error_log("[article Controller] request()->isAdmin 原始值: " . var_export(request()->isAdmin, true));
+        error_log("[article Controller] request()->isAdmin 类型: " . gettype(request()->isAdmin));
+        error_log("[article Controller] params['current_user_id']: " . var_export($params['current_user_id'], true));
+        error_log("[article Controller] params['current_user_roles']: " . json_encode($params['current_user_roles']));
+        error_log("[article Controller] params['is_admin'] 原始值: " . var_export($params['is_admin'], true));
+        error_log("[article Controller] params['is_admin'] 类型: " . gettype($params['is_admin']));
+        error_log("[article Controller] ========================================");
         // ========================================
-        
+
         $result = articleService::selectArticleAll($params);
         return json($result);
     }
@@ -91,18 +98,25 @@ class article extends BaseController
     {
         // 获取并验证参数
         $params = request()->only([
-            'id', 'author_id', 'category_id',
-            'title', 'keywords', 'create_time',
-            'update_time', 'publish_time',
+            'id',
+            'author_id',
+            'category_id',
+            'title',
+            'keywords',
+            'create_time',
+            'update_time',
+            'publish_time',
             'page',
-            'page_size'  // 分页参数
+            'page_size'
         ]);
-        
-        // 从中间件获取用户信息（前台接口也需要权限过滤）
+
+        // 从中间件获取用户信息和管理员标识（前台接口也需要权限过滤）
         $params['current_user_id'] = request()->currentUserId ?? 0;
         $params['current_user_roles'] = request()->currentUserRoles ?? [];
+        $params['is_admin'] = request()->isAdmin ?? false;
 
         $result = articleService::selectArticleAll($params);
+
         return json($result);
     }
 
@@ -138,7 +152,7 @@ class article extends BaseController
             if (!articleService::handleArticleTags($articleId, $params['tags'])) {
                 throw new Exception('标签关联处理失败');
             }
-            
+
             // 5. 处理文章权限关联
             if (isset($params['visibility']) && in_array($params['visibility'], ['specific_users', 'specific_roles'])) {
                 if (!articleService::saveArticleAccess($articleId, $params)) {
@@ -157,7 +171,6 @@ class article extends BaseController
                     'article_id' => $articleId
                 ]
             ]);
-
         } catch (\think\exception\ValidateException $e) {
             // 验证异常捕获
             return json([
@@ -165,7 +178,6 @@ class article extends BaseController
                 'msg' => $e->getMessage(),
                 'data' => null
             ]);
-
         } catch (Exception $e) {
             // 其他异常捕获（自动回滚）
             Db::rollback();
@@ -188,18 +200,18 @@ class article extends BaseController
     {
         $id = request()->param('id');
         $result = articleService::selectArticleById($id);
-        
+
         // 如果文章不存在，直接返回
         if ($result['code'] !== 200) {
             return json($result);
         }
-        
+
         $article = $result['data'];
-        
+
         // 从中间件获取用户信息进行权限验证
         $currentUserId = request()->currentUserId ?? 0;
         $currentUserRoles = request()->currentUserRoles ?? [];
-        
+
         // 使用 Model 的 canAccessBy 方法验证权限
         if (!$article->canAccessBy($currentUserId, $currentUserRoles)) {
             return json([
@@ -208,10 +220,10 @@ class article extends BaseController
                 'data' => null
             ]);
         }
-        
+
         return json($result);
     }
-    
+
     /**
      * 更新文章
      */
@@ -219,15 +231,15 @@ class article extends BaseController
     {
         $params = request()->param();
         $id = isset($params['id']) ? intval($params['id']) : 0;
-        
+
         if ($id <= 0) {
             return json(['code' => 400, 'msg' => '缺少必要参数ID']);
         }
-        
+
         $result = articleService::updateArticle($id, $params);
         return json($result);
     }
-    
+
     /**
      * 删除文章
      */
@@ -236,15 +248,15 @@ class article extends BaseController
         $params = request()->param();
         $id = isset($params['id']) ? intval($params['id']) : 0;
         $real = isset($params['real']) && ($params['real'] === 'true' || $params['real'] === true || $params['real'] === '1' || $params['real'] === 1);
-        
+
         if ($id <= 0) {
             return json(['code' => 400, 'msg' => '缺少必要参数ID']);
         }
-        
+
         $result = articleService::deleteArticle($id, $real);
         return json($result);
     }
-    
+
     /**
      * 恢复已删除的文章
      */
@@ -252,15 +264,15 @@ class article extends BaseController
     {
         $params = request()->param();
         $id = isset($params['id']) ? intval($params['id']) : 0;
-        
+
         if ($id <= 0) {
             return json(['code' => 400, 'msg' => '缺少必要参数ID']);
         }
-        
+
         $result = articleService::restoreArticle($id);
         return json($result);
     }
-    
+
     /**
      * 获取已删除的文章列表
      */
