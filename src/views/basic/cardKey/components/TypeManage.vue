@@ -51,24 +51,38 @@
 
     <!-- 数据表格 -->
     <el-table
-      :data="tableData"
       v-loading="loading"
+      :data="tableData"
       class="modern-table"
+      :header-cell-style="{
+        background: '#f8fafc',
+        color: '#475569',
+        fontWeight: '500'
+      }"
       @selection-change="handleSelectionChange"
-      :header-cell-style="{ background: '#f8fafc', color: '#475569', fontWeight: '500' }"
     >
       <el-table-column type="selection" width="45" align="center" />
       <el-table-column prop="id" label="ID" width="60" align="center" />
 
       <!-- 类型名称 -->
-      <el-table-column prop="type_name" label="类型名称" min-width="120" align="center">
+      <el-table-column
+        prop="type_name"
+        label="类型名称"
+        min-width="120"
+        align="center"
+      >
         <template #default="{ row }">
           <span class="type-name">{{ row.type_name }}</span>
         </template>
       </el-table-column>
 
       <!-- 类型编码 -->
-      <el-table-column prop="type_code" label="类型编码" min-width="140" align="center">
+      <el-table-column
+        prop="type_code"
+        label="类型编码"
+        min-width="140"
+        align="center"
+      >
         <template #default="{ row }">
           <span class="type-code">{{ row.type_code }}</span>
         </template>
@@ -83,7 +97,9 @@
         show-overflow-tooltip
       >
         <template #default="{ row }">
-          <span v-if="row.description" class="desc-text">{{ row.description }}</span>
+          <span v-if="row.description" class="desc-text">
+            {{ row.description }}
+          </span>
           <span v-else class="empty-text">-</span>
         </template>
       </el-table-column>
@@ -91,13 +107,20 @@
       <!-- 价格 -->
       <el-table-column prop="price" label="价格" width="100" align="center">
         <template #default="{ row }">
-          <span v-if="row.price !== null" class="price-text">¥{{ row.price }}</span>
+          <span v-if="row.price !== null" class="price-text">
+            ¥{{ row.price }}
+          </span>
           <span v-else class="no-need-badge">不需要</span>
         </template>
       </el-table-column>
 
       <!-- 会员时长 -->
-      <el-table-column prop="membership_duration" label="会员时长" width="120" align="center">
+      <el-table-column
+        prop="membership_duration"
+        label="会员时长"
+        width="120"
+        align="center"
+      >
         <template #default="{ row }">
           <template v-if="row.membership_duration === null">
             <span class="no-need-badge">不需要</span>
@@ -106,13 +129,20 @@
             <span class="permanent-badge">永久</span>
           </template>
           <template v-else>
-            <span class="duration-text">{{ formatDuration(row.membership_duration) }}</span>
+            <span class="duration-text">
+              {{ formatDuration(row.membership_duration) }}
+            </span>
           </template>
         </template>
       </el-table-column>
 
       <!-- 可兑换天数 -->
-      <el-table-column prop="available_days" label="可兑换天数" width="120" align="center">
+      <el-table-column
+        prop="available_days"
+        label="可兑换天数"
+        width="120"
+        align="center"
+      >
         <template #default="{ row }">
           <template v-if="row.available_days === null">
             <span class="permanent-badge">永久</span>
@@ -149,7 +179,12 @@
             <IconifyIconOnline icon="ep:edit" />
             编辑
           </el-button>
-          <el-button link type="danger" size="small" @click="handleDelete(row.id)">
+          <el-button
+            link
+            type="danger"
+            size="small"
+            @click="handleDelete(row.id)"
+          >
             <IconifyIconOnline icon="ep:delete" />
             删除
           </el-button>
@@ -180,7 +215,12 @@
       destroy-on-close
       @close="handleDialogClose"
     >
-      <el-form :model="formData" :rules="rules" ref="formRef" label-width="110px">
+      <el-form
+        ref="formRef"
+        :model="formData"
+        :rules="rules"
+        label-width="110px"
+      >
         <el-form-item label="类型名称" prop="type_name">
           <el-input v-model="formData.type_name" placeholder="请输入类型名称" />
         </el-form-item>
@@ -191,6 +231,39 @@
             placeholder="请输入类型编码（英文）"
             :disabled="isEdit"
           />
+        </el-form-item>
+
+        <el-form-item label="使用类型" prop="use_type">
+          <el-select
+            v-model="formData.use_type"
+            placeholder="请选择使用类型"
+            style="width: 100%"
+          >
+            <el-option label="兑换会员" value="membership" />
+            <el-option label="捐赠" value="donation" />
+            <el-option label="注册邀请" value="register" />
+            <el-option label="商品兑换" value="product" />
+            <el-option label="积分兑换" value="points" />
+            <el-option label="其他" value="other" />
+          </el-select>
+          <div class="form-tip">
+            <span v-if="formData.use_type === 'membership'">
+              💡 用户使用卡密兑换会员时长
+            </span>
+            <span v-else-if="formData.use_type === 'donation'">
+              💡 用户使用卡密进行捐赠，请在捐赠页面使用
+            </span>
+            <span v-else-if="formData.use_type === 'register'">
+              💡 新用户使用邀请码注册
+            </span>
+            <span v-else-if="formData.use_type === 'product'">
+              💡 用户使用卡密兑换商品
+            </span>
+            <span v-else-if="formData.use_type === 'points'">
+              💡 用户使用卡密兑换积分
+            </span>
+            <span v-else>💡 其他特殊用途</span>
+          </div>
         </el-form-item>
 
         <el-form-item label="描述">
@@ -230,7 +303,11 @@
                 size="small"
                 style="width: 130px"
               />
-              <el-select v-model="durationUnit" size="small" style="width: 85px">
+              <el-select
+                v-model="durationUnit"
+                size="small"
+                style="width: 85px"
+              >
                 <el-option label="分钟" value="minute" />
                 <el-option label="小时" value="hour" />
                 <el-option label="天" value="day" />
@@ -272,16 +349,26 @@
         </el-form-item>
 
         <el-form-item label="状态">
-          <el-switch v-model="formData.status" :active-value="1" :inactive-value="0" />
-          <span style="margin-left: 10px; color: #909399">{{
-            formData.status === 1 ? "启用" : "停用"
-          }}</span>
+          <el-switch
+            v-model="formData.status"
+            :active-value="1"
+            :inactive-value="0"
+          />
+          <span style="margin-left: 10px; color: #909399">
+            {{ formData.status === 1 ? "启用" : "停用" }}
+          </span>
         </el-form-item>
       </el-form>
 
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit" :loading="submitLoading">确定</el-button>
+        <el-button
+          type="primary"
+          :loading="submitLoading"
+          @click="handleSubmit"
+        >
+          确定
+        </el-button>
       </template>
     </el-dialog>
   </div>
@@ -330,6 +417,7 @@ const formRef = ref<FormInstance>();
 const formData = reactive<CardTypeFormData>({
   type_name: "",
   type_code: "",
+  use_type: "membership",
   description: "",
   membership_duration: null,
   price: null,
@@ -341,18 +429,19 @@ const formData = reactive<CardTypeFormData>({
 const currentEditId = ref<number>();
 
 // 会员时长辅助输入
-const durationMode = ref<'none' | 'permanent' | 'custom'>('none');
+const durationMode = ref<"none" | "permanent" | "custom">("none");
 const durationValue = ref<number>(1);
-const durationUnit = ref<'minute' | 'hour' | 'day' | 'month'>('day');
+const durationUnit = ref<"minute" | "hour" | "day" | "month">("day");
 
 // 可兑换天数辅助输入
-const availableMode = ref<'permanent' | 'custom'>('permanent');
+const availableMode = ref<"permanent" | "custom">("permanent");
 const availableValue = ref<number>(30);
 
 // 表单验证规则
 const rules: FormRules = {
   type_name: [{ required: true, message: "请输入类型名称", trigger: "blur" }],
-  type_code: [{ required: true, message: "请输入类型编码", trigger: "blur" }]
+  type_code: [{ required: true, message: "请输入类型编码", trigger: "blur" }],
+  use_type: [{ required: true, message: "请选择使用类型", trigger: "change" }]
 };
 
 /**
@@ -360,14 +449,14 @@ const rules: FormRules = {
  */
 const calculateMinutes = (): number => {
   if (!durationValue.value) return 0;
-  
+
   const unitMap = {
     minute: 1,
     hour: 60,
     day: 1440, // 60 * 24
     month: 43200 // 60 * 24 * 30
   };
-  
+
   return durationValue.value * unitMap[durationUnit.value];
 };
 
@@ -388,10 +477,10 @@ const calculateDuration = (): string => {
 };
 
 // 监听会员时长模式变化
-watch(durationMode, (newMode) => {
-  if (newMode === 'none') {
+watch(durationMode, newMode => {
+  if (newMode === "none") {
     formData.membership_duration = null;
-  } else if (newMode === 'permanent') {
+  } else if (newMode === "permanent") {
     formData.membership_duration = 0;
   } else {
     formData.membership_duration = calculateMinutes();
@@ -400,14 +489,14 @@ watch(durationMode, (newMode) => {
 
 // 监听自定义时长变化
 watch([durationValue, durationUnit], () => {
-  if (durationMode.value === 'custom') {
+  if (durationMode.value === "custom") {
     formData.membership_duration = calculateMinutes();
   }
 });
 
 // 监听可兑换天数模式变化
-watch(availableMode, (newMode) => {
-  if (newMode === 'permanent') {
+watch(availableMode, newMode => {
+  if (newMode === "permanent") {
     formData.available_days = null;
   } else {
     formData.available_days = availableValue.value;
@@ -415,8 +504,8 @@ watch(availableMode, (newMode) => {
 });
 
 // 监听可兑换天数值变化
-watch(availableValue, (newValue) => {
-  if (availableMode.value === 'custom') {
+watch(availableValue, newValue => {
+  if (availableMode.value === "custom") {
     formData.available_days = newValue;
   }
 });
@@ -481,6 +570,7 @@ const handleEdit = (row: CardType) => {
   Object.assign(formData, {
     type_name: row.type_name,
     type_code: row.type_code,
+    use_type: row.use_type || "membership",
     description: row.description || "",
     membership_duration: row.membership_duration,
     price: row.price,
@@ -491,32 +581,32 @@ const handleEdit = (row: CardType) => {
 
   // 初始化会员时长辅助输入
   if (row.membership_duration === null) {
-    durationMode.value = 'none';
+    durationMode.value = "none";
   } else if (row.membership_duration === 0) {
-    durationMode.value = 'permanent';
+    durationMode.value = "permanent";
   } else {
-    durationMode.value = 'custom';
+    durationMode.value = "custom";
     // 智能识别单位
     if (row.membership_duration % 43200 === 0) {
       durationValue.value = row.membership_duration / 43200;
-      durationUnit.value = 'month';
+      durationUnit.value = "month";
     } else if (row.membership_duration % 1440 === 0) {
       durationValue.value = row.membership_duration / 1440;
-      durationUnit.value = 'day';
+      durationUnit.value = "day";
     } else if (row.membership_duration % 60 === 0) {
       durationValue.value = row.membership_duration / 60;
-      durationUnit.value = 'hour';
+      durationUnit.value = "hour";
     } else {
       durationValue.value = row.membership_duration;
-      durationUnit.value = 'minute';
+      durationUnit.value = "minute";
     }
   }
 
   // 初始化可兑换天数辅助输入
   if (row.available_days === null) {
-    availableMode.value = 'permanent';
+    availableMode.value = "permanent";
   } else {
-    availableMode.value = 'custom';
+    availableMode.value = "custom";
     availableValue.value = row.available_days;
   }
 
@@ -537,7 +627,11 @@ const handleSubmit = async () => {
       const submitData = { ...formData };
 
       // 处理空值
-      if (submitData.price === null || submitData.price === undefined || submitData.price === "") {
+      if (
+        submitData.price === null ||
+        submitData.price === undefined ||
+        submitData.price === ""
+      ) {
         submitData.price = null;
       }
       if (
@@ -582,7 +676,9 @@ const handleSubmit = async () => {
  */
 const handleStatusChange = async (row: CardType) => {
   try {
-    const response = await updateCardType(row.id, { status: row.status } as CardTypeFormData);
+    const response = await updateCardType(row.id, {
+      status: row.status
+    } as CardTypeFormData);
     if (response.code === 200) {
       message("状态更新成功", { type: "success" });
       fetchList();
@@ -675,6 +771,7 @@ const resetForm = () => {
   Object.assign(formData, {
     type_name: "",
     type_code: "",
+    use_type: "membership",
     description: "",
     membership_duration: null,
     price: null,
@@ -683,12 +780,12 @@ const resetForm = () => {
     status: 1
   });
   currentEditId.value = undefined;
-  
+
   // 重置辅助输入
-  durationMode.value = 'none';
+  durationMode.value = "none";
   durationValue.value = 1;
-  durationUnit.value = 'day';
-  availableMode.value = 'permanent';
+  durationUnit.value = "day";
+  availableMode.value = "permanent";
   availableValue.value = 30;
 };
 
@@ -720,14 +817,14 @@ defineExpose({
 .type-manage-container {
   .action-buttons {
     display: flex;
-    justify-content: flex-end;
     gap: 8px;
+    justify-content: flex-end;
   }
 
   // 现代化表格样式
   .modern-table {
-    border-radius: 8px;
     overflow: hidden;
+    border-radius: 8px;
 
     :deep(.el-table__inner-wrapper) {
       &::before {
@@ -738,164 +835,164 @@ defineExpose({
     :deep(.el-table__body) {
       tr {
         transition: background-color 0.2s ease;
-        
+
         &:hover {
           background-color: #f8fafc !important;
         }
       }
 
       td {
-        border-bottom: 1px solid #f1f5f9;
         padding: 12px 0;
+        border-bottom: 1px solid #f1f5f9;
       }
     }
 
     :deep(.el-table__header) {
       th {
-        border-bottom: 1px solid #e2e8f0;
         padding: 14px 0;
         font-size: 13px;
+        border-bottom: 1px solid #e2e8f0;
       }
     }
   }
 
   // 类型名称
   .type-name {
-    color: #1e293b;
-    font-weight: 600;
     font-size: 13px;
+    font-weight: 600;
+    color: #1e293b;
   }
 
   // 类型编码
   .type-code {
-    font-family: "Consolas", "Monaco", monospace;
+    padding: 2px 8px;
+    font-family: Consolas, Monaco, monospace;
     font-size: 12px;
     color: #64748b;
     background: #f1f5f9;
-    padding: 2px 8px;
     border-radius: 4px;
   }
 
   // 描述文本
   .desc-text {
-    color: #64748b;
     font-size: 13px;
+    color: #64748b;
   }
 
   // 价格文本
   .price-text {
-    color: #ef4444;
-    font-weight: 600;
     font-size: 13px;
+    font-weight: 600;
+    color: #ef4444;
   }
 
   // 不需要徽章
   .no-need-badge {
     display: inline-block;
     padding: 3px 10px;
-    border-radius: 12px;
     font-size: 12px;
     font-weight: 500;
-    background: #f1f5f9;
     color: #94a3b8;
+    background: #f1f5f9;
+    border-radius: 12px;
   }
 
   // 永久徽章
   .permanent-badge {
     display: inline-block;
     padding: 3px 10px;
-    border-radius: 12px;
     font-size: 12px;
     font-weight: 500;
-    background: #f0fdf4;
     color: #16a34a;
+    background: #f0fdf4;
+    border-radius: 12px;
   }
 
   // 时长文本
   .duration-text {
-    color: #3b82f6;
-    font-weight: 500;
     font-size: 13px;
+    font-weight: 500;
+    color: #3b82f6;
   }
 
   // 天数文本
   .days-text {
-    color: #64748b;
     font-size: 13px;
+    color: #64748b;
   }
 
   // 排序文本
   .sort-text {
-    color: #94a3b8;
     font-size: 13px;
+    color: #94a3b8;
   }
 
   // 空值文本
   .empty-text {
-    color: #cbd5e1;
     font-size: 13px;
+    color: #cbd5e1;
   }
 
   // 表单提示
   .form-tip {
+    margin-top: 4px;
     font-size: 12px;
     color: #909399;
-    margin-top: 4px;
   }
 
   // 时长输入组件 - 和谐一体设计
   .duration-input-group {
     .duration-mode {
       margin-bottom: 12px;
-      
+
       :deep(.el-radio-button) {
         .el-radio-button__inner {
           padding: 5px 12px;
           font-size: 12px;
-          border-color: #e2e8f0;
-          background: #fff;
           color: #64748b;
+          background: #fff;
+          border-color: #e2e8f0;
           transition: all 0.2s ease;
         }
-        
+
         &:first-child .el-radio-button__inner {
           border-radius: 6px 0 0 6px;
         }
-        
+
         &:last-child .el-radio-button__inner {
           border-radius: 0 6px 6px 0;
         }
 
         &.is-active .el-radio-button__inner {
+          color: white;
           background: #3b82f6;
           border-color: #3b82f6;
-          color: white;
         }
-        
+
         &:hover:not(.is-active) .el-radio-button__inner {
-          border-color: #cbd5e1;
           background: #f8fafc;
+          border-color: #cbd5e1;
         }
       }
     }
 
     .duration-custom {
       display: flex;
-      align-items: center;
       gap: 8px;
+      align-items: center;
       padding: 10px 12px;
       background: #fafbfc;
-      border-radius: 6px;
       border: 1px solid #e5e7eb;
+      border-radius: 6px;
 
       :deep(.el-input-number) {
         .el-input__wrapper {
           background: white;
           transition: all 0.2s ease;
-          
+
           &.is-focus {
             border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            box-shadow: 0 0 0 3px rgb(59 130 246 / 10%);
           }
         }
       }
@@ -910,22 +1007,21 @@ defineExpose({
       .duration-result {
         flex-shrink: 0;
         padding: 4px 10px;
-        background: #eff6ff;
-        color: #3b82f6;
-        font-weight: 500;
         font-size: 12px;
-        border-radius: 4px;
+        font-weight: 500;
+        color: #3b82f6;
+        background: #eff6ff;
         border: 1px solid #bfdbfe;
+        border-radius: 4px;
       }
 
       .unit-label {
         flex-shrink: 0;
-        color: #64748b;
-        font-weight: 500;
         font-size: 12px;
+        font-weight: 500;
+        color: #64748b;
       }
     }
   }
 }
 </style>
-

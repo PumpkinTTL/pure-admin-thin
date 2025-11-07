@@ -134,7 +134,15 @@ import {
   faMagic,
   faRedo,
   faSyncAlt,
-  faTimesCircle
+  faTimesCircle,
+  faUserSecret,
+  faHandHoldingHeart,
+  faFileInvoiceDollar,
+  faCheckDouble,
+  faQuestion,
+  faReceipt,
+  faTicket,
+  faYenSign
 } from "@fortawesome/free-solid-svg-icons";
 // far格式图标
 import {
@@ -296,6 +304,14 @@ library.add(
   faRedo,
   faSyncAlt,
   faTimesCircle,
+  faUserSecret,
+  faHandHoldingHeart,
+  faFileInvoiceDollar,
+  faCheckDouble,
+  faQuestion,
+  faReceipt,
+  faTicket,
+  faYenSign,
   farCheckCircle,
   farBell,
   faGithub,

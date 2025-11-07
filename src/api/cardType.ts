@@ -1,8 +1,8 @@
 /**
  * 卡密类型管理API接口
- * 
+ *
  * 封装所有卡密类型相关的HTTP请求
- * 
+ *
  * @author AI Assistant
  * @date 2025-10-04
  */
@@ -16,22 +16,32 @@ export interface CardType {
   id: number;
   type_name: string;
   type_code: string;
+  /**
+   * 使用类型
+   * @example 'membership' - 兑换会员
+   * @example 'donation' - 捐赠
+   * @example 'register' - 注册邀请
+   * @example 'product' - 商品兑换
+   * @example 'points' - 积分兑换
+   * @example 'other' - 其他
+   */
+  use_type?: string;
   description?: string;
   icon?: string;
-  /** 
+  /**
    * 会员时长(分钟)
    * @example null - 不需要会员时长字段
    * @example 0 - 永久会员
    * @example 43200 - 30天会员
    */
   membership_duration?: number | null;
-  /** 
+  /**
    * 价格
    * @example null - 不需要价格字段
    * @example 99.00 - 价格99元
    */
   price?: number | null;
-  /** 
+  /**
    * 可兑换天数
    * @example null - 永久可兑换
    * @example 90 - 生成后90天内可兑换
@@ -59,6 +69,7 @@ export interface CardTypeListParams {
 export interface CardTypeFormData {
   type_name: string;
   type_code: string;
+  use_type?: string;
   description?: string;
   icon?: string;
   membership_duration?: number | null;
@@ -139,4 +150,3 @@ export const batchDeleteCardType = (ids: number[]) => {
     data: { ids }
   });
 };
-

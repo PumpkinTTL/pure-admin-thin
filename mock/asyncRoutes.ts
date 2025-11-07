@@ -83,6 +83,16 @@ const testRouter = {
         title: "卡密管理",
         auths: ["cardkey:view"]
       }
+    },
+    {
+      path: "/basic/donation",
+      name: "Donation",
+      component: "/src/views/basic/donation.vue",
+      meta: {
+        icon: "ep:coin",
+        title: "捐赠记录",
+        auths: ["donation:view"]
+      }
     }
   ]
 };
@@ -343,7 +353,13 @@ export default defineFakeRoute([
     response: () => {
       return {
         success: true,
-        data: [dataRouter, permissionRouter, testRouter, systemRouter, paymentRouter]
+        data: [
+          dataRouter,
+          permissionRouter,
+          testRouter,
+          systemRouter,
+          paymentRouter
+        ]
       };
     }
   }
