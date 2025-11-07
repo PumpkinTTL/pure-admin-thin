@@ -1,4 +1,5 @@
 <?php
+
 /**
  * 卡密使用记录模型
  * 
@@ -16,26 +17,27 @@ class CardKeyLog extends Model
 {
     // 设置表名（不含前缀）
     protected $name = 'card_key_logs';
-    
+
     // 设置表前缀
     protected $connection = 'mysql';
-    
+
     // 自动时间戳类型
     protected $autoWriteTimestamp = false;
-    
+
     // 定义时间字段名
     protected $createTime = 'create_time';
     protected $updateTime = false;
-    
+
     // 字段类型转换
     protected $type = [
         'id' => 'integer',
         'card_key_id' => 'integer',
         'user_id' => 'integer',
+        'related_id' => 'integer',
         'create_time' => 'datetime',
         'expire_time' => 'datetime',
     ];
-    
+
     /**
      * 操作类型常量定义
      */
@@ -43,7 +45,25 @@ class CardKeyLog extends Model
     const ACTION_VERIFY = '验证';
     const ACTION_DISABLE = '禁用';
     const ACTION_ENABLE = '启用';
-    
+
+    /**
+     * 使用类型常量定义
+     */
+    const USE_TYPE_MEMBERSHIP = 'membership';  // 兑换会员
+    const USE_TYPE_DONATION = 'donation';      // 捐赠
+    const USE_TYPE_REGISTER = 'register';      // 注册邀请
+    const USE_TYPE_PRODUCT = 'product';        // 商品兑换
+    const USE_TYPE_POINTS = 'points';          // 积分兑换
+    const USE_TYPE_OTHER = 'other';            // 其他
+
+    /**
+     * 关联类型常量定义
+     */
+    const RELATED_TYPE_DONATION = 'donation';  // 捐赠记录
+    const RELATED_TYPE_ORDER = 'order';        // 订单
+    const RELATED_TYPE_USER = 'user';          // 用户
+    const RELATED_TYPE_POINTS = 'points';      // 积分记录
+
     /**
      * 关联卡密
      * 
@@ -122,7 +142,7 @@ class CardKeyLog extends Model
 
     /**
      * 记录卡密使用日志
-     * 
+     *
      * @param int $cardKeyId 卡密ID
      * @param int $userId 用户ID
      * @param string $action 操作类型
@@ -132,16 +152,21 @@ class CardKeyLog extends Model
     public static function addLog(int $cardKeyId, int $userId, string $action, array $extra = []): ?self
     {
         try {
-            return self::create([
+            $data = [
                 'card_key_id' => $cardKeyId,
                 'user_id' => $userId,
                 'action' => $action,
+                'use_type' => $extra['use_type'] ?? self::USE_TYPE_MEMBERSHIP,
+                'related_id' => $extra['related_id'] ?? null,
+                'related_type' => $extra['related_type'] ?? null,
                 'expire_time' => $extra['expire_time'] ?? null,
                 'ip' => $extra['ip'] ?? request()->ip(),
                 'user_agent' => $extra['user_agent'] ?? request()->header('user-agent'),
                 'create_time' => date('Y-m-d H:i:s'),
                 'remark' => $extra['remark'] ?? ''
-            ]);
+            ];
+
+            return self::create($data);
         } catch (\Exception $e) {
             return null;
         }
@@ -160,10 +185,10 @@ class CardKeyLog extends Model
         $query = self::where('card_key_id', $cardKeyId)
             ->with(['user'])
             ->order('create_time', 'desc');
-        
+
         $total = $query->count();
         $list = $query->page($page, $limit)->select();
-        
+
         return [
             'total' => $total,
             'list' => $list,
@@ -185,10 +210,10 @@ class CardKeyLog extends Model
         $query = self::where('user_id', $userId)
             ->with(['cardKey'])
             ->order('create_time', 'desc');
-        
+
         $total = $query->count();
         $list = $query->page($page, $limit)->select();
-        
+
         return [
             'total' => $total,
             'list' => $list,
@@ -207,14 +232,14 @@ class CardKeyLog extends Model
     {
         $page = $params['page'] ?? 1;
         $limit = $params['limit'] ?? 10;
-        
+
         $query = self::withSearch(['card_key_id', 'user_id', 'action', 'create_time'], $params)
             ->with(['cardKey', 'user'])
             ->order('create_time', 'desc');
-        
+
         $total = $query->count();
         $list = $query->page($page, $limit)->select();
-        
+
         return [
             'total' => $total,
             'list' => $list,
@@ -233,7 +258,7 @@ class CardKeyLog extends Model
     {
         $query = self::field('action, COUNT(*) as count')
             ->group('action');
-        
+
         // 时间范围筛选
         if (!empty($params['start_time'])) {
             $query->where('create_time', '>=', $params['start_time']);
@@ -241,7 +266,7 @@ class CardKeyLog extends Model
         if (!empty($params['end_time'])) {
             $query->where('create_time', '<=', $params['end_time']);
         }
-        
+
         return $query->select()->toArray();
     }
 
@@ -257,4 +282,3 @@ class CardKeyLog extends Model
         return self::where('create_time', '<', $expireDate)->delete();
     }
 }
-

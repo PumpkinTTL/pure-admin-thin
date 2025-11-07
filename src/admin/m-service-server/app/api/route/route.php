@@ -1,13 +1,16 @@
 <?php
 
 use think\facade\Route;
-
-//用户分组
+//用户分组 - 不需要登录的接口（登录、注册等）
 Route::group('/:version/user', function () {
     Route::rule('/login', ':version.User/login');
     Route::rule('/V2Login', ':version.User/V2Login');
-    Route::rule('/dualTokenLogin', ':version.User/login'); // 双token登录
+    Route::rule('/dualTokenLogin', ':version.User/login'); // 双 token登录
     Route::rule('/refreshToken', ':version.User/refreshToken'); // 刷新token
+});
+
+//用户分组 - 需要登录的接口（应用 Auth 中间件）
+Route::group('/:version/user', function () {
     Route::rule('/logout', ':version.User/logout'); // 登出
     Route::rule('/forceLogoutUser', ':version.User/forceLogoutUser'); // 强制失效用户token
     Route::rule('/selectUserInfoById', ':version.User/selectUserInfoById');
@@ -17,17 +20,21 @@ Route::group('/:version/user', function () {
     Route::rule('/update', ':version.User/update');
     Route::rule('/outLogin', ':version.User/outLogin');
     Route::rule('/selectUserListWithRoles', ':version.User/selectUserListWithRoles');
-});
+})->middleware([
+    app\api\middleware\Auth::class
+]);
 
 // 认证相关接口
 Route::group('/:version/auth', function () {
     Route::rule('/refresh', ':version.User/refreshToken'); // 刷新token - 指向User控制器
 });
-// 需要双token认证的用户接口（直接在控制器中验证）
+// 用户信息接口（应用 Auth 中间件）
 Route::group('/:version/user', function () {
     Route::rule('/info', ':version.User/info'); // 获取用户信息
     Route::rule('/testToken', ':version.User/testToken'); // 测试token读取
-});
+})->middleware([
+    app\api\middleware\Auth::class
+]);
 //资源分组
 Route::group('/:version/resource', function () {
     Route::rule('selectResourceAll', ':version.resource/selectResourceAll');
@@ -142,7 +149,7 @@ Route::group('/:version/menus', function () {
     Route::rule('/selectMenuAll', ':version.menu/selectMenuAll');
 });
 
-//公告分组
+//公告分组（应用 NoticeAuth 中间件）
 Route::group('/:version/notice', function () {
     Route::rule('list', ':version.notice/getNoticeList');
     Route::rule('detail/:notice_id', ':version.notice/getNoticeById');
@@ -154,7 +161,9 @@ Route::group('/:version/notice', function () {
     Route::rule('user/:user_id', ':version.notice/getUserNotices');
     Route::rule('trashed', ':version.notice/getTrashedNotices');
     Route::rule('restore/:notice_id', ':version.notice/restoreNotice');
-});
+})->middleware([
+    app\api\middleware\NoticeAuth::class
+]);
 
 //权限分组
 Route::group('/:version/permissions', function () {
@@ -343,4 +352,32 @@ Route::group('/:version/cardtype', function () {
     Route::put('update/:id', ':version.CardType/update');               // 更新类型
     Route::delete('delete/:id', ':version.CardType/delete');            // 删除类型
     Route::post('batchDelete', ':version.CardType/batchDelete');        // 批量删除类型
+});
+
+// ============================================
+// 捐赠记录管理路由组
+// ============================================
+Route::group('/:version/donation', function () {
+    // 查询接口
+    Route::rule('list', ':version.Donation/getList');                   // 获取捐赠记录列表
+    Route::rule('detail', ':version.Donation/getDetail');               // 获取捐赠记录详情
+    Route::rule('getDeletedList', ':version.Donation/getDeletedList');  // 获取已删除的记录列表
+
+    // 增删改接口
+    Route::rule('add', ':version.Donation/add');                        // 添加捐赠记录
+    Route::rule('update', ':version.Donation/update');                  // 更新捐赠记录
+    Route::rule('delete', ':version.Donation/delete');                  // 删除捐赠记录（软删除）
+    Route::rule('batchDelete', ':version.Donation/batchDelete');        // 批量删除
+    Route::rule('restore', ':version.Donation/restore');                // 恢复捐赠记录
+
+    // 状态管理
+    Route::rule('updateStatus', ':version.Donation/updateStatus');      // 更新捐赠状态
+
+    // 统计和选项
+    Route::rule('statistics', ':version.Donation/getStatistics');       // 获取统计数据
+    Route::rule('channelOptions', ':version.Donation/getChannelOptions'); // 获取渠道选项
+    Route::rule('statusOptions', ':version.Donation/getStatusOptions'); // 获取状态选项
+
+    // 客户端查询接口
+    Route::rule('query', ':version.Donation/queryByContact');           // 通过邮箱或iden查询捐赠记录
 });

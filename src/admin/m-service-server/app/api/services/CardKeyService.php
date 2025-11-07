@@ -14,6 +14,7 @@ namespace app\api\services;
 use app\api\model\CardKey;
 use app\api\model\CardType;
 use app\api\model\CardKeyLog;
+use app\api\model\Donation;
 use app\api\model\users;
 use app\api\model\premium;
 use utils\CardKeyUtil;
@@ -248,7 +249,7 @@ class CardKeyService
     {
         // 开启事务，确保数据一致性
         Db::startTrans();
-        
+
         try {
             // 1. 验证卡密
             $verifyResult = CardKeyUtil::verify($cardKey);
@@ -258,7 +259,7 @@ class CardKeyService
             }
 
             $cardKeyModel = $verifyResult['data'];
-            
+
             // 2. 二次验证状态（防止并发问题）
             if ($cardKeyModel->status !== CardKey::STATUS_UNUSED) {
                 Db::rollback();
@@ -267,68 +268,157 @@ class CardKeyService
                     'message' => '卡密已被使用或禁用'
                 ];
             }
-            
-            // 3. 更新卡密为已使用状态
+
+            // 3. 获取卡密类型信息
+            $cardType = $cardKeyModel->cardType;
+            if (!$cardType) {
+                Db::rollback();
+                return [
+                    'success' => false,
+                    'message' => '卡密类型不存在'
+                ];
+            }
+
+            // 4. 根据卡密类型的use_type决定处理逻辑
+            $useType = $cardType->use_type ?? CardKeyLog::USE_TYPE_MEMBERSHIP;
+            $relatedId = null;
+            $relatedType = null;
+            $membershipInfo = null;
+            $donationInfo = null;
+            $resultMessage = '使用成功';
+
+            // 5. 更新卡密为已使用状态
             $cardKeyModel->status = CardKey::STATUS_USED;
             $cardKeyModel->user_id = $userId;
             $cardKeyModel->use_time = date('Y-m-d H:i:s');
             $cardKeyModel->save();
-            
-            // 4. 处理会员时长逻辑（核心功能）
-            $cardType = $cardKeyModel->cardType;
-            $membershipInfo = null;
-            
-            if ($cardType && $cardType->membership_duration !== null) {
-                // 调用会员时长处理方法
-                $membershipResult = $this->processUserMembership($userId, $cardType->membership_duration, $cardType->type_name);
-                
-                if (!$membershipResult['success']) {
-                    // 如果会员处理失败，回滚所有操作
-                    Db::rollback();
-                    return $membershipResult;
-                }
-                
-                $membershipInfo = $membershipResult['data'];
+
+            // 6. 根据不同的use_type执行不同的业务逻辑
+            switch ($useType) {
+                case CardKeyLog::USE_TYPE_MEMBERSHIP:
+                    // 兑换会员
+                    if ($cardType->membership_duration !== null) {
+                        $membershipResult = $this->processUserMembership($userId, $cardType->membership_duration, $cardType->type_name);
+
+                        if (!$membershipResult['success']) {
+                            Db::rollback();
+                            return $membershipResult;
+                        }
+
+                        $membershipInfo = $membershipResult['data'];
+                        $resultMessage = '会员兑换成功';
+                    }
+                    break;
+
+                case CardKeyLog::USE_TYPE_DONATION:
+                    // 捐赠类型的卡密 - 自动创建捐赠记录
+                    // 创建捐赠记录（关联用户ID，捐赠者信息从用户表查询）
+                    $donation = Donation::create([
+                        'donation_no' => Donation::generateDonationNo(),
+                        'user_id' => $userId,  // 关联用户ID
+                        'channel' => Donation::CHANNEL_CARDKEY,
+                        'amount' => 0,
+                        'card_key_code' => $cardKeyModel->card_key,
+                        'card_key_id' => $cardKeyModel->id,
+                        'card_key_value' => $cardType->price ?? 0,
+                        'status' => Donation::STATUS_CONFIRMED,  // 卡密捐赠直接确认
+                        'is_anonymous' => 0,  // 默认不匿名（因为有user_id）
+                        'is_public' => 1,     // 默认公开
+                        'email' => null,      // 可选联系方式（用户可后续填写）
+                        'iden' => null,       // 可选唯一标识（用户可后续填写）
+                        'payment_time' => date('Y-m-d H:i:s'),
+                        'confirm_time' => date('Y-m-d H:i:s'),
+                        'remark' => '使用卡密捐赠',
+                        'create_time' => date('Y-m-d H:i:s')
+                    ]);
+
+                    $relatedId = $donation->id;
+                    $relatedType = CardKeyLog::RELATED_TYPE_DONATION;
+                    $donationInfo = [
+                        'donation_id' => $donation->id,
+                        'donation_no' => $donation->donation_no,
+                        'amount' => $cardType->price ?? 0
+                    ];
+                    $resultMessage = '捐赠成功，感谢您的支持！';
+                    break;
+
+                case CardKeyLog::USE_TYPE_REGISTER:
+                    // 注册邀请码
+                    // TODO: 实现注册邀请逻辑
+                    $relatedId = $userId;  // 关联到新注册的用户
+                    $relatedType = CardKeyLog::RELATED_TYPE_USER;
+                    $resultMessage = '注册邀请码使用成功';
+                    break;
+
+                case CardKeyLog::USE_TYPE_PRODUCT:
+                    // 商品兑换
+                    // TODO: 实现商品兑换逻辑，创建订单
+                    // $relatedId = $orderId;
+                    // $relatedType = CardKeyLog::RELATED_TYPE_ORDER;
+                    $resultMessage = '商品兑换码使用成功';
+                    break;
+
+                case CardKeyLog::USE_TYPE_POINTS:
+                    // 积分兑换
+                    // TODO: 实现积分兑换逻辑
+                    // $relatedId = $pointsRecordId;
+                    // $relatedType = CardKeyLog::RELATED_TYPE_POINTS;
+                    $resultMessage = '积分兑换成功';
+                    break;
+
+                default:
+                    // 其他类型
+                    $resultMessage = '卡密使用成功';
+                    break;
             }
-            
-            // 5. 记录使用日志
+
+            // 7. 记录使用日志
             $logRemark = $extra['remark'] ?? '';
             if ($membershipInfo) {
                 $logRemark .= ($logRemark ? ' | ' : '') . "会员到期时间: {$membershipInfo['expiration_time']}";
             }
-            
-            CardKeyLog::create([
-                'card_key_id' => $cardKeyModel->id,
-                'user_id' => $userId,
-                'action' => 'use',
-                'ip' => $extra['ip'] ?? '',
-                'user_agent' => $extra['user_agent'] ?? '',
-                'remark' => $logRemark,
-                'create_time' => date('Y-m-d H:i:s')
-            ]);
-            
-            // 提交事务
+
+            CardKeyLog::addLog(
+                $cardKeyModel->id,
+                $userId,
+                CardKeyLog::ACTION_USE,
+                [
+                    'use_type' => $useType,
+                    'related_id' => $relatedId,
+                    'related_type' => $relatedType,
+                    'expire_time' => $membershipInfo['expiration_time'] ?? null,
+                    'ip' => $extra['ip'] ?? request()->ip(),
+                    'user_agent' => $extra['user_agent'] ?? request()->header('user-agent'),
+                    'remark' => $logRemark
+                ]
+            );
+
+            // 8. 提交事务
             Db::commit();
-            
+
             return [
                 'success' => true,
-                'message' => '使用成功' . ($membershipInfo ? '，会员已开通' : ''),
+                'message' => $resultMessage,
                 'data' => [
                     'card_key' => $cardKeyModel,
-                    'membership_info' => $membershipInfo
+                    'use_type' => $useType,
+                    'membership_info' => $membershipInfo,
+                    'donation_info' => $donationInfo,
+                    'related_id' => $relatedId,
+                    'related_type' => $relatedType
                 ]
             ];
         } catch (\Exception $e) {
             // 回滚事务
             Db::rollback();
-            
+
             return [
                 'success' => false,
                 'message' => '使用失败：' . $e->getMessage()
             ];
         }
     }
-    
+
     /**
      * 处理用户会员时长
      * 
@@ -348,19 +438,19 @@ class CardKeyService
                     'message' => '用户不存在'
                 ];
             }
-            
+
             // 获取或创建会员信息
             $premium = $user->premium;
             $isNewPremium = false;
-            
+
             if (!$premium) {
                 $premium = new premium();
                 $premium->user_id = $userId;
                 $premium->create_time = date('Y-m-d H:i:s');
-                
+
                 // 生成会员ID（5位数字）
                 $premiumId = \utils\NumUtil::generateNumberCode(1, 5);
-                
+
                 // 确保ID不重复
                 $maxAttempts = 10;
                 $attempts = 0;
@@ -368,15 +458,15 @@ class CardKeyService
                     $premiumId = \utils\NumUtil::generateNumberCode(1, 5);
                     $attempts++;
                 }
-                
+
                 if ($attempts >= $maxAttempts) {
                     throw new \Exception('无法生成唯一的会员ID，请稍后重试');
                 }
-                
+
                 $premium->id = $premiumId;
                 $isNewPremium = true;
             }
-            
+
             // 0 = 永久会员
             if ($durationMinutes === 0) {
                 $premium->expiration_time = '2080-01-01 00:00:00'; // 使用项目约定的永久会员时间
@@ -384,7 +474,7 @@ class CardKeyService
             } else {
                 // 计算到期时间
                 $currentExpireTime = $premium->expiration_time;
-                
+
                 // 检查当前会员是否为永久会员
                 if ($currentExpireTime && strpos($currentExpireTime, '2080-01-01') !== false) {
                     // 已经是永久会员，不需要累加
@@ -398,7 +488,7 @@ class CardKeyService
                         ]
                     ];
                 }
-                
+
                 // 判断是否需要累加时长
                 if ($currentExpireTime && strtotime($currentExpireTime) > time()) {
                     // 如果当前会员未过期，在现有时间基础上累加
@@ -407,14 +497,14 @@ class CardKeyService
                     // 如果当前会员已过期或没有会员，从现在开始计算
                     $newExpireTime = date('Y-m-d H:i:s', time() + ($durationMinutes * 60));
                 }
-                
+
                 $premium->expiration_time = $newExpireTime;
                 $premium->remark = $typeName ?: $premium->remark ?: '普通会员';
             }
-            
+
             // 保存会员信息
             $premium->save();
-            
+
             return [
                 'success' => true,
                 'message' => $isNewPremium ? '会员开通成功' : '会员时长续期成功',
@@ -473,13 +563,14 @@ class CardKeyService
             $cardKey->save();
 
             // 记录禁用日志
-            CardKeyLog::create([
-                'card_key_id' => $cardKey->id,
-                'user_id' => $userId,
-                'action' => 'disable',
-                'remark' => $reason,
-                'create_time' => date('Y-m-d H:i:s')
-            ]);
+            CardKeyLog::addLog(
+                $cardKey->id,
+                $userId,
+                CardKeyLog::ACTION_DISABLE,
+                [
+                    'remark' => $reason
+                ]
+            );
 
             return [
                 'success' => true,
@@ -629,13 +720,14 @@ class CardKeyService
             $cardKey->save();
 
             // 记录重置日志
-            CardKeyLog::create([
-                'card_key_id' => $cardKey->id,
-                'user_id' => $userId,
-                'action' => 'reset',
-                'remark' => $reason ?: '测试重置',
-                'create_time' => date('Y-m-d H:i:s')
-            ]);
+            CardKeyLog::addLog(
+                $cardKey->id,
+                $userId,
+                'reset',
+                [
+                    'remark' => $reason ?: '测试重置'
+                ]
+            );
 
             return [
                 'success' => true,
@@ -648,7 +740,7 @@ class CardKeyService
             ];
         }
     }
-    
+
     /**
      * 批量重置卡密状态（测试环境使用）
      * 
@@ -717,7 +809,7 @@ class CardKeyService
             ];
         }
     }
-    
+
     /**
      * 获取所有使用日志
      * 

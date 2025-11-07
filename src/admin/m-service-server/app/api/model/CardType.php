@@ -47,11 +47,33 @@ class CardType extends Model
     const STATUS_ENABLED = 1;   // 启用
 
     /**
+     * 使用类型常量定义（与CardKeyLog保持一致）
+     */
+    const USE_TYPE_MEMBERSHIP = 'membership';  // 兑换会员
+    const USE_TYPE_DONATION = 'donation';      // 捐赠
+    const USE_TYPE_REGISTER = 'register';      // 注册邀请
+    const USE_TYPE_PRODUCT = 'product';        // 商品兑换
+    const USE_TYPE_POINTS = 'points';          // 积分兑换
+    const USE_TYPE_OTHER = 'other';            // 其他
+
+    /**
      * 状态文本映射
      */
     public static $statusMap = [
         self::STATUS_DISABLED => '停用',
         self::STATUS_ENABLED => '启用',
+    ];
+
+    /**
+     * 使用类型文本映射
+     */
+    public static $useTypeMap = [
+        self::USE_TYPE_MEMBERSHIP => '兑换会员',
+        self::USE_TYPE_DONATION => '捐赠',
+        self::USE_TYPE_REGISTER => '注册邀请',
+        self::USE_TYPE_PRODUCT => '商品兑换',
+        self::USE_TYPE_POINTS => '积分兑换',
+        self::USE_TYPE_OTHER => '其他',
     ];
 
     /**
@@ -186,4 +208,3 @@ class CardType extends Model
         return self::whereIn('id', $ids)->delete();
     }
 }
-
