@@ -3,9 +3,9 @@
 namespace app\api\middleware;
 
 use think\facade\Log;
+use utils\AuthUtil;
 use utils\JWTUtil;
 use utils\RedisUtil;
-use utils\SecretUtil;
 
 class Auth
 {
@@ -29,10 +29,8 @@ class Auth
      */
     public function handle($request, \Closure $next): mixed
     {
-        // 建议统一通过 $request 获取参数
-        $token = $request->header('Bearer ');
-        $currentId = $request->param('currentId');
-        $targetUid = $request->param('targetUid');
+        // ✅ 使用 AuthUtil 统一获取 Token（支持 Header 和 Cookie）
+        $token = AuthUtil::getTokenFromRequest($request);
         $uri = $request->url();
 
         // Step1: 检查Token是否存在
