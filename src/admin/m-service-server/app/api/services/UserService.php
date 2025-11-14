@@ -54,11 +54,11 @@ class UserService
             $payloads['id'] = $res['id'];
             $payloads['platform'] = 'Web';
             $payloads['fingerprint'] = $fingerprint;
-            $expireTime = time() + 60 * 120; // Token有效期：120分钟
+            $expireTime = time() + 60 * 60 * 24 * 3; // Token有效期：3天
             // JWT生成
             $token = JWTUtil::generateToken($payloads, $expireTime);
             // 保存到redis
-            RedisUtil::setString('lt_' . $res['id'], $token, $expireTime);
+            RedisUtil::setString('lt_' . $res['id'], $token, 60 * 60 * 24 * 3);
 
             // 记录日志
             LogService::log("用户登录成功：{$account}({$res['id']})");
@@ -237,6 +237,16 @@ class UserService
                 $premium->save($premiumData);
 
                 LogService::log("为新用户添加会员信息：用户ID {$userId}，会员ID {$premiumData['id']}，到期时间 {$premiumData['expiration_time']}");
+            }
+
+            // 初始化用户所有类型的等级记录（user, writer, reader, interaction）
+            try {
+                LevelService::initializeUserLevels($userId);
+                LogService::log("为新用户初始化所有等级记录成功：用户ID {$userId}");
+            } catch (\Exception $levelException) {
+                // 等级初始化失败不影响用户创建，只记录错误
+                LogService::error($levelException);
+                LogService::log("等级初始化失败：用户ID {$userId}，错误：{$levelException->getMessage()}");
             }
 
             Db::commit();

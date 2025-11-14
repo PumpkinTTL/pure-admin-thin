@@ -381,3 +381,42 @@ Route::group('/:version/donation', function () {
     // 客户端查询接口
     Route::rule('query', ':version.Donation/queryByContact');           // 通过邮箱或iden查询捐赠记录
 });
+
+// ============================================
+// 通用等级系统路由组（支持多种等级类型）
+// ============================================
+// 等级管理接口（应用 Auth 中间件）
+Route::group('/:version/level', function () {
+    // 查询接口
+    Route::rule('list', ':version.level/list');                        // 获取等级列表（需传type参数）
+    Route::rule('detail', ':version.level/detail');                    // 获取等级详情
+    Route::rule('types', ':version.level/types');                      // 获取所有等级类型
+    Route::rule('getLevelByExperience', ':version.level/getLevelByExperience'); // 根据经验值获取等级
+    
+    // 管理接口
+    Route::rule('add', ':version.level/add');                          // 添加等级
+    Route::rule('update', ':version.level/update');                    // 更新等级
+    Route::rule('delete', ':version.level/delete');                    // 删除等级
+    Route::rule('setStatus', ':version.level/setStatus');              // 更新等级状态
+    Route::rule('batchDelete', ':version.level/batchDelete');          // 批量删除等级
+    Route::rule('batchStatus', ':version.level/batchStatus');          // 批量更新状态
+})->middleware([
+    app\api\middleware\Auth::class
+]);
+
+// 经验值管理接口（应用 Auth 中间件）
+Route::group('/:version/experience', function () {
+    // 查询接口
+    Route::rule('logs', ':version.experience/logs');                   // 获取经验日志列表
+    Route::rule('levelInfo', ':version.experience/levelInfo');         // 获取等级信息
+    Route::rule('userAllLevels', ':version.experience/userAllLevels'); // 获取用户所有类型等级
+    Route::rule('sources', ':version.experience/sources');             // 获取经验来源配置
+    Route::rule('sourceStats', ':version.experience/sourceStats');     // 获取经验来源统计
+    Route::rule('records', ':version.experience/records');             // 获取等级记录列表（联查用户）
+    
+    // 操作接口
+    Route::rule('add', ':version.experience/add');                     // 添加经验值
+    Route::rule('revoke', ':version.experience/revoke');               // 撤销经验记录
+})->middleware([
+    app\api\middleware\Auth::class
+]);

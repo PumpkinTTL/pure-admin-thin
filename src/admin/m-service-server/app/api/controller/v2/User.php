@@ -76,11 +76,11 @@ class User extends BaseController
         ];
 
         // 生成JWT格式的AccessToken
-        $accessToken = JWTUtil::generateToken($accessPayload, 60 * 15); // 15分钟有效
+        $accessToken = JWTUtil::generateToken($accessPayload, 60 * 60 * 24 * 3); // 3天有效
 
         // 在Redis中存储完整的AccessToken JWT，用于验证token有效性和主动失效
         $accessTokenKey = "user:{$userId}:platform:{$platform}:access_token";
-        RedisUtil::setString($accessTokenKey, $accessToken, 60 * 15);
+        RedisUtil::setString($accessTokenKey, $accessToken, 60 * 60 * 24 * 3);
 
         // 6. 存储RefreshToken相关信息
         $refreshTokenData = [
@@ -109,7 +109,7 @@ class User extends BaseController
                 'access_token' => $accessToken,
                 'refresh_token' => $refreshToken,
                 'token_type' => 'Bearer',
-                'expires_in' => 900,           // AccessToken过期时间(秒)
+                'expires_in' => 259200,        // AccessToken过期时间(秒) - 3天
                 'refresh_expires_in' => 604800 // RefreshToken过期时间(秒)
             ]
         ]);
@@ -199,15 +199,15 @@ class User extends BaseController
                 'platform' => $platform,
                 'fingerprint' => $fingerprint,
                 'iat' => time(),
-                'exp' => time() + 900
+                'exp' => time() + 60 * 60 * 24 * 3
             ];
 
             // 生成新的JWT AccessToken
-            $accessToken = JWTUtil::generateToken($accessTokenPayload, 60 * 15);
+            $accessToken = JWTUtil::generateToken($accessTokenPayload, 60 * 60 * 24 * 3);
 
             // 7. 更新Redis中的AccessToken JWT
             $accessTokenKey = "user:{$userId}:platform:{$platform}:access_token";
-            RedisUtil::setString($accessTokenKey, $accessToken, 60 * 15);
+            RedisUtil::setString($accessTokenKey, $accessToken, 60 * 60 * 24 * 3);
 
             // 8. 更新RefreshToken的最后使用时间和关联的AccessToken Key
             $refreshTokenPayload['last_used'] = time();
@@ -221,7 +221,7 @@ class User extends BaseController
                 'data' => [
                     'access_token' => $accessToken,
                     'token_type' => 'Bearer',
-                    'expires_in' => 900 // 15分钟
+                    'expires_in' => 259200 // 3天
                 ]
             ]);
 

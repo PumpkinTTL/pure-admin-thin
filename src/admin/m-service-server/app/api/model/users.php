@@ -51,6 +51,18 @@ class users extends Model
     {
         return $this->hasOne(premium::class, 'user_id', 'id');
     }
+
+    // 关联用户等级记录
+    public function levelRecord(): \think\model\relation\HasOne
+    {
+        return $this->hasOne(userLevelRecord::class, 'user_id', 'id');
+    }
+
+    // 关联经验日志
+    public function experienceLogs(): \think\model\relation\HasMany
+    {
+        return $this->hasMany(userExperienceLog::class, 'user_id', 'id');
+    }
     
     /**
      * 创建或更新会员

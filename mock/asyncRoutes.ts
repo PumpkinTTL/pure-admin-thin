@@ -273,6 +273,27 @@ const paymentRouter = {
   ]
 };
 
+// 等级系统
+const levelRouter = {
+  path: "/level",
+  rank: 2,
+  meta: {
+    title: "等级系统",
+    icon: "ep:trophy"
+  },
+  children: [
+    {
+      path: "/level/manage",
+      name: "LevelSystem",
+      component: "/src/views/basic/level.vue",
+      meta: {
+        icon: "ep:trophy",
+        title: "等级管理"
+      }
+    }
+  ]
+};
+
 const permissionRouter = {
   path: "/permission",
   meta: {
@@ -357,6 +378,7 @@ export default defineFakeRoute([
           dataRouter,
           permissionRouter,
           testRouter,
+          levelRouter,
           systemRouter,
           paymentRouter
         ]
