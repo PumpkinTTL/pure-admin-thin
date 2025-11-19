@@ -704,7 +704,7 @@
                   <div class="option-with-icon">
                     <span>{{ item.label }}</span>
                     <span
-                      style=" margin-left: 8px; font-size: 12px;color: #999"
+                      style="margin-left: 8px; font-size: 12px; color: #999"
                     >
                       {{ item.tip }}
                     </span>
@@ -745,7 +745,7 @@
                       style="margin-right: 8px"
                     />
                     <span>{{ user.username }}</span>
-                    <span style=" margin-left: 8px;color: #999">
+                    <span style="margin-left: 8px; color: #999">
                       (ID: {{ user.id }})
                     </span>
                   </div>
