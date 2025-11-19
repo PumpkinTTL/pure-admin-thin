@@ -24,13 +24,15 @@ class users extends Model
     ];
     
     /**
-     * 密码加密修改器
+     * 密码加密修改器（SHA256 + 盐值）
      * @param $value
      * @return string
      */
     public function setPasswordAttr($value)
     {
-        return password_hash($value, PASSWORD_DEFAULT);
+        // 使用应用密钥作为盐值
+        $salt = env('APP_KEY', 'default_salt_key_change_me');
+        return hash('sha256', $value . $salt);
     }
     
 //    解决渲染的问题 
@@ -52,10 +54,25 @@ class users extends Model
         return $this->hasOne(premium::class, 'user_id', 'id');
     }
 
-    // 关联用户等级记录
-    public function levelRecord(): \think\model\relation\HasOne
+    // 关联用户等级记录（一个用户有多个类型的等级记录）
+    public function levelRecords(): \think\model\relation\HasMany
     {
-        return $this->hasOne(userLevelRecord::class, 'user_id', 'id');
+        return $this->hasMany(LevelRecord::class, 'target_id', 'id');
+    }
+    
+    /**
+     * 模型转数组时，将levelRecords转为level_records
+     */
+    public function toArray(): array
+    {
+        $data = parent::toArray();
+        
+        // 如果存在levelRecords，同时创廻a level_records 别名
+        if (isset($data['levelRecords'])) {
+            $data['level_records'] = $data['levelRecords'];
+        }
+        
+        return $data;
     }
 
     // 关联经验日志
@@ -163,13 +180,15 @@ class users extends Model
     }
     
     /**
-     * 验证用户密码
+     * 验证用户密码（SHA256 + 盐值）
      * @param string $password
      * @return bool
      */
     public function verifyPassword(string $password): bool
     {
-        return password_verify($password, $this->password);
+        $salt = env('APP_KEY', 'default_salt_key_change_me');
+        $hashedPassword = hash('sha256', $password . $salt);
+        return $hashedPassword === $this->password;
     }
     
     /**

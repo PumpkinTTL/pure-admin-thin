@@ -772,14 +772,15 @@ class User extends BaseController
                 'fingerprint' => $tokenData['data']['fingerprint'] ?? 'Web'
             ];
 
-            // 设置新的过期时间（2小时）
-            $newExpireTime = time() + 60 * 120;
+            // 设置新的过期时间（3天，与登录时保持一致）
+            $expireSeconds = 60 * 60 * 24 * 3; // 3天的秒数
+            $newExpireTime = time() + $expireSeconds; // 过期时间戳
 
             // 生成新token
             $newToken = JWTUtil::generateToken($payloads, $newExpireTime);
 
-            // 6. 更新Redis中的token
-            RedisUtil::setString($redisKey, $newToken, $newExpireTime);
+            // 6. 更新Redis中的token（第三个参数是秒数，不是时间戳）
+            RedisUtil::setString($redisKey, $newToken, $expireSeconds);
 
             // 记录日志
             LogService::log("用户Token续签成功：{$user['username']}({$userId})");
@@ -801,6 +802,141 @@ class User extends BaseController
         }
     }
 
+    /**
+     * 用户注册
+     */
+    function register(): Json
+    {
+        $params = request()->param();
+
+        // 参数验证
+        $validate = Validate::rule([
+            'username' => ValidateRule::isRequire(null, '用户名必须传递')->max(255, '用户名长度不能超过255个字符')->unique('users', '用户名已存在'),
+            'password' => ValidateRule::isRequire(null, '密码必须传递')->min(6, '密码长度不能少于6个字符'),
+            'email' => ValidateRule::isRequire(null, '邮箱必须传递')->email('邮箱格式不正确')->unique('users', '邮箱已被使用'),
+        ]);
+
+        $validateResult = $validate->batch()->check($params);
+        if (!$validateResult) {
+            return json(['code' => 501, 'msg' => '参数错误', 'info' => $validate->getError()]);
+        }
+
+        // 处理注册数据（密码会由模型自动加密）
+        $userData = [
+            'username' => $params['username'],
+            'password' => $params['password'],  // 模型会自动加密
+            'email' => $params['email'],
+            'nickname' => $params['nickname'] ?? $params['username'],
+            'status' => 1, // 默认启用
+            'gender' => $params['gender'] ?? 2, // 默认未知
+        ];
+
+        // 调用服务进行注册
+        $result = UserService::register($userData);
+
+        return json($result);
+    }
+
+    /**
+     * 修改密码
+     */
+    function changePassword(): Json
+    {
+        $params = request()->param();
+
+        // 参数验证
+        $validate = Validate::rule([
+            'old_password' => ValidateRule::isRequire(null, '旧密码必须传递'),
+            'new_password' => ValidateRule::isRequire(null, '新密码必须传递')->min(6, '密码长度不能少于6个字符'),
+        ]);
+
+        $validateResult = $validate->batch()->check($params);
+        if (!$validateResult) {
+            return json(['code' => 501, 'msg' => '参数错误', 'info' => $validate->getError()]);
+        }
+
+        // 从 JWT 中获取用户ID（通过中间件注入）
+        $userId = request()->JWTUid ?? null;
+
+        if (!$userId) {
+            return json(['code' => 401, 'msg' => '未授权，请重新登录']);
+        }
+
+        // 调用服务修改密码
+        $result = UserService::changePassword($userId, $params['old_password'], $params['new_password']);
+
+        return json($result);
+    }
+
+    /**
+     * 请求密码重置（发送验证码）
+     */
+    function requestPasswordReset(): Json
+    {
+        $params = request()->param();
+
+        // 参数验证（使用正则表达式验证邮箱）
+        $validate = Validate::rule([
+            'email' => ValidateRule::isRequire(null, '邮箱必须传递')->regex('/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/', '邮箱格式不正确'),
+        ]);
+
+        $validateResult = $validate->batch()->check($params);
+        if (!$validateResult) {
+            return json(['code' => 501, 'msg' => '参数错误', 'info' => $validate->getError()]);
+        }
+
+        // 调用服务请求密码重置
+        $result = UserService::requestPasswordReset($params['email']);
+
+        return json($result);
+    }
+
+    /**
+     * 校验重置Token
+     */
+    function verifyResetToken(): Json
+    {
+        $params = request()->param();
+
+        // 参数验证
+        $validate = Validate::rule([
+            'token' => ValidateRule::isRequire(null, 'Token必须传递'),
+        ]);
+
+        $validateResult = $validate->batch()->check($params);
+        if (!$validateResult) {
+            return json(['code' => 501, 'msg' => '参数错误', 'info' => $validate->getError()]);
+        }
+
+        // 调用服务验证token
+        $result = UserService::verifyResetToken($params['token']);
+
+        return json($result);
+    }
+
+    /**
+     * 重置密码
+     */
+    function resetPassword(): Json
+    {
+        $params = request()->param();
+
+        // 参数验证
+        $validate = Validate::rule([
+            'token' => ValidateRule::isRequire(null, '令牌必须传递'),
+            'new_password' => ValidateRule::isRequire(null, '新密码必须传递')->min(6, '密码长度不能少于6位'),
+        ]);
+
+        $validateResult = $validate->batch()->check($params);
+        if (!$validateResult) {
+            return json(['code' => 501, 'msg' => '参数错误', 'info' => $validate->getError()]);
+        }
+
+        // 调用服务重置密码
+        $result = UserService::resetPassword($params['token'], $params['new_password']);
+
+        return json($result);
+    }
 
 }
 

@@ -5,6 +5,8 @@ use app\api\model\userRoles;
 use app\api\model\users;
 use app\api\model\premium;
 use app\api\model\roles;
+use app\api\model\LoginLog;
+use app\api\model\PasswordReset;
 use think\db\exception\DataNotFoundException;
 use think\db\exception\DbException;
 use think\db\exception\ModelNotFoundException;
@@ -34,18 +36,36 @@ class UserService
         $hidden = ['phone', 'email', 'password', 'ip_address', 'delete_time', 'create_time', 'update_time'];
         // 密码登录
         if ($action == 'pwd') {
-            // 查询用户信息带角色、权限和会员信息
+            // 先查询用户（不验证密码）
             $res = users::with([
                 'roles.permissions' => function ($query) {
                 },
                 'premium' => function ($query) {
                     $query->field(['id', 'user_id', 'expiration_time', 'remark']);
+                },
+                'levelRecords' => function ($query) {
+                    // 关联查询所有等级记录
                 }
-            ])->where('id|email|phone', $account)->where('password', hash('sha256', $password))->hidden($hidden)->find();
+            ])->where('id|email|phone', $account)->hidden($hidden)->find();
 
-            if (!$res) {
+            // 验证用户是否存在并验证密码
+            if (!$res || !$res->verifyPassword($password)) {
+                // 记录登录失败日志
+                LoginLog::recordLoginFailed(
+                    $account,
+                    request()->ip(),
+                    '账号或密码错误',
+                    request()->header('user-agent', '')
+                );
                 return ['code' => 500, 'msg' => '账号或密码错误', 'data' => null];
             } else if (!$res['status']) {
+                // 记录登录失败日志
+                LoginLog::recordLoginFailed(
+                    $account,
+                    request()->ip(),
+                    '用户被封禁',
+                    request()->header('user-agent', '')
+                );
                 return ['code' => 502, 'msg' => '用户被封禁中', 'data' => null];
             }
             // JWT载荷                
@@ -60,7 +80,17 @@ class UserService
             // 保存到redis
             RedisUtil::setString('lt_' . $res['id'], $token, 60 * 60 * 24 * 3);
 
-            // 记录日志
+            // 记录登录日志
+            LoginLog::recordLogin(
+                $res['id'],
+                $res['username'],
+                request()->ip(),
+                request()->header('user-agent', ''),
+                'Web',
+                $fingerprint
+            );
+
+            // 记录系统日志
             LogService::log("用户登录成功：{$account}({$res['id']})");
 
             // 计算过期时间戳（当前时间 + 24小时）
@@ -92,6 +122,9 @@ class UserService
                 },
                 'premium' => function ($query) {
                     $query->field(['id', 'user_id', 'expiration_time', 'remark']);
+                },
+                'levelRecords' => function ($query) {
+                    // 关联查询所有等级记录（user, writer, reader, interaction）
                 }
             ])->hidden(['password', 'ip_address', 'delete_time'])->find($userId);
 
@@ -116,6 +149,8 @@ class UserService
      */
     public static function register(array $userData)
     {
+        // 使用事务确保数据一致性
+        Db::startTrans();
         try {
             // 检查用户名是否已存在
             $exists = users::where('username', $userData['username'])->find();
@@ -134,12 +169,36 @@ class UserService
             // 创建用户
             $user = new users();
             $user->save($userData);
+            $userId = $user->id;
+
+            // 自动分配默认角色（普通用户，角色ID为6）
+            $defaultRoleData = [
+                'user_id' => $userId,
+                'role_id' => 6
+            ];
+            userRoles::insert($defaultRoleData);
+
+            // 初始化用户所有类型的等级记录（user, writer, reader, interaction）
+            try {
+                LevelService::initializeUserLevels($userId);
+                LogService::log("为新注册用户初始化所有等级记录成功：用户ID {$userId}");
+            } catch (\Exception $levelException) {
+                // 等级初始化失败不影响注册，只记录错误
+                LogService::error($levelException);
+                LogService::log("等级初始化失败：用户ID {$userId}，错误：{$levelException->getMessage()}");
+            }
+
+            Db::commit();
 
             // 记录日志
-            LogService::log("新用户注册成功：{$user->username}({$user->id})", $userData);
+            LogService::log("新用户注册成功：{$user->username}({$userId})");
 
-            return ['code' => 1, 'msg' => '注册成功', 'data' => $user];
+            // 重新查询用户信息（包含角色和等级）
+            $userWithRelations = users::with(['roles', 'levelRecords'])->find($userId);
+
+            return ['code' => 1, 'msg' => '注册成功', 'data' => $userWithRelations];
         } catch (\Exception $e) {
+            Db::rollback();
             LogService::error($e);
             return ['code' => 0, 'msg' => '注册失败：' . $e->getMessage()];
         }
@@ -254,8 +313,8 @@ class UserService
             // 记录日志
             LogService::log("添加用户成功：{$userData['username']}({$userId})");
 
-            // 重新查询用户信息（包含角色和会员）
-            $user = users::with(['roles', 'premium'])->find($userId);
+            // 重新查询用户信息（包含角色、会员和等级）
+            $user = users::with(['roles', 'premium', 'levelRecords'])->find($userId);
 
             return [
                 'code' => 200,
@@ -413,8 +472,8 @@ class UserService
 
             Db::commit();
 
-            // 重新查询用户信息（包含角色和会员）
-            $updatedUser = users::with(['roles', 'premium'])->find($uid);
+            // 重新查询用户信息（包含角色、会员和等级）
+            $updatedUser = users::with(['roles', 'premium', 'levelRecords'])->find($uid);
 
             if ($newUserInfo) {
                 return [
@@ -487,6 +546,9 @@ class UserService
                 'roles' => function ($query) {
                 },
                 'premium' => function ($query) {
+                },
+                'levelRecords' => function ($query) {
+                    // 关联查询所有等级记录
                 }
             ])->order('update_time', 'desc');
 
@@ -880,6 +942,218 @@ class UserService
         } catch (\Exception $e) {
             LogService::error($e);
             return ['code' => 0, 'msg' => '操作失败：' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * 修改密码
+     * @param int $userId 用户ID
+     * @param string $oldPassword 旧密码
+     * @param string $newPassword 新密码
+     * @return array
+     */
+    public static function changePassword(int $userId, string $oldPassword, string $newPassword): array
+    {
+        try {
+            // 1. 查询用户
+            $user = users::find($userId);
+            if (!$user) {
+                return ['code' => 404, 'msg' => '用户不存在'];
+            }
+
+            // 2. 验证旧密码
+            $hashedOldPassword = hash('sha256', $oldPassword);
+            if ($user->password !== $hashedOldPassword) {
+                LogService::log("修改密码失败：旧密码错误 - 用户ID {$userId}");
+                return ['code' => 403, 'msg' => '旧密码错误'];
+            }
+
+            // 3. 检查新密码是否与旧密码相同
+            if ($oldPassword === $newPassword) {
+                return ['code' => 400, 'msg' => '新密码不能与旧密码相同'];
+            }
+
+            // 4. 更新密码
+            $user->password = hash('sha256', $newPassword);
+            $user->update_time = date('Y-m-d H:i:s');
+            $result = $user->save();
+
+            if (!$result) {
+                throw new \Exception('密码更新失败');
+            }
+
+            // 5. 清除用户的 Redis Token，强制重新登录
+            RedisUtil::deleteString('lt_' . $userId);
+
+            // 6. 记录日志
+            LogService::log("用户修改密码成功：{$user->username}({$userId})");
+
+            return [
+                'code' => 200,
+                'msg' => '密码修改成功，请重新登录',
+                'data' => null
+            ];
+
+        } catch (\Exception $e) {
+            LogService::error($e, "修改密码失败 - 用户ID: {$userId}");
+            return ['code' => 500, 'msg' => '修改密码失败：' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * 请求密码重置（发送重置链接）
+     * @param string $email 邮箱
+     * @return array
+     */
+    public static function requestPasswordReset(string $email): array
+    {
+        try {
+            // 查询用户
+            $user = users::where('email', $email)->find();
+            if (!$user) {
+                return ['code' => 404, 'msg' => '该邮箱未注册'];
+            }
+
+            // 生成重置令牌
+            $resetData = PasswordReset::generateToken($user->id, $email);
+            
+            // 构建重置链接（使用 History 模式，无 # 号）
+            $frontendUrl = env('FRONTEND_URL', 'http://192.168.31.56:5173');
+            $resetUrl = $frontendUrl . '/resetPassword?token=' . $resetData['token'];
+            
+            // 使用邮件模板发送
+            $sendResult = EmailTemplateService::sendByTemplate('password_reset', $email, [
+                'username' => $user->username,
+                'reset_url' => $resetUrl,
+                'expire_minutes' => '10',
+                'year' => date('Y')
+            ]);
+            
+            if (!$sendResult['success']) {
+                LogService::error(null, "密码重置邮件发送失败 - 用户: {$user->username}, 邮箱: {$email}");
+                return ['code' => 500, 'msg' => '邮件发送失败，请稍后重试'];
+            }
+            
+            LogService::log("密码重置邮件已发送：用户 {$user->username}({$user->id})，邮箱 {$email}");
+
+            return [
+                'code' => 200,
+                'msg' => '重置链接已发送到您的邮箱，10分钟内有效',
+                'data' => [
+                    // 开发环境下返回token方便测试（生产环境应删除）
+                    'token' => env('APP_DEBUG') ? $resetData['token'] : null,
+                    'expire_time' => $resetData['expire_time']
+                ]
+            ];
+
+        } catch (\Exception $e) {
+            LogService::error($e, "密码重置请求失败 - 邮箱: {$email}");
+            return ['code' => 500, 'msg' => '请求失败：' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * 验证重置Token
+     * @param string $token 令牌
+     * @return array
+     */
+    public static function verifyResetToken(string $token): array
+    {
+        try {
+            // 1. 验证令牌
+            $verifyResult = PasswordReset::verifyToken($token);
+            
+            if (!$verifyResult['valid']) {
+                return [
+                    'code' => 400,
+                    'msg' => $verifyResult['msg'],
+                    'data' => null
+                ];
+            }
+            
+            // 2. 获取用户信息
+            $userId = $verifyResult['user_id'];
+            $email = $verifyResult['email'];
+            
+            // 3. 查询用户是否存在
+            $user = users::find($userId);
+            if (!$user) {
+                return ['code' => 404, 'msg' => '用户不存在'];
+            }
+            
+            // 4. 邮箱脱敏处理
+            $emailParts = explode('@', $email);
+            $maskedEmail = substr($emailParts[0], 0, 1) . '***@' . $emailParts[1];
+            
+            // 5. 记录日志
+            LogService::log("Token校验成功：用户 {$user->username}({$userId})");
+            
+            return [
+                'code' => 200,
+                'msg' => 'Token有效',
+                'data' => [
+                    'email' => $maskedEmail,
+                    'username' => $user->username,
+                    'valid' => true
+                ]
+            ];
+            
+        } catch (\Exception $e) {
+            LogService::error($e);
+            return ['code' => 500, 'msg' => 'Token校验失败：' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * 重置密码
+     * @param string $token 令牌
+     * @param string $newPassword 新密码
+     * @return array
+     */
+    public static function resetPassword(string $token, string $newPassword): array
+    {
+        try {
+            // 1. 验证令牌
+            $verifyResult = PasswordReset::verifyToken($token);
+            if (!$verifyResult['valid']) {
+                return ['code' => 400, 'msg' => $verifyResult['msg']];
+            }
+
+            $userId = $verifyResult['user_id'];
+
+            // 2. 查询用户
+            $user = users::find($userId);
+            if (!$user) {
+                return ['code' => 404, 'msg' => '用户不存在'];
+            }
+
+            // 3. 更新密码（使用模型保存，自动触发加密修改器）
+            $user->password = $newPassword;  // 模型会自动加密
+            $user->update_time = date('Y-m-d H:i:s');
+            $result = $user->save();
+
+            if (!$result) {
+                throw new \Exception('密码更新失败');
+            }
+
+            // 4. 标记令牌为已使用
+            PasswordReset::markAsUsed($token);
+
+            // 5. 清除用户的 Redis Token，强制重新登录
+            RedisUtil::deleteString('lt_' . $userId);
+
+            // 6. 记录日志
+            LogService::log("用户重置密码成功：{$user->username}({$userId})");
+
+            return [
+                'code' => 200,
+                'msg' => '密码重置成功，请使用新密码登录',
+                'data' => null
+            ];
+
+        } catch (\Exception $e) {
+            LogService::error($e);
+            return ['code' => 500, 'msg' => '重置密码失败：' . $e->getMessage()];
         }
     }
 }

@@ -35,6 +35,7 @@ export interface UserInfo {
   signature: string;
   roles: Array<RoleInfo>;
   premium: PremiumInfo | null;
+  level_records?: Array<LevelRecordInfo>; // 用户等级记录（用户等级、写作等级、读者等级、互动等级）
   delete_time?: string;
 }
 
@@ -59,6 +60,20 @@ export interface PremiumInfo {
   remark: string;
 }
 
+// 定义等级记录信息结构
+export interface LevelRecordInfo {
+  id: number;
+  target_type: string; // user | writer | reader | interaction
+  target_id: number;
+  current_level: number;
+  total_experience: number;
+  experience_in_level: number;
+  level_up_count: number;
+  last_level_up_time: string | null; // 最后一次升级时间
+  create_time: string;
+  update_time: string;
+}
+
 export type UserResult = {
   success: boolean;
   data: {
@@ -79,8 +94,6 @@ export type UserResult = {
   };
 };
 
-
-
 /** 刷新token */
 export const refreshTokenApi = (data?: object) => {
   return http.request("post", "/api/v1/auth/refresh", { data });
@@ -89,7 +102,9 @@ export const refreshTokenApi = (data?: object) => {
 /** 用户登录 */
 export const getLogin = async (data?: object) => {
   // loginR(data);
-  const res = await http.request("post", "/api/v1/user/login", { data }) as any;
+  const res = (await http.request("post", "/api/v1/user/login", {
+    data
+  })) as any;
   if (res.code != 200) return { code: res.code, msg: res.msg, data: null };
   // 解构token信息
   const { token, expireTime } = res as any;
@@ -125,8 +140,6 @@ export const getLogin = async (data?: object) => {
   return jsonData;
 };
 
-
-
 // 后端登录
 export const loginR = (data?: object) => {
   return http.request("post", "/api/v1/user/login", { data });
@@ -135,7 +148,11 @@ export const loginR = (data?: object) => {
 // 获取用户列表
 export const getUserList = (data?: object) => {
   // 返回具体类型
-  return http.request<ApiResponse<UserListResponse>>("get", "/api/v1/user/selectUserListWithRoles", { params: data });
+  return http.request<ApiResponse<UserListResponse>>(
+    "get",
+    "/api/v1/user/selectUserListWithRoles",
+    { params: data }
+  );
 };
 // 修改用户信息
 export const updateUserInfoR = (data?: object) => {
@@ -144,12 +161,16 @@ export const updateUserInfoR = (data?: object) => {
 
 /** 删除用户 */
 export const deleteUser = (data?: object) => {
-  return http.request<ApiResponse<any>>("delete", "/api/v1/user/delete", { data });
+  return http.request<ApiResponse<any>>("delete", "/api/v1/user/delete", {
+    data
+  });
 };
 
 /** 恢复已删除的用户 */
 export const restoreUser = (data?: object) => {
-  return http.request<ApiResponse<any>>("put", "/api/v1/user/restore", { data });
+  return http.request<ApiResponse<any>>("put", "/api/v1/user/restore", {
+    data
+  });
 };
 
 /** 创建用户 */
@@ -157,3 +178,66 @@ export const createUser = (data?: object) => {
   return http.request<ApiResponse<any>>("post", "/api/v1/user/add", { data });
 };
 
+/** 用户注册 */
+export const registerUser = (data?: object) => {
+  return http.request<ApiResponse<any>>("post", "/api/v1/user/register", {
+    data
+  });
+};
+
+/** 修改密码 */
+export const changePassword = (data?: object) => {
+  return http.request<ApiResponse<any>>("post", "/api/v1/user/changePassword", {
+    data
+  });
+};
+
+/** 开通会员 */
+export const activatePremium = (data?: object) => {
+  return http.request<ApiResponse<any>>(
+    "post",
+    "/api/v1/user/activatePremium",
+    { data }
+  );
+};
+
+/** 取消会员 */
+export const cancelPremium = (data?: object) => {
+  return http.request<ApiResponse<any>>("post", "/api/v1/user/cancelPremium", {
+    data
+  });
+};
+/** 查询会员状态 */
+export const getPremiumStatus = (data?: object) => {
+  return http.request<ApiResponse<any>>(
+    "get",
+    "/api/v1/user/getPremiumStatus",
+    { params: data }
+  );
+};
+
+/** 请求密码重置（发送重置链接） */
+export const requestPasswordReset = (data: { email: string }) => {
+  return http.request<ApiResponse<{ token: string; expire_time: string }>>(
+    "post",
+    "/api/v1/user/requestPasswordReset",
+    { data }
+  );
+};
+
+/** 校验重置Token */
+export const verifyResetToken = (data: { token: string }) => {
+  return http.request<
+    ApiResponse<{ email: string; username: string; valid: boolean }>
+  >("post", "/api/v1/user/verifyResetToken", { data });
+};
+
+/** 重置密码（通过token） */
+export const resetPassword = (data: {
+  token: string;
+  new_password: string;
+}) => {
+  return http.request<ApiResponse<any>>("post", "/api/v1/user/resetPassword", {
+    data
+  });
+};

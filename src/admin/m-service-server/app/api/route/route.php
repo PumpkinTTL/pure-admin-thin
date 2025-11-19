@@ -4,9 +4,15 @@ use think\facade\Route;
 //用户分组 - 不需要登录的接口（登录、注册等）
 Route::group('/:version/user', function () {
     Route::rule('/login', ':version.User/login');
+    Route::rule('/register', ':version.User/register'); // 用户注册
     Route::rule('/V2Login', ':version.User/V2Login');
     Route::rule('/dualTokenLogin', ':version.User/login'); // 双 token登录
     Route::rule('/refreshToken', ':version.User/refreshToken'); // 刷新token
+    
+    // 密码重置（不需要登录）
+    Route::rule('/requestPasswordReset', ':version.User/requestPasswordReset'); // 请求密码重置
+    Route::rule('/verifyResetToken', ':version.User/verifyResetToken'); // 校验重置Token
+    Route::rule('/resetPassword', ':version.User/resetPassword'); // 重置密码
 });
 
 //用户分组 - 需要登录的接口（应用 Auth 中间件）
@@ -20,6 +26,14 @@ Route::group('/:version/user', function () {
     Route::rule('/update', ':version.User/update');
     Route::rule('/outLogin', ':version.User/outLogin');
     Route::rule('/selectUserListWithRoles', ':version.User/selectUserListWithRoles');
+    
+    // 密码管理
+    Route::rule('/changePassword', ':version.User/changePassword'); // 修改密码
+    
+    // 会员管理
+    Route::rule('/activatePremium', ':version.User/activatePremium'); // 开通会员
+    Route::rule('/cancelPremium', ':version.User/cancelPremium'); // 取消会员
+    Route::rule('/getPremiumStatus', ':version.User/getPremiumStatus'); // 查询会员状态
 })->middleware([
     app\api\middleware\Auth::class
 ]);
@@ -278,6 +292,28 @@ Route::group('/:version/emailRecord', function () {
     Route::rule('restore', ':version.emailRecord/restore');
     // 获取统计数据
     Route::rule('statistics', ':version.emailRecord/getStatistics');
+});
+
+// 邮件模板路由组
+Route::group('/:version/emailTemplate', function () {
+    // 获取模板列表
+    Route::rule('list', ':version.EmailTemplate/list');
+    // 获取模板详情
+    Route::rule('detail', ':version.EmailTemplate/detail');
+    // 创建模板
+    Route::rule('create', ':version.EmailTemplate/create');
+    // 更新模板
+    Route::rule('update', ':version.EmailTemplate/update');
+    // 删除模板
+    Route::rule('delete', ':version.EmailTemplate/delete');
+    // 恢复模板
+    Route::rule('restore', ':version.EmailTemplate/restore');
+    // 切换模板状态
+    Route::rule('toggleStatus', ':version.EmailTemplate/toggleStatus');
+    // 获取所有可用模板（下拉选择用）
+    Route::rule('active', ':version.EmailTemplate/getActiveTemplates');
+    // 发送测试邮件
+    Route::rule('sendTest', ':version.EmailTemplate/sendTest');
 });
 
 //支付方式分组
