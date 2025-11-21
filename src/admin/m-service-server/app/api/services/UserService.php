@@ -1,4 +1,5 @@
 <?php
+
 namespace app\api\services;
 
 use app\api\model\userRoles;
@@ -11,9 +12,11 @@ use think\db\exception\DataNotFoundException;
 use think\db\exception\DbException;
 use think\db\exception\ModelNotFoundException;
 use think\facade\Db;
+use utils\EmailUtil;
 use utils\JWTUtil;
 use utils\RedisUtil;
 use utils\SecretUtil;
+use app\api\services\EmailTemplateService;
 
 /**
  * 用户服务类
@@ -38,8 +41,7 @@ class UserService
         if ($action == 'pwd') {
             // 先查询用户（不验证密码）
             $res = users::with([
-                'roles.permissions' => function ($query) {
-                },
+                'roles.permissions' => function ($query) {},
                 'premium' => function ($query) {
                     $query->field(['id', 'user_id', 'expiration_time', 'remark']);
                 },
@@ -324,7 +326,6 @@ class UserService
                     'assigned_roles' => array_column($batchData, 'role_id') // 返回分配的角色ID数组
                 ]
             ];
-
         } catch (\Exception $e) {
             Db::rollback();
             LogService::error($e);
@@ -489,7 +490,6 @@ class UserService
                     'subMsg' => $subMsg
                 ];
             }
-
         } catch (\Exception $e) {
             Db::rollback();
             LogService::error($e);
@@ -543,10 +543,8 @@ class UserService
     {
         try {
             $query = users::with([
-                'roles' => function ($query) {
-                },
-                'premium' => function ($query) {
-                },
+                'roles' => function ($query) {},
+                'premium' => function ($query) {},
                 'levelRecords' => function ($query) {
                     // 关联查询所有等级记录
                 }
@@ -993,9 +991,8 @@ class UserService
                 'msg' => '密码修改成功，请重新登录',
                 'data' => null
             ];
-
         } catch (\Exception $e) {
-            LogService::error($e, "修改密码失败 - 用户ID: {$userId}");
+            LogService::error($e);
             return ['code' => 500, 'msg' => '修改密码失败：' . $e->getMessage()];
         }
     }
@@ -1016,11 +1013,11 @@ class UserService
 
             // 生成重置令牌
             $resetData = PasswordReset::generateToken($user->id, $email);
-            
+
             // 构建重置链接（使用 History 模式，无 # 号）
             $frontendUrl = env('FRONTEND_URL', 'http://192.168.31.56:5173');
             $resetUrl = $frontendUrl . '/resetPassword?token=' . $resetData['token'];
-            
+
             // 使用邮件模板发送
             $sendResult = EmailTemplateService::sendByTemplate('password_reset', $email, [
                 'username' => $user->username,
@@ -1028,12 +1025,12 @@ class UserService
                 'expire_minutes' => '10',
                 'year' => date('Y')
             ]);
-            
+
             if (!$sendResult['success']) {
-                LogService::error(null, "密码重置邮件发送失败 - 用户: {$user->username}, 邮箱: {$email}");
+                LogService::error("密码重置邮件发送失败 - 用户: {$user->username}, 邮箱: {$email}");
                 return ['code' => 500, 'msg' => '邮件发送失败，请稍后重试'];
             }
-            
+
             LogService::log("密码重置邮件已发送：用户 {$user->username}({$user->id})，邮箱 {$email}");
 
             return [
@@ -1045,9 +1042,8 @@ class UserService
                     'expire_time' => $resetData['expire_time']
                 ]
             ];
-
         } catch (\Exception $e) {
-            LogService::error($e, "密码重置请求失败 - 邮箱: {$email}");
+            LogService::error($e);
             return ['code' => 500, 'msg' => '请求失败：' . $e->getMessage()];
         }
     }
@@ -1062,7 +1058,7 @@ class UserService
         try {
             // 1. 验证令牌
             $verifyResult = PasswordReset::verifyToken($token);
-            
+
             if (!$verifyResult['valid']) {
                 return [
                     'code' => 400,
@@ -1070,24 +1066,24 @@ class UserService
                     'data' => null
                 ];
             }
-            
+
             // 2. 获取用户信息
             $userId = $verifyResult['user_id'];
             $email = $verifyResult['email'];
-            
+
             // 3. 查询用户是否存在
             $user = users::find($userId);
             if (!$user) {
                 return ['code' => 404, 'msg' => '用户不存在'];
             }
-            
+
             // 4. 邮箱脱敏处理
             $emailParts = explode('@', $email);
             $maskedEmail = substr($emailParts[0], 0, 1) . '***@' . $emailParts[1];
-            
+
             // 5. 记录日志
             LogService::log("Token校验成功：用户 {$user->username}({$userId})");
-            
+
             return [
                 'code' => 200,
                 'msg' => 'Token有效',
@@ -1097,7 +1093,6 @@ class UserService
                     'valid' => true
                 ]
             ];
-            
         } catch (\Exception $e) {
             LogService::error($e);
             return ['code' => 500, 'msg' => 'Token校验失败：' . $e->getMessage()];
@@ -1150,7 +1145,6 @@ class UserService
                 'msg' => '密码重置成功，请使用新密码登录',
                 'data' => null
             ];
-
         } catch (\Exception $e) {
             LogService::error($e);
             return ['code' => 500, 'msg' => '重置密码失败：' . $e->getMessage()];
