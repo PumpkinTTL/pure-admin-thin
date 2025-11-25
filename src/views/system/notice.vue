@@ -621,7 +621,19 @@
             </span>
           </template>
 
-          <EmailRecordTable />
+          <EmailRecordTable ref="emailRecordRef" />
+        </el-tab-pane>
+
+        <!-- 邮件模板Tab -->
+        <el-tab-pane label="邮件模板" name="template">
+          <template #label>
+            <span>
+              <font-awesome-icon :icon="['fas', 'file-alt']" class="mr-1" />
+              邮件模板
+            </span>
+          </template>
+
+          <EmailTemplateTable ref="emailTemplateRef" />
         </el-tab-pane>
       </el-tabs>
     </el-card>
@@ -1026,10 +1038,10 @@
             </el-radio>
             <el-radio :label="3" border>
               <font-awesome-icon
-                :icon="['fas', 'user']"
+                :icon="['fas', 'user-tag']"
                 style="margin-right: 6px"
               />
-              单个用户
+              用户组
             </el-radio>
             <el-radio :label="4" border>
               <font-awesome-icon
@@ -1101,53 +1113,47 @@
           </div>
         </el-form-item>
 
-        <!-- 单个用户 -->
+        <!-- 用户组（角色） -->
         <el-form-item
           v-if="emailForm.receiver_type === 3"
-          label="选择用户"
-          prop="receiver_id"
+          label="选择角色"
+          prop="role_id"
         >
           <el-select
-            v-model="emailForm.receiver_id"
+            v-model="emailForm.role_id"
             filterable
-            remote
-            reserve-keyword
-            placeholder="请输入ID或用户名搜索用户"
-            :remote-method="remoteSearchUsers"
-            :loading="userSelectLoading"
+            placeholder="请选择用户组（角色）"
             style="width: 100%"
             clearable
-            teleported
-            popper-class="user-select-dropdown"
-            @focus="handleFocus"
+            @focus="loadRoles"
           >
-            <template #loading>
-              <div style="padding: 10px; text-align: center">
-                <font-awesome-icon
-                  :icon="['fas', 'spinner']"
-                  spin
-                  style="margin-right: 8px"
-                />
-                加载中...
-              </div>
-            </template>
             <el-option
-              v-for="item in userOptions"
-              :key="item.id"
-              :label="`${item.username} (${item.email})`"
-              :value="item.id"
+              v-for="role in roleOptions"
+              :key="role.id"
+              :label="role.name"
+              :value="role.id"
             >
-              <div style="display: flex; gap: 10px; align-items: center">
-                <el-avatar :size="28" :src="item.avatar">
-                  {{ item.username?.charAt(0) }}
-                </el-avatar>
-                <span style="font-weight: 500">{{ item.username }}</span>
-                <span style="font-size: 12px; color: #67c23a">
-                  {{ item.email }}
-                </span>
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  justify-content: space-between;
+                "
+              >
+                <span style="font-weight: 500">{{ role.name }}</span>
+                <el-tag size="small" type="info" effect="plain">
+                  {{ role.iden }}
+                </el-tag>
               </div>
             </el-option>
           </el-select>
+          <div style="margin-top: 8px; font-size: 12px; color: #909399">
+            <font-awesome-icon
+              :icon="['fas', 'info-circle']"
+              style="margin-right: 4px"
+            />
+            将发送给该角色下的所有用户
+          </div>
         </el-form-item>
 
         <!-- 指定邮箱地址 -->
@@ -1173,25 +1179,327 @@
           </div>
         </el-form-item>
 
-        <el-form-item label="邮件标题" prop="email_title">
-          <el-input
-            v-model="emailForm.email_title"
-            placeholder="请输入邮件标题"
-            maxlength="200"
-            show-word-limit
-          />
+        <!-- 发送方式选择 -->
+        <el-form-item label="发送方式" prop="send_mode">
+          <el-radio-group
+            v-model="emailForm.send_mode"
+            size="default"
+            @change="handleSendModeChange"
+          >
+            <el-radio label="text" border>
+              <font-awesome-icon
+                :icon="['fas', 'text-width']"
+                style="margin-right: 6px"
+              />
+              文字内容
+            </el-radio>
+            <el-radio label="template" border>
+              <font-awesome-icon
+                :icon="['fas', 'file-alt']"
+                style="margin-right: 6px"
+              />
+              邮件模板
+            </el-radio>
+          </el-radio-group>
         </el-form-item>
 
-        <el-form-item label="邮件内容" prop="email_content">
-          <el-input
-            v-model="emailForm.email_content"
-            type="textarea"
-            :rows="8"
-            placeholder="请输入邮件内容"
-            maxlength="5000"
-            show-word-limit
-          />
-        </el-form-item>
+        <!-- 模板选择模式 -->
+        <template v-if="emailForm.send_mode === 'template'">
+          <el-form-item label="选择模板" prop="template_id">
+            <div style="display: flex; gap: 8px">
+              <el-select
+                v-model="emailForm.template_id"
+                placeholder="请选择邮件模板"
+                style="flex: 1"
+                filterable
+                clearable
+                @change="handleTemplateChange"
+                @focus="loadActiveTemplates"
+              >
+                <el-option
+                  v-for="template in activeTemplates"
+                  :key="template.id"
+                  :label="`${template.name} (${template.code})`"
+                  :value="template.id"
+                >
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      justify-content: space-between;
+                    "
+                  >
+                    <span style="font-weight: 500">{{ template.name }}</span>
+                    <el-tag size="small" type="info" effect="plain">
+                      {{ template.code }}
+                    </el-tag>
+                  </div>
+                </el-option>
+              </el-select>
+              <el-button
+                type="primary"
+                plain
+                :loading="templatesLoading"
+                @click="loadActiveTemplates"
+              >
+                <font-awesome-icon :icon="['fas', 'sync']" />
+              </el-button>
+            </div>
+          </el-form-item>
+
+          <!-- 模板预览区域 -->
+          <el-form-item
+            v-if="selectedTemplate"
+            label=""
+            class="preview-form-item"
+          >
+            <div style="max-width: 900px; margin: 0 auto">
+              <!-- 统一预览卡片 -->
+              <el-card
+                shadow="never"
+                style=" border: 1px solid #e4e7ed;border-radius: 8px"
+              >
+                <!-- 模板信息区域 -->
+                <div
+                  style="
+                    padding: 10px 12px;
+                    margin-bottom: 14px;
+                    background: linear-gradient(
+                      135deg,
+                      #f8f9fa 0%,
+                      #e9ecef 100%
+                    );
+                    border-radius: 6px;
+                  "
+                >
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      margin-bottom: 8px;
+                      font-size: 12px;
+                      font-weight: 600;
+                      color: #495057;
+                    "
+                  >
+                    <font-awesome-icon
+                      :icon="['fas', 'info-circle']"
+                      style="margin-right: 4px; font-size: 11px; color: #409eff"
+                    />
+                    模板信息
+                  </div>
+                  <div
+                    style="
+                      display: flex;
+                      flex-direction: column;
+                      gap: 7px;
+                      font-size: 13px;
+                    "
+                  >
+                    <div style="display: flex; align-items: flex-start">
+                      <span
+                        style="
+                          flex-shrink: 0;
+                          width: 72px;
+                          font-weight: 500;
+                          line-height: 22px;
+                          color: #6c757d;
+                        "
+                      >
+                        模板主题
+                      </span>
+                      <span
+                        style="
+                          font-weight: 500;
+                          line-height: 22px;
+                          color: #212529;
+                        "
+                      >
+                        {{ selectedTemplate.subject }}
+                      </span>
+                    </div>
+                    <div
+                      v-if="selectedTemplate.description"
+                      style="display: flex; align-items: flex-start"
+                    >
+                      <span
+                        style="
+                          flex-shrink: 0;
+                          width: 72px;
+                          font-weight: 500;
+                          line-height: 22px;
+                          color: #6c757d;
+                        "
+                      >
+                        模板说明
+                      </span>
+                      <span style=" line-height: 22px;color: #495057">
+                        {{ selectedTemplate.description }}
+                      </span>
+                    </div>
+                    <div
+                      v-if="templateVariables.length > 0"
+                      style="display: flex; align-items: flex-start"
+                    >
+                      <span
+                        style="
+                          flex-shrink: 0;
+                          width: 72px;
+                          font-weight: 500;
+                          line-height: 22px;
+                          color: #6c757d;
+                        "
+                      >
+                        模板变量
+                      </span>
+                      <div
+                        style="
+                          display: flex;
+                          flex: 1;
+                          flex-wrap: wrap;
+                          gap: 5px;
+                          align-items: center;
+                        "
+                      >
+                        <el-tag
+                          v-for="variable in templateVariables"
+                          :key="variable"
+                          size="small"
+                          type="info"
+                          effect="plain"
+                        >
+                          {{ variable }}
+                        </el-tag>
+                      </div>
+                    </div>
+
+                    <!-- 变量映射 -->
+                    <div
+                      v-if="templateVariables.length > 0"
+                      style="
+                        padding-top: 7px;
+                        margin-top: 1px;
+                        border-top: 1px dashed #dee2e6;
+                      "
+                    >
+                      <div style="display: flex; align-items: flex-start">
+                        <span
+                          style="
+                            flex-shrink: 0;
+                            width: 72px;
+                            font-weight: 500;
+                            line-height: 22px;
+                            color: #6c757d;
+                          "
+                        >
+                          变量映射
+                        </span>
+                        <div
+                          style="
+                            display: flex;
+                            flex: 1;
+                            flex-wrap: wrap;
+                            gap: 5px;
+                            align-items: center;
+                          "
+                        >
+                          <el-tag
+                            v-for="(value, key) in sampleVariables"
+                            :key="key"
+                            size="small"
+                            type="success"
+                          >
+                            {{ "{" + key + "}" }} → {{ value }}
+                          </el-tag>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- 当前邮件主题 -->
+                    <div
+                      v-if="templateVariables.length > 0"
+                      style="
+                        padding-top: 7px;
+                        margin-top: 1px;
+                        border-top: 1px dashed #dee2e6;
+                      "
+                    >
+                      <div style="display: flex; align-items: flex-start">
+                        <span
+                          style="
+                            flex-shrink: 0;
+                            width: 72px;
+                            font-weight: 500;
+                            line-height: 22px;
+                            color: #6c757d;
+                          "
+                        >
+                          实际主题
+                        </span>
+                        <span
+                          style="
+                            font-weight: 600;
+                            line-height: 22px;
+                            color: #0d6efd;
+                          "
+                        >
+                          {{ previewRenderedSubject }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 邮件内容预览 -->
+                <div v-if="templateVariables.length > 0">
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      margin-bottom: 8px;
+                      font-size: 12px;
+                      font-weight: 500;
+                      color: #6c757d;
+                    "
+                  >
+                    <font-awesome-icon
+                      :icon="['fas', 'file-alt']"
+                      style="margin-right: 5px; font-size: 12px; color: #409eff"
+                    />
+                    邮件内容预览
+                  </div>
+                  <div
+                    class="email-preview-content"
+                    v-html="previewRenderedContent"
+                  />
+                </div>
+              </el-card>
+            </div>
+          </el-form-item>
+        </template>
+
+        <!-- 文字内容模式 -->
+        <template v-else>
+          <el-form-item label="邮件标题" prop="email_title">
+            <el-input
+              v-model="emailForm.email_title"
+              placeholder="请输入邮件标题"
+              maxlength="200"
+              show-word-limit
+            />
+          </el-form-item>
+
+          <el-form-item label="邮件内容" prop="email_content">
+            <el-input
+              v-model="emailForm.email_content"
+              type="textarea"
+              :rows="8"
+              placeholder="请输入邮件内容"
+              maxlength="5000"
+              show-word-limit
+            />
+          </el-form-item>
+        </template>
 
         <el-divider content-position="left">
           <span class="divider-title">
@@ -1308,8 +1616,10 @@ import {
 import { getUserList } from "@/api/user";
 import { getRoleList } from "@/api/role";
 import { sendEmail } from "@/api/emailRecord";
+import { getEmailTemplateList, type EmailTemplate } from "@/api/emailTemplate";
 import debounce from "lodash/debounce";
 import EmailRecordTable from "./components/EmailRecordTable.vue";
+import EmailTemplateTable from "./components/EmailTemplateTable.vue";
 import { useUserStoreHook } from "@/store/modules/user";
 
 // 定义API响应类型
@@ -1358,6 +1668,9 @@ const userSelectLoading = ref(false);
 const userOptions = ref<any[]>([]);
 const userSearchKeyword = ref("");
 
+// 角色选择相关变量
+const roleOptions = ref<any[]>([]);
+
 // 邮件通知相关变量
 const emailSettings = reactive({
   enabled: false,
@@ -1378,12 +1691,151 @@ const currentNoticeForEmail = ref<any>(null);
 
 // 邮件表单数据
 const emailForm = reactive({
-  receiver_type: 1, // 1-全部用户, 2-指定用户, 3-单个用户, 4-指定邮箱
+  receiver_type: 1, // 1-全部用户, 2-指定用户, 3-用户组(角色), 4-指定邮箱
   receiver_ids: [] as number[],
   receiver_id: undefined as number | undefined,
+  role_id: undefined as number | undefined, // 用户组(角色)ID
   receiver_emails: "", // 直接输入的邮箱地址
+  send_mode: "text" as "text" | "template", // 发送方式：text-文字内容, template-邮件模板
+  template_id: undefined as number | undefined, // 选中的模板ID
   email_title: "",
   email_content: ""
+});
+
+// 模板相关数据
+const activeTemplates = ref<EmailTemplate[]>([]); // 可用模板列表
+const selectedTemplate = ref<EmailTemplate | null>(null); // 当前选中的模板
+const templateVariables = ref<string[]>([]); // 模板变量列表
+const previewMode = ref<"filled" | "original">("filled"); // 预览模式：filled-填充后, original-原始模板
+const templatesLoading = ref(false); // 模板加载状态
+
+// 默认示例数据
+const defaultSampleVariables: Record<string, string> = {
+  username: "张三",
+  email: "zhangsan@example.com",
+  nickname: "小张",
+  date: dayjs().format("YYYY-MM-DD"),
+  year: dayjs().format("YYYY"),
+  code: "123456",
+  link: "https://example.com/verify"
+};
+
+// 动态获取预览变量（根据选中的用户/邮箱）
+const previewVariables = computed(() => {
+  // 1. 如果选了单个用户，使用该用户的数据
+  if (emailForm.receiver_type === 3 && emailForm.receiver_id) {
+    const user = userOptions.value.find(u => u.id === emailForm.receiver_id);
+    if (user) {
+      return {
+        username: user.username || "用户名",
+        email: user.email || "user@example.com",
+        nickname: user.nickname || user.username || "昵称",
+        date: dayjs().format("YYYY-MM-DD"),
+        year: dayjs().format("YYYY"),
+        code: "123456",
+        link: "https://example.com/verify"
+      };
+    }
+  }
+
+  // 2. 如果选了多个用户，使用第一个用户的数据
+  if (emailForm.receiver_type === 2 && emailForm.receiver_ids.length > 0) {
+    const user = userOptions.value.find(
+      u => u.id === emailForm.receiver_ids[0]
+    );
+    if (user) {
+      return {
+        username: user.username || "用户名",
+        email: user.email || "user@example.com",
+        nickname: user.nickname || user.username || "昵称",
+        date: dayjs().format("YYYY-MM-DD"),
+        year: dayjs().format("YYYY"),
+        code: "123456",
+        link: "https://example.com/verify"
+      };
+    }
+  }
+
+  // 3. 如果指定了邮箱，从邮箱提取信息
+  if (emailForm.receiver_type === 4 && emailForm.receiver_emails) {
+    const emails = emailForm.receiver_emails
+      .split(/[,;\n]/)
+      .map(e => e.trim())
+      .filter(e => e);
+    if (emails.length > 0) {
+      const email = emails[0];
+      const username = email.split("@")[0];
+      return {
+        username: username,
+        email: email,
+        nickname: username,
+        date: dayjs().format("YYYY-MM-DD"),
+        year: dayjs().format("YYYY"),
+        code: "123456",
+        link: "https://example.com/verify"
+      };
+    }
+  }
+
+  // 4. 默认使用示例数据
+  return defaultSampleVariables;
+});
+
+// 为了兼容性，保留 sampleVariables 的引用
+const sampleVariables = previewVariables;
+
+// 判断预览数据来源
+const previewDataSource = computed(() => {
+  // 如果选了单个用户且找到了用户数据
+  if (emailForm.receiver_type === 3 && emailForm.receiver_id) {
+    const user = userOptions.value.find(u => u.id === emailForm.receiver_id);
+    if (user) return "real";
+  }
+  // 如果选了多个用户且有用户数据
+  if (emailForm.receiver_type === 2 && emailForm.receiver_ids.length > 0) {
+    const user = userOptions.value.find(
+      u => u.id === emailForm.receiver_ids[0]
+    );
+    if (user) return "real";
+  }
+  // 如果指定了邮箱
+  if (emailForm.receiver_type === 4 && emailForm.receiver_emails) {
+    const emails = emailForm.receiver_emails
+      .split(/[,;\n]/)
+      .map(e => e.trim())
+      .filter(e => e);
+    if (emails.length > 0) return "real";
+  }
+  return "sample";
+});
+
+// 预览渲染后的主题
+const previewRenderedSubject = computed(() => {
+  if (!selectedTemplate.value) return "";
+  let subject = selectedTemplate.value.subject || "";
+  // 替换所有变量
+  Object.keys(previewVariables.value).forEach(key => {
+    subject = subject.replace(
+      new RegExp(`\\{${key}\\}`, "g"),
+      previewVariables.value[key]
+    );
+  });
+  return subject;
+});
+
+// 预览渲染后的内容
+const previewRenderedContent = computed(() => {
+  if (!selectedTemplate.value) return "";
+  let content =
+    selectedTemplate.value.content || selectedTemplate.value.body || "";
+  // 替换所有变量
+  Object.keys(previewVariables.value).forEach(key => {
+    content = content.replace(
+      new RegExp(`\\{${key}\\}`, "g"),
+      previewVariables.value[key]
+    );
+  });
+  return content;
 });
 
 // 邮件表单验证规则
@@ -1403,11 +1855,11 @@ const emailRules = reactive({
       trigger: "change"
     }
   ],
-  receiver_id: [
+  role_id: [
     {
       validator: (rule: any, value: any, callback: any) => {
         if (emailForm.receiver_type === 3 && !value) {
-          callback(new Error("请选择一个用户"));
+          callback(new Error("请选择一个角色"));
         } else {
           callback();
         }
@@ -1446,12 +1898,43 @@ const emailRules = reactive({
       trigger: "blur"
     }
   ],
+  send_mode: [{ required: true, message: "请选择发送方式", trigger: "change" }],
+  template_id: [
+    {
+      validator: (rule: any, value: any, callback: any) => {
+        if (emailForm.send_mode === "template" && !value) {
+          callback(new Error("请选择邮件模板"));
+        } else {
+          callback();
+        }
+      },
+      trigger: "change"
+    }
+  ],
   email_title: [
-    { required: true, message: "请输入邮件标题", trigger: "blur" },
+    {
+      validator: (rule: any, value: any, callback: any) => {
+        if (emailForm.send_mode === "text" && !value) {
+          callback(new Error("请输入邮件标题"));
+        } else {
+          callback();
+        }
+      },
+      trigger: "blur"
+    },
     { min: 1, max: 200, message: "标题长度应为1-200个字符", trigger: "blur" }
   ],
   email_content: [
-    { required: true, message: "请输入邮件内容", trigger: "blur" },
+    {
+      validator: (rule: any, value: any, callback: any) => {
+        if (emailForm.send_mode === "text" && !value) {
+          callback(new Error("请输入邮件内容"));
+        } else {
+          callback();
+        }
+      },
+      trigger: "blur"
+    },
     { min: 1, max: 5000, message: "内容长度应为1-5000个字符", trigger: "blur" }
   ]
 });
@@ -1604,10 +2087,6 @@ const statusOptions = [
   { id: 1, name: "已发布", color: "#52c41a" }
 ];
 
-// 角色选项（从API获取）
-const roleOptions = ref<any[]>([]);
-const roleLoading = ref(false);
-
 // 按钮尺寸
 const buttonSize = ref<"" | "default" | "small" | "large">("small");
 
@@ -1618,6 +2097,21 @@ const noticeData = ref<any[]>([]);
 // 分页设置
 // Tab切换
 const activeTab = ref("notice");
+
+// 子组件 ref
+const emailRecordRef = ref<any>(null);
+const emailTemplateRef = ref<any>(null);
+
+// 监听 tab 切换，加载对应数据
+watch(activeTab, newTab => {
+  if (newTab === "email" && emailRecordRef.value) {
+    emailRecordRef.value.loadData?.();
+  } else if (newTab === "template" && emailTemplateRef.value) {
+    emailTemplateRef.value.fetchList?.();
+  } else if (newTab === "notice") {
+    fetchNoticeList();
+  }
+});
 
 const currentPage = ref(1);
 const pageSize = ref(5);
@@ -2306,10 +2800,20 @@ const handleOpenEmailDialog = () => {
   emailForm.receiver_type = 1;
   emailForm.receiver_ids = [];
   emailForm.receiver_id = undefined;
+  emailForm.role_id = undefined;
   emailForm.receiver_emails = "";
+  emailForm.send_mode = "text";
+  emailForm.template_id = undefined;
   emailForm.email_title = "";
   emailForm.email_content = "";
+  selectedTemplate.value = null;
+  templateVariables.value = [];
   emailAiPrompt.value = "";
+
+  // 加载模板列表
+  if (activeTemplates.value.length === 0) {
+    loadActiveTemplates();
+  }
 
   emailDialogVisible.value = true;
 };
@@ -2322,9 +2826,14 @@ const handleSendEmail = (row: any) => {
   emailForm.receiver_type = 1;
   emailForm.receiver_ids = [];
   emailForm.receiver_id = undefined;
+  emailForm.role_id = undefined;
   emailForm.receiver_emails = "";
+  emailForm.send_mode = "text"; // 默认文字模式
+  emailForm.template_id = undefined;
   emailForm.email_title = `【公告通知】${row.title}`;
   emailForm.email_content = row.content;
+  selectedTemplate.value = null;
+  templateVariables.value = [];
   emailAiPrompt.value = "";
 
   // 根据公告的可见性预设接收对象
@@ -2351,16 +2860,119 @@ const handleReceiverTypeChange = () => {
   // 清空所有选择
   emailForm.receiver_ids = [];
   emailForm.receiver_id = undefined;
+  emailForm.role_id = undefined;
   emailForm.receiver_emails = "";
 
   // 清除验证
   if (emailFormRef.value) {
     emailFormRef.value.clearValidate([
       "receiver_ids",
-      "receiver_id",
+      "role_id",
       "receiver_emails"
     ]);
   }
+};
+
+// 加载角色列表
+const loadRoles = async () => {
+  try {
+    const res = await getRoleList({
+      page: 1,
+      page_size: 100,
+      query_deleted: "not_deleted",
+      status: 1
+    });
+    if (res.code === 200 && res.data) {
+      roleOptions.value = res.data.list || [];
+    }
+  } catch (error) {
+    console.error("加载角色列表失败:", error);
+  }
+};
+
+// 加载活跃模板列表
+const loadActiveTemplates = async () => {
+  templatesLoading.value = true;
+  try {
+    const res = await getEmailTemplateList({
+      is_active: 1,
+      page: 1,
+      page_size: 100
+    });
+    if (res.code === 200 && res.data) {
+      activeTemplates.value = res.data.list || [];
+    }
+  } catch (error) {
+    console.error("加载模板列表失败:", error);
+  } finally {
+    templatesLoading.value = false;
+  }
+};
+
+// 处理发送方式变化
+const handleSendModeChange = () => {
+  // 切换模式时清空相关字段
+  if (emailForm.send_mode === "template") {
+    // 切换到模板模式，加载模板列表
+    if (activeTemplates.value.length === 0) {
+      loadActiveTemplates();
+    }
+    emailForm.email_title = "";
+    emailForm.email_content = "";
+  } else {
+    // 切换到文字模式
+    emailForm.template_id = undefined;
+    selectedTemplate.value = null;
+    templateVariables.value = [];
+  }
+
+  // 清除验证
+  if (emailFormRef.value) {
+    emailFormRef.value.clearValidate([
+      "email_title",
+      "email_content",
+      "template_id"
+    ]);
+  }
+};
+
+// 处理模板选择变化
+const handleTemplateChange = (templateId: number | undefined) => {
+  if (!templateId) {
+    selectedTemplate.value = null;
+    templateVariables.value = [];
+    return;
+  }
+
+  // 查找选中的模板
+  const template = activeTemplates.value.find(t => t.id === templateId);
+  if (template) {
+    selectedTemplate.value = template;
+    // 解析模板变量
+    templateVariables.value = parseTemplateVariables(template.variables);
+  }
+};
+
+// 解析模板变量
+const parseTemplateVariables = (
+  variables: string | Record<string, string> | undefined
+): string[] => {
+  if (!variables) return [];
+
+  // 如果是对象，提取键名并格式化为 {key} 格式
+  if (typeof variables === "object" && !Array.isArray(variables)) {
+    return Object.keys(variables).map(key => `{${key}}`);
+  }
+
+  // 如果是字符串，按逗号分割
+  if (typeof variables === "string") {
+    return variables
+      .split(",")
+      .map(v => v.trim())
+      .filter(v => v);
+  }
+
+  return [];
 };
 
 // 为邮件弹窗生成AI内容
@@ -2456,10 +3068,19 @@ const submitEmailForm = async () => {
       // 准备邮件数据
       const emailData: any = {
         sender_id: currentUserId,
-        title: emailForm.email_title,
-        content: emailForm.email_content,
         receiver_type: emailForm.receiver_type
       };
+
+      // 根据发送模式设置数据
+      if (emailForm.send_mode === "template") {
+        // 模板模式：传递 template_id
+        emailData.template_id = emailForm.template_id;
+        // 模板模式不需要 title 和 content，后端会从模板中获取
+      } else {
+        // 文字模式：传递 title 和 content
+        emailData.title = emailForm.email_title;
+        emailData.content = emailForm.email_content;
+      }
 
       // 如果有关联公告,添加notice_id
       if (currentNoticeForEmail.value?.notice_id) {
@@ -2471,8 +3092,8 @@ const submitEmailForm = async () => {
         // 指定多个用户
         emailData.receiver_ids = emailForm.receiver_ids;
       } else if (emailForm.receiver_type === 3) {
-        // 单个用户
-        emailData.receiver_ids = [emailForm.receiver_id];
+        // 用户组(角色)
+        emailData.role_id = emailForm.role_id;
       } else if (emailForm.receiver_type === 4) {
         // 指定邮箱地址
         const emails = emailForm.receiver_emails
@@ -2495,6 +3116,7 @@ const submitEmailForm = async () => {
         emailForm.receiver_type = 1;
         emailForm.receiver_ids = [];
         emailForm.receiver_id = undefined;
+        emailForm.role_id = undefined;
         emailForm.receiver_emails = "";
         emailForm.email_title = "";
         emailForm.email_content = "";
@@ -2517,6 +3139,8 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+
+
 @keyframes typing-animation {
   0%,
   100% {
@@ -2576,6 +3200,163 @@ onMounted(() => {
         font-size: 11px;
       }
     }
+  }
+}
+
+.preview-form-item {
+  :deep(.el-form-item__label) {
+    display: none !important; // 隐藏 label
+  }
+
+  :deep(.el-form-item__content) {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+  }
+}
+
+// 邮件预览内容样式
+.email-preview-content {
+  max-height: 400px;
+  padding: 12px;
+  overflow-y: auto;
+  word-break: break-word;
+  word-wrap: break-word;
+  background: #fafbfc;
+  border-radius: 4px;
+
+  // 基本 HTML 元素样式
+  :deep(p) {
+    margin: 0 0 1em;
+    line-height: 1.6;
+  }
+
+  :deep(h1) {
+    margin: 0.67em 0;
+    font-size: 2em;
+    font-weight: 600;
+  }
+
+  :deep(h2) {
+    margin: 0.75em 0;
+    font-size: 1.5em;
+    font-weight: 600;
+  }
+
+  :deep(h3) {
+    margin: 0.83em 0;
+    font-size: 1.17em;
+    font-weight: 600;
+  }
+
+  :deep(h4) {
+    margin: 1em 0;
+    font-size: 1em;
+    font-weight: 600;
+  }
+
+  :deep(h5) {
+    margin: 1.5em 0;
+    font-size: 0.83em;
+    font-weight: 600;
+  }
+
+  :deep(h6) {
+    margin: 2em 0;
+    font-size: 0.67em;
+    font-weight: 600;
+  }
+
+  :deep(a) {
+    color: #409eff;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  :deep(ul),
+  :deep(ol) {
+    padding-left: 2em;
+    margin: 1em 0;
+  }
+
+  :deep(li) {
+    margin: 0.5em 0;
+  }
+
+  :deep(img) {
+    display: inline-block;
+    max-width: 100%;
+    height: auto;
+  }
+
+  :deep(table) {
+    width: 100%;
+    margin: 1em 0;
+    border-collapse: collapse;
+  }
+
+  :deep(td),
+  :deep(th) {
+    padding: 8px;
+    text-align: left;
+    border: 1px solid #ddd;
+  }
+
+  :deep(th) {
+    font-weight: 600;
+    background-color: #f5f7fa;
+  }
+
+  :deep(blockquote) {
+    padding-left: 1em;
+    margin: 1em 0;
+    color: #606266;
+    border-left: 4px solid #dcdfe6;
+  }
+
+  :deep(code) {
+    padding: 2px 4px;
+    font-family: "Courier New", monospace;
+    font-size: 0.9em;
+    background-color: #f5f7fa;
+    border-radius: 3px;
+  }
+
+  :deep(pre) {
+    padding: 12px;
+    margin: 1em 0;
+    overflow-x: auto;
+    background-color: #f5f7fa;
+    border-radius: 4px;
+
+    code {
+      padding: 0;
+      background: none;
+    }
+  }
+
+  :deep(strong),
+  :deep(b) {
+    font-weight: 600;
+  }
+
+  :deep(em),
+  :deep(i) {
+    font-style: italic;
+  }
+
+  :deep(hr) {
+    margin: 1.5em 0;
+    border: none;
+    border-top: 1px solid #dcdfe6;
+  }
+
+  :deep(div),
+  :deep(span) {
+    // 保留内联样式
   }
 }
 
@@ -3192,7 +3973,7 @@ onMounted(() => {
 :deep(.el-tag) {
   margin: 2px 4px 2px 0;
   border-radius: 4px;
-}
+}// 预览表单项占满宽度
 </style>
 
 <style lang="scss">

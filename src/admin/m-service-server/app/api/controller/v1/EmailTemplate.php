@@ -2,11 +2,11 @@
 
 namespace app\api\controller\v1;
 
-use app\api\controller\BaseApiController;
+use app\BaseController;
 use app\api\services\EmailTemplateService;
 use think\response\Json;
 
-class EmailTemplate extends BaseApiController
+class EmailTemplate extends BaseController
 {
     /**
      * 获取模板列表
@@ -64,13 +64,15 @@ class EmailTemplate extends BaseApiController
     {
         $data = request()->param();
         
-        // 简单验证
+        // 简单验证 - 修正为 content 字段
         if (empty($data['name']) || empty($data['code']) || empty($data['subject']) || empty($data['content'])) {
             return json(['code' => 501, 'msg' => '参数错误：缺少必填字段']);
         }
         
-        // 添加创建人
-        $data['created_by'] = $this->userId;
+        // 设置默认 type
+        if (!isset($data['type'])) {
+            $data['type'] = 1; // 默认类型
+        }
         
         $result = EmailTemplateService::create($data);
         
@@ -129,7 +131,10 @@ class EmailTemplate extends BaseApiController
             return json(['code' => 501, 'msg' => '参数错误：缺少模板ID']);
         }
         
-        $result = EmailTemplateService::delete((int)$data['id']);
+        // 检查是否物理删除
+        $realDel = isset($data['real_del']) && $data['real_del'] == 1;
+        
+        $result = EmailTemplateService::delete((int)$data['id'], $realDel);
         
         if ($result['success']) {
             return json([

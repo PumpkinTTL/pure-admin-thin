@@ -144,12 +144,32 @@ class EmailRecordService
     {
         Db::startTrans();
         try {
+            // 判断是否使用模板
+            $useTemplate = !empty($data['template_id']);
+            $template = null;
+            $title = $data['title'] ?? '';
+            $content = $data['content'] ?? '';
+
+            if ($useTemplate) {
+                // 获取模板信息
+                $template = \app\api\model\EmailTemplate::find($data['template_id']);
+                if (!$template) {
+                    return ['success' => false, 'message' => '邮件模板不存在'];
+                }
+                if (!$template->is_active) {
+                    return ['success' => false, 'message' => '邮件模板未启用'];
+                }
+                // 使用模板的标题
+                $title = $template->subject;
+                $content = $template->content;
+            }
+
             // 创建邮件记录
             $record = emailRecord::create([
                 'notice_id' => $data['notice_id'] ?? null,
                 'sender_id' => $data['sender_id'],
-                'title' => $data['title'],
-                'content' => $data['content'],
+                'title' => $title,
+                'content' => $content,
                 'receiver_type' => $data['receiver_type'],
                 'status' => 1, // 发送中
                 'send_time' => date('Y-m-d H:i:s')
@@ -163,12 +183,22 @@ class EmailRecordService
             $record->save();
 
             // 批量发送邮件
-            $sendResult = EmailSendService::sendBatch(
-                $targets,
-                $data['title'],
-                $data['content'],
-                $record->id
-            );
+            if ($useTemplate) {
+                // 使用模板发送（支持变量替换）
+                $sendResult = self::sendBatchWithTemplate(
+                    $targets,
+                    $template,
+                    $record->id
+                );
+            } else {
+                // 普通文字发送
+                $sendResult = EmailSendService::sendBatch(
+                    $targets,
+                    $title,
+                    $content,
+                    $record->id
+                );
+            }
 
             // 更新发送结果
             $record->success_count = $sendResult['success'];
@@ -233,9 +263,15 @@ class EmailRecordService
                 }
                 break;
 
-            case 3: // 单个用户
-                if (!empty($data['receiver_ids']) && is_array($data['receiver_ids'])) {
-                    $targets[] = ['type' => 'user', 'id' => $data['receiver_ids'][0]];
+            case 3: // 用户组(角色)
+                if (!empty($data['role_id'])) {
+                    // 获取该角色下的所有用户
+                    $roleUsers = Db::name('user_role')
+                        ->where('role_id', $data['role_id'])
+                        ->column('user_id');
+                    foreach ($roleUsers as $userId) {
+                        $targets[] = ['type' => 'user', 'id' => $userId];
+                    }
                 }
                 break;
 
@@ -249,6 +285,99 @@ class EmailRecordService
         }
 
         return $targets;
+    }
+
+    /**
+     * 使用模板批量发送邮件（支持变量替换）
+     * @param array $targets 发送目标
+     * @param object $template 模板对象
+     * @param int $recordId 记录ID
+     * @return array
+     */
+    protected static function sendBatchWithTemplate(array $targets, $template, int $recordId): array
+    {
+        $successCount = 0;
+        $failedCount = 0;
+
+        foreach ($targets as $target) {
+            try {
+                // 获取接收者信息
+                if ($target['type'] === 'user') {
+                    $user = users::find($target['id']);
+                    if (!$user || !$user->email) {
+                        $failedCount++;
+                        continue;
+                    }
+                    $email = $user->email;
+                    // 准备变量数据
+                    $variables = [
+                        'username' => $user->username ?? '',
+                        'email' => $user->email ?? '',
+                        'nickname' => $user->nickname ?? $user->username ?? '',
+                        'date' => date('Y-m-d'),
+                        'year' => date('Y')
+                    ];
+                } else {
+                    $email = $target['email'];
+                    // 邮箱地址模式，使用默认变量
+                    $variables = [
+                        'username' => explode('@', $email)[0],
+                        'email' => $email,
+                        'nickname' => explode('@', $email)[0],
+                        'date' => date('Y-m-d'),
+                        'year' => date('Y')
+                    ];
+                }
+
+                // 渲染模板
+                $rendered = self::renderTemplate($template, $variables);
+
+                // 发送邮件
+                $result = EmailSendService::sendToEmail(
+                    $email,
+                    $rendered['subject'],
+                    $rendered['content'],
+                    $recordId
+                );
+
+                if ($result['success']) {
+                    $successCount++;
+                } else {
+                    $failedCount++;
+                }
+            } catch (\Exception $e) {
+                Log::error('发送模板邮件失败: ' . $e->getMessage());
+                $failedCount++;
+            }
+        }
+
+        return [
+            'success' => $successCount,
+            'failed' => $failedCount
+        ];
+    }
+
+    /**
+     * 渲染模板（替换变量）
+     * @param object $template 模板对象
+     * @param array $variables 变量数据
+     * @return array
+     */
+    protected static function renderTemplate($template, array $variables): array
+    {
+        $subject = $template->subject;
+        $content = $template->content;
+
+        // 替换所有变量 {variable_name}
+        foreach ($variables as $key => $value) {
+            $subject = str_replace('{' . $key . '}', $value, $subject);
+            $content = str_replace('{' . $key . '}', $value, $content);
+        }
+
+        return [
+            'subject' => $subject,
+            'content' => $content
+        ];
     }
 
     /**

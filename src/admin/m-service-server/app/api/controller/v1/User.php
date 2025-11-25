@@ -48,11 +48,6 @@ class User extends BaseController
         if (!$validateResult) {
             return json(['code' => 501, 'msg' => '参数错误', 'info' => $validate->getError()]);
         }
-        // 请求头设备指纹验证
-        // $fingerprint = request()->header('X-Fingerprint');
-        // if (empty($fingerprint)) {
-        //     return json(['code' => 502, 'msg' => '设备参数丢失']);
-        // }
         // 获取参数
         $account = $params['account'];
         $password = $params['password'];
@@ -667,7 +662,6 @@ class User extends BaseController
                     ]
                 ]
             ]);
-
         } catch (\Exception $e) {
             LogService::error($e);
             return json(['code' => 0, 'msg' => '获取会员状态失败：' . $e->getMessage()]);
@@ -792,7 +786,6 @@ class User extends BaseController
                 'token' => $newToken,
                 'expireTime' => $newExpireTime
             ]);
-
         } catch (\Exception $e) {
             LogService::error($e, "Token续签异常");
             return json([
@@ -937,6 +930,4 @@ class User extends BaseController
 
         return json($result);
     }
-
 }
-

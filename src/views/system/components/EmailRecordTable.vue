@@ -162,14 +162,14 @@
         min-width="200"
         show-overflow-tooltip
       >
-        <template #default="{ row }">
+        <template v-slot="scope">
           <div class="title-cell">
             <font-awesome-icon
               :icon="['fas', 'envelope']"
               class="mr-1"
               style="color: #409eff"
             />
-            <span>{{ row.title }}</span>
+            <span>{{ scope.row.title }}</span>
           </div>
         </template>
       </el-table-column>
@@ -187,11 +187,14 @@
         width="140"
         align="center"
       >
-        <template #default="{ row }">
-          <el-tag :type="getReceiverTypeTag(row.receiver_type)" size="small">
+        <template v-slot="scope">
+          <el-tag
+            :type="getReceiverTypeTag(scope.row.receiver_type)"
+            size="small"
+          >
             {{
-              row.receiver_type_text ||
-              RECEIVER_TYPE_TEXT[row.receiver_type] ||
+              scope.row.receiver_type_text ||
+              RECEIVER_TYPE_TEXT[scope.row.receiver_type] ||
               "未知"
             }}
           </el-tag>
@@ -199,14 +202,16 @@
       </el-table-column>
 
       <el-table-column label="发送统计" width="200" align="center">
-        <template #default="{ row }">
+        <template v-slot="scope">
           <div class="stats-cell">
-            <el-tag type="info" size="small">总: {{ row.total_count }}</el-tag>
+            <el-tag type="info" size="small">
+              总: {{ scope.row.total_count }}
+            </el-tag>
             <el-tag type="success" size="small">
-              成功: {{ row.success_count }}
+              成功: {{ scope.row.success_count }}
             </el-tag>
             <el-tag type="danger" size="small">
-              失败: {{ row.failed_count }}
+              失败: {{ scope.row.failed_count }}
             </el-tag>
           </div>
         </template>
@@ -218,9 +223,11 @@
         width="120"
         align="center"
       >
-        <template #default="{ row }">
-          <el-tag :type="getStatusTag(row.status)" size="small">
-            {{ row.status_text || STATUS_TEXT[row.status] || "未知" }}
+        <template v-slot="scope">
+          <el-tag :type="getStatusTag(scope.row.status)" size="small">
+            {{
+              scope.row.status_text || STATUS_TEXT[scope.row.status] || "未知"
+            }}
           </el-tag>
         </template>
       </el-table-column>
@@ -233,45 +240,45 @@
       />
 
       <el-table-column label="操作" width="240" align="center" fixed="right">
-        <template #default="{ row }">
+        <template v-slot="scope">
           <el-button
             type="primary"
             size="small"
             link
-            @click="handleViewDetail(row)"
+            @click="handleViewDetail(scope.row)"
           >
             <font-awesome-icon :icon="['fas', 'eye']" class="mr-1" />
             查看详情
           </el-button>
 
           <el-button
-            v-if="row.failed_count > 0 && !row.delete_time"
+            v-if="scope.row.failed_count > 0 && !scope.row.delete_time"
             type="warning"
             size="small"
             link
-            @click="handleResend(row)"
+            @click="handleResend(scope.row)"
           >
             <font-awesome-icon :icon="['fas', 'redo']" class="mr-1" />
             重新发送
           </el-button>
 
           <el-button
-            v-if="!row.delete_time"
+            v-if="!scope.row.delete_time"
             type="danger"
             size="small"
             link
-            @click="handleDelete(row)"
+            @click="handleDelete(scope.row)"
           >
             <font-awesome-icon :icon="['fas', 'trash']" class="mr-1" />
             删除
           </el-button>
 
           <el-button
-            v-if="row.delete_time"
+            v-if="scope.row.delete_time"
             type="success"
             size="small"
             link
-            @click="handleRestore(row)"
+            @click="handleRestore(scope.row)"
           >
             <font-awesome-icon :icon="['fas', 'undo']" class="mr-1" />
             恢复

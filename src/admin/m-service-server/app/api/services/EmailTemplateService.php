@@ -143,17 +143,9 @@ class EmailTemplateService
                 return ['success' => false, 'message' => '模板不存在'];
             }
 
-            // 系统模板限制修改
-            if ($template->is_system && isset($data['code'])) {
-                return ['success' => false, 'message' => '系统模板不允许修改标识'];
-            }
-
-            // 检查code是否重复
+            // 不允许修改模板标识（无论是否系统模板）
             if (isset($data['code']) && $data['code'] !== $template->code) {
-                $exists = EmailTemplate::where('code', $data['code'])->find();
-                if ($exists) {
-                    return ['success' => false, 'message' => '模板标识已存在'];
-                }
+                return ['success' => false, 'message' => '不允许修改模板标识'];
             }
 
             $template->save($data);
@@ -168,9 +160,10 @@ class EmailTemplateService
     /**
      * 删除模板
      * @param int $id 模板ID
+     * @param bool $realDel 是否物理删除
      * @return array
      */
-    public static function delete(int $id): array
+    public static function delete(int $id, bool $realDel = false): array
     {
         try {
             $template = EmailTemplate::find($id);
@@ -183,9 +176,15 @@ class EmailTemplateService
                 return ['success' => false, 'message' => '系统模板不允许删除'];
             }
 
-            $template->delete();
-
-            return ['success' => true, 'message' => '删除成功'];
+            if ($realDel) {
+                // 物理删除
+                $template->force()->delete();
+                return ['success' => true, 'message' => '物理删除成功'];
+            } else {
+                // 软删除
+                $template->delete();
+                return ['success' => true, 'message' => '删除成功'];
+            }
         } catch (\Exception $e) {
             Log::error('删除模板失败: ' . $e->getMessage());
             return ['success' => false, 'message' => $e->getMessage()];
