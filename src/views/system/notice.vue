@@ -1257,7 +1257,7 @@
               <!-- 统一预览卡片 -->
               <el-card
                 shadow="never"
-                style=" border: 1px solid #e4e7ed;border-radius: 8px"
+                style="border: 1px solid #e4e7ed; border-radius: 8px"
               >
                 <!-- 模板信息区域 -->
                 <div
@@ -1333,7 +1333,7 @@
                       >
                         模板说明
                       </span>
-                      <span style=" line-height: 22px;color: #495057">
+                      <span style="line-height: 22px; color: #495057">
                         {{ selectedTemplate.description }}
                       </span>
                     </div>
@@ -1922,7 +1922,20 @@ const emailRules = reactive({
       },
       trigger: "blur"
     },
-    { min: 1, max: 200, message: "标题长度应为1-200个字符", trigger: "blur" }
+    {
+      validator: (rule: any, value: any, callback: any) => {
+        if (
+          emailForm.send_mode === "text" &&
+          value &&
+          (value.length < 1 || value.length > 200)
+        ) {
+          callback(new Error("标题长度应为1-200个字符"));
+        } else {
+          callback();
+        }
+      },
+      trigger: "blur"
+    }
   ],
   email_content: [
     {
@@ -1935,7 +1948,20 @@ const emailRules = reactive({
       },
       trigger: "blur"
     },
-    { min: 1, max: 5000, message: "内容长度应为1-5000个字符", trigger: "blur" }
+    {
+      validator: (rule: any, value: any, callback: any) => {
+        if (
+          emailForm.send_mode === "text" &&
+          value &&
+          (value.length < 1 || value.length > 5000)
+        ) {
+          callback(new Error("内容长度应为1-5000个字符"));
+        } else {
+          callback();
+        }
+      },
+      trigger: "blur"
+    }
   ]
 });
 
@@ -3057,6 +3083,13 @@ ${noticeContent || "请在此填写通知内容..."}
 const submitEmailForm = async () => {
   if (!emailFormRef.value) return;
 
+  // 在验证前清除不需要的字段验证
+  if (emailForm.send_mode === "template") {
+    emailFormRef.value.clearValidate(["email_title", "email_content"]);
+  } else {
+    emailFormRef.value.clearValidate(["template_id"]);
+  }
+
   await emailFormRef.value.validate(async (valid: boolean) => {
     if (!valid) return;
 
@@ -3139,8 +3172,6 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-
-
 @keyframes typing-animation {
   0%,
   100% {
@@ -3973,7 +4004,7 @@ onMounted(() => {
 :deep(.el-tag) {
   margin: 2px 4px 2px 0;
   border-radius: 4px;
-}// 预览表单项占满宽度
+} // 预览表单项占满宽度
 </style>
 
 <style lang="scss">
