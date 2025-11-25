@@ -32,7 +32,7 @@ return [
     'charset' => 'UTF-8',
     
     // 发件人名称
-    'from_name' => '系统通知',
+    'from_name' => '知识棱镜',
     
     // SMTP 登录账号（邮箱地址）
     'username' => 'weekseven@163.com',

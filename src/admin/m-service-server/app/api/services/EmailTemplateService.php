@@ -248,7 +248,7 @@ class EmailTemplateService
      * @param int|null $recordId 邮件记录ID（可选）
      * @return array
      */
-    public static function sendByTemplate(string $code, string $email, array $data, ?int $recordId = null): array
+    public static function sendByTemplate(string $code, string $email, array $data, ?int $recordId = null, bool $isHtmlContent = true): array
     {
         try {
             Log::info("开始发送模板邮件: code={$code}, email={$email}");
@@ -268,7 +268,7 @@ class EmailTemplateService
 
             // 如果有记录ID，使用EmailSendService
             if ($recordId) {
-                return EmailSendService::sendToEmail($email, $rendered['subject'], $rendered['content'], $recordId);
+                return EmailSendService::sendToEmail($email, $rendered['subject'], $rendered['content'], $recordId, $isHtmlContent);
             }
 
             // 否则直接发送

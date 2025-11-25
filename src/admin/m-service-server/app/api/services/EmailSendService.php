@@ -129,7 +129,8 @@ class EmailSendService
             $receiver->status = $result ? 1 : 2;
             $receiver->send_time = date('Y-m-d H:i:s');
             if (!$result) {
-                $receiver->error_msg = '邮件发送失败';
+                $receiver->error_msg = EmailUtil::$lastError ?: '邮件发送失败';
+                Log::error("邮件发送详情 - 邮箱: {$email}, 错误信息: " . $receiver->error_msg);
             }
             $receiver->save();
 
@@ -137,7 +138,8 @@ class EmailSendService
                 'success' => $result,
                 'message' => $result ? '发送成功' : '发送失败',
                 'email' => $email,
-                'receiver_id' => $receiver->id
+                'receiver_id' => $receiver->id,
+                'error_msg' => isset($receiver->error_msg) ? $receiver->error_msg : null
             ];
         } catch (\Exception $e) {
             Log::error('发送邮件失败: ' . $e->getMessage());

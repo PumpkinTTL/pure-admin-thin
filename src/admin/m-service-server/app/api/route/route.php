@@ -13,6 +13,8 @@ Route::group('/:version/user', function () {
     Route::rule('/requestPasswordReset', ':version.User/requestPasswordReset'); // 请求密码重置
     Route::rule('/verifyResetToken', ':version.User/verifyResetToken'); // 校验重置Token
     Route::rule('/resetPassword', ':version.User/resetPassword'); // 重置密码
+    Route::rule('/sendEmailCode', ':version.User/sendEmailCode'); // 发送邮箱验证码
+    Route::rule('/testEmail', ':version.User/testEmail'); // 测试邮件发送
 });
 
 //用户分组 - 需要登录的接口（应用 Auth 中间件）

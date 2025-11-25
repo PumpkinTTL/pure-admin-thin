@@ -35,6 +35,10 @@ class UserService
      */
     public static function login(string $account, string $password, string $action = 'pwd', string $fingerprint = 'Web'): array
     {
+        // 邮箱验证码登录
+        if ($action === 'code') {
+            return self::loginByEmailCode($account, $password, $fingerprint);
+        }
 
         $hidden = ['phone', 'email', 'password', 'ip_address', 'delete_time', 'create_time', 'update_time'];
         // 密码登录
@@ -168,15 +172,16 @@ class UserService
                 }
             }
 
-            // 创建用户
+            // 创建用户，如果是自动注册则同时设置登录时间
+            $userData['last_login'] = date('Y-m-d H:i:s');
             $user = new users();
             $user->save($userData);
             $userId = $user->id;
 
-            // 自动分配默认角色（普通用户，角色ID为6）
+            // 自动分配默认角色（普通用户，角色ID为18）
             $defaultRoleData = [
                 'user_id' => $userId,
-                'role_id' => 6
+                'role_id' => 18
             ];
             userRoles::insert($defaultRoleData);
 
@@ -1148,6 +1153,187 @@ class UserService
         } catch (\Exception $e) {
             LogService::error($e);
             return ['code' => 500, 'msg' => '重置密码失败：' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * 邮箱验证码登录（自动注册）
+     * @param string $email 邮箱
+     * @param string $code 验证码
+     * @param string $fingerprint 指纹
+     * @return array
+     */
+    public static function loginByEmailCode(string $email, string $code, string $fingerprint = 'Web'): array
+    {
+        // 验证验证码
+        $redisKey = "ec:{$email}";
+        $savedCode = RedisUtil::getString($redisKey);
+
+        if (!$savedCode || strtoupper($savedCode) !== strtoupper($code)) {
+            return ['code' => 400, 'msg' => '验证码错误或已过期'];
+        }
+
+        // 删除验证码
+        RedisUtil::deleteString($redisKey);
+
+        // 查找用户
+        $user = users::with([
+            'roles.permissions',
+            'premium' => function ($query) {
+                $query->field(['id', 'user_id', 'expiration_time', 'remark']);
+            },
+            'levelRecords'
+        ])->hidden(['phone', 'email', 'password', 'ip_address', 'delete_time', 'create_time', 'update_time'])->where('email', $email)->find();
+
+        $isNewUser = false;
+
+        // 用户不存在，自动注册
+        if (!$user) {
+            $isNewUser = true;
+            $emailPrefix = explode('@', $email)[0];
+
+            // 生成随机密码
+            $autoPassword = 'auto_' . substr(md5(uniqid()), 0, 12);
+
+            $userData = [
+                'username' => $emailPrefix . '_' . time(),
+                'password' => $autoPassword,
+                'email' => $email,
+                'nickname' => $emailPrefix,
+                'status' => 1,
+                'gender' => 0, // 默认性别为0（未知），不使用2
+                'signature' => '在知识的棱镜中折射出无限可能',
+                'ip_address' => request()->ip(),
+                'register_source' => 'email', // 注册来源
+                'register_device' => request()->header('user-agent', ''), // 注册设备信息
+            ];
+
+            // 调用注册服务
+            $registerResult = self::register($userData);
+            if ($registerResult['code'] != 1) {
+                return ['code' => 500, 'msg' => '自动注册失败：' . $registerResult['msg']];
+            }
+
+            $user = users::with([
+                'roles.permissions',
+                'premium' => function ($query) {
+                    $query->field(['id', 'user_id', 'expiration_time', 'remark']);
+                },
+                'levelRecords'
+            ])->hidden(['phone', 'email', 'password', 'ip_address', 'delete_time', 'create_time', 'update_time'])->find($registerResult['data']['id']);
+        }
+
+        // 检查用户状态
+        if (!$user['status']) {
+            return ['code' => 502, 'msg' => '用户已被禁用'];
+        }
+
+        // 生成JWT token
+        $payloads = [
+            'loginTime' => time(),
+            'account' => $email,
+            'id' => $user['id'],
+            'platform' => 'Web',
+            'fingerprint' => $fingerprint
+        ];
+        $expireTime = time() + 60 * 60 * 24 * 3;
+        $token = JWTUtil::generateToken($payloads, $expireTime);
+
+        // 保存token到Redis
+        RedisUtil::setString('lt_' . $user['id'], $token, 60 * 60 * 24 * 3);
+
+        // 更新最后登录时间（包括老用户）
+        users::where('id', $user['id'])->update([
+            'last_login' => date('Y-m-d H:i:s'),
+            'ip_address' => request()->ip()
+        ]);
+
+        // 记录登录日志
+        LoginLog::recordLogin($user['id'], $user['username'], request()->ip(), request()->header('user-agent', ''), 'Web', $fingerprint);
+
+        // 如果是新注册用户，发送欢迎邮件
+        if ($isNewUser) {
+            try {
+                EmailTemplateService::sendByTemplate('register_success', $email, [
+                    'username' => $user['username'],
+                    'nickname' => $user['nickname'],
+                    'email' => $email,
+                    'initial_password' => $autoPassword, // 初始密码占位符
+                    'register_time' => date('Y-m-d H:i:s'),
+                    'year' => date('Y')
+                ]);
+            } catch (\Exception $e) {
+                // 欢迎邮件发送失败不影响登录
+                LogService::error($e);
+                LogService::log("欢迎邮件发送失败 - 用户：{$user['username']}");
+            }
+        }
+
+        return [
+            'code' => 200,
+            'msg' => $isNewUser ? '注册成功并登录' : '登录成功',
+            'token' => $token,
+            'expireTime' => $expireTime,
+            'data' => $user
+        ];
+    }
+
+    /**
+     * 发送邮箱验证码
+     * @param string $email 邮箱
+     * @return array
+     */
+    public static function sendEmailCode(string $email): array
+    {
+        try {
+            // 生成6位纯数字验证码
+            $code = str_pad(mt_rand(0, 999999), 6, '0', STR_PAD_LEFT);
+
+            // 存储验证码到Redis（5分钟过期）
+            $redisKey = "ec:{$email}";
+            RedisUtil::setString($redisKey, $code, 300);
+
+            // 先创建邮件记录，然后发送
+            $recordData = [
+                'template_id' => null, // 会根据code_notice模板查找
+                'template_code' => 'code_notice',
+                'subject' => '邮箱验证码',
+                'content' => "您的验证码是：{$code}",
+                'recipients' => json_encode([['email' => $email, 'name' => '用户']]),
+                'sender_id' => 8888, // 默认发送者ID
+                'status' => 0, // 待发送
+                'total_count' => 1,
+                'success_count' => 0,
+                'failed_count' => 0
+            ];
+
+            $emailRecord = new \app\api\model\emailRecord();
+            $emailRecord->save($recordData);
+            $recordId = $emailRecord->id;
+
+            // 检查用户是否存在以确定username
+            $user = users::where('email', $email)->find();
+            $username = $user ? $user->username : $email; // 如果用户不存在，username使用邮箱
+
+            // 发送验证码邮件
+            $sendResult = EmailTemplateService::sendByTemplate('code_notice', $email, [
+                'username' => $username,
+                'purpose' => '登录验证',
+                'verification_code' => $code, // 模板可能使用verification_code而不是code
+                'code' => $code, // 兼容两种命名
+                'expire_minutes' => '5',
+                'year' => date('Y')
+            ], $recordId, true); // 第5个参数表示内容已经是完整的HTML
+
+            if (!$sendResult['success']) {
+                LogService::error("验证码邮件发送失败 - 邮箱: {$email}, 错误: " . $sendResult['message']);
+                return ['code' => 500, 'msg' => '邮件发送失败: ' . $sendResult['message']];
+            }
+
+            LogService::log("验证码邮件发送成功 - 邮箱: {$email}");
+            return ['code' => 200, 'msg' => '验证码已发送'];
+        } catch (\Exception $e) {
+            return ['code' => 500, 'msg' => '邮件发送异常：' . $e->getMessage()];
         }
     }
 }

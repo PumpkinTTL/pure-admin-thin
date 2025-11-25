@@ -37,24 +37,67 @@ class User extends BaseController
     function login(): Json
     {
         $params = request()->param();
-        //        参数验证
+
+        // 基础参数验证
         $validate = Validate::rule([
             'action' => ValidateRule::isRequire(null, '登录方式必须传递'),
             'account' => ValidateRule::isRequire(null, '登录账号必须传递'),
-            'password' => ValidateRule::isRequire(null, '密码必须传递,如是验证码请传递任意值'),
+            'password' => ValidateRule::isRequire(null, '密码必须传递,如是验证码请传递验证码'),
         ]);
-        //        参数验证
+
         $validateResult = $validate->batch()->check($params);
         if (!$validateResult) {
             return json(['code' => 501, 'msg' => '参数错误', 'info' => $validate->getError()]);
         }
-        // 获取参数
+
         $account = $params['account'];
         $password = $params['password'];
         $action = $params['action'];
-        // 调用服务进行登录
+
+        // 调用服务进行登录（统一处理所有登录方式）
         $result = UserService::login($account, $password, $action);
         return json($result);
+    }
+
+    /**
+     * 发送邮箱验证码
+     */
+    function sendEmailCode(): Json
+    {
+        $params = request()->param();
+
+        $validate = Validate::rule([
+            'email' => ValidateRule::isRequire(null, '邮箱必须传递')->regex('/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/', '邮箱格式不正确'),
+        ]);
+
+        $validateResult = $validate->batch()->check($params);
+        if (!$validateResult) {
+            return json(['code' => 501, 'msg' => '参数错误', 'info' => $validate->getError()]);
+        }
+
+        // 调用服务发送验证码
+        $result = UserService::sendEmailCode($params['email']);
+        return json($result);
+    }
+
+    /**
+     * 测试邮件发送
+     */
+    function testEmail(): Json
+    {
+        try {
+            // 使用配置中的发件人邮箱进行测试
+            $testEmail = config('email.from_address');
+            $result = \utils\EmailUtil::sendMail($testEmail, "测试邮件", "<h1>这是一封测试邮件</h1>");
+
+            if ($result) {
+                return json(['code' => 200, 'msg' => "测试邮件发送成功到 {$testEmail}"]);
+            } else {
+                return json(['code' => 500, 'msg' => '测试邮件发送失败']);
+            }
+        } catch (\Exception $e) {
+            return json(['code' => 500, 'msg' => '测试邮件发送异常：' . $e->getMessage()]);
+        }
     }
 
     /**
