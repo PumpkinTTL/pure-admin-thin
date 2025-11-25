@@ -159,8 +159,21 @@ class EmailRecordService
                 if (!$template->is_active) {
                     return ['success' => false, 'message' => '邮件模板未启用'];
                 }
-                // 使用模板的标题
-                $title = $template->subject;
+
+                // 记录模板信息
+                Log::info('获取邮件模板成功', [
+                    'template_id' => $template->id,
+                    'template_code' => $template->code,
+                    'template_name' => $template->name,
+                    'template_subject' => $template->subject,
+                    'template_content_length' => strlen($template->content),
+                    'user_title' => $data['title'] ?? ''
+                ]);
+
+                // 如果用户没有提供标题，则使用模板的标题
+                if (empty($data['title'])) {
+                    $title = $template->subject;
+                }
                 $content = $template->content;
             }
 
@@ -309,35 +322,47 @@ class EmailRecordService
                         continue;
                     }
                     $email = $user->email;
+
                     // 准备变量数据
                     $variables = [
-                        'username' => $user->username ?? '',
-                        'email' => $user->email ?? '',
-                        'nickname' => $user->nickname ?? $user->username ?? '',
+                        'username' => $user->username,
+                        'email' => $user->email,
+                        'nickname' => $user->nickname ?? $user->username,
+                        'user_id' => $user->id,
                         'date' => date('Y-m-d'),
-                        'year' => date('Y')
+                        'datetime' => date('Y-m-d H:i:s'),
+                        'time' => date('H:i:s'),
+                        'year' => date('Y'),
+                        'site_name' => '苍穹云网络',
+                        'company_name' => '苍穹云网络'
                     ];
                 } else {
                     $email = $target['email'];
-                    // 邮箱地址模式，使用默认变量
+
+                    // 邮箱地址模式，准备变量数据
                     $variables = [
                         'username' => explode('@', $email)[0],
                         'email' => $email,
                         'nickname' => explode('@', $email)[0],
                         'date' => date('Y-m-d'),
-                        'year' => date('Y')
+                        'datetime' => date('Y-m-d H:i:s'),
+                        'time' => date('H:i:s'),
+                        'year' => date('Y'),
+                        'site_name' => '苍穹云网络',
+                        'company_name' => '苍穹云网络'
                     ];
                 }
 
                 // 渲染模板
                 $rendered = self::renderTemplate($template, $variables);
 
-                // 发送邮件
+                // 发送邮件 - 模板内容已经是完整的HTML，设置 $isHtmlContent = true
                 $result = EmailSendService::sendToEmail(
                     $email,
                     $rendered['subject'],
                     $rendered['content'],
-                    $recordId
+                    $recordId,
+                    true // 模板内容已经是完整的HTML
                 );
 
                 if ($result['success']) {
@@ -368,11 +393,37 @@ class EmailRecordService
         $subject = $template->subject;
         $content = $template->content;
 
+        // 记录调试信息
+        Log::info('邮件模板渲染开始', [
+            'template_id' => $template->id ?? 'unknown',
+            'original_subject' => $subject,
+            'original_content_length' => strlen($content),
+            'variables' => $variables
+        ]);
+
         // 替换所有变量 {variable_name}
         foreach ($variables as $key => $value) {
+            $oldSubject = $subject;
+            $oldContent = $content;
             $subject = str_replace('{' . $key . '}', $value, $subject);
             $content = str_replace('{' . $key . '}', $value, $content);
+
+            // 记录每个变量的替换情况
+            if ($oldSubject !== $subject || $oldContent !== $content) {
+                Log::info("变量替换: {$key}", [
+                    'value' => $value,
+                    'subject_changed' => $oldSubject !== $subject,
+                    'content_changed' => $oldContent !== $content
+                ]);
+            }
         }
+
+        // 记录最终结果
+        Log::info('邮件模板渲染完成', [
+            'final_subject' => $subject,
+            'final_content_length' => strlen($content),
+            'has_placeholders' => preg_match('/\{[a-zA-Z0-9_]+\}/', $subject) || preg_match('/\{[a-zA-Z0-9_]+\}/', $content)
+        ]);
 
         return [
             'subject' => $subject,
@@ -412,9 +463,12 @@ class EmailRecordService
             $failedCount = 0;
 
             foreach ($failedReceivers as $receiver) {
+                // 判断是否为模板邮件（通过content中是否包含完整HTML标签）
+                $isHtmlContent = strpos($record->content, '<!DOCTYPE html') === 0 || strpos($record->content, '<html') === 0;
+
                 $result = $receiver->user_id
-                    ? EmailSendService::sendToUser($receiver->user_id, $record->title, $record->content, $recordId)
-                    : EmailSendService::sendToEmail($receiver->email, $record->title, $record->content, $recordId);
+                    ? EmailSendService::sendToUser($receiver->user_id, $record->title, $record->content, $recordId, $isHtmlContent)
+                    : EmailSendService::sendToEmail($receiver->email, $record->title, $record->content, $recordId, $isHtmlContent);
 
                 if ($result['success']) {
                     $successCount++;

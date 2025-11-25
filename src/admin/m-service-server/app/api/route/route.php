@@ -314,6 +314,8 @@ Route::group('/:version/emailTemplate', function () {
     Route::rule('active', ':version.EmailTemplate/getActiveTemplates');
     // 发送测试邮件
     Route::rule('sendTest', ':version.EmailTemplate/sendTest');
+    // 预览模板渲染效果
+    Route::rule('preview', ':version.EmailTemplate/preview');
 });
 
 //支付方式分组

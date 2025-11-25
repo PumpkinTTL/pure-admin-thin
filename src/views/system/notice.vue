@@ -1064,9 +1064,16 @@
             multiple
             filterable
             remote
+            remote-show-suffix
             reserve-keyword
-            placeholder="请输入ID或用户名搜索用户"
+            placeholder="请输入用户名或ID进行搜索"
+            :no-data-text="
+              userSelectLoading
+                ? '正在搜索中...'
+                : '暂无匹配的用户，请尝试其他关键词'
+            "
             :remote-method="remoteSearchUsers"
+            :debounce="200"
             :loading="userSelectLoading"
             style="width: 100%"
             clearable
@@ -1078,13 +1085,13 @@
             @focus="handleFocus"
           >
             <template #loading>
-              <div style="padding: 10px; text-align: center">
+              <div style="padding: 12px; color: #909399; text-align: center">
                 <font-awesome-icon
                   :icon="['fas', 'spinner']"
                   spin
-                  style="margin-right: 8px"
+                  style="margin-right: 8px; font-size: 14px"
                 />
-                加载中...
+                正在搜索用户...
               </div>
             </template>
             <el-option
@@ -1097,10 +1104,17 @@
                 <el-avatar :size="28" :src="item.avatar">
                   {{ item.username?.charAt(0) }}
                 </el-avatar>
-                <span style="font-weight: 500">{{ item.username }}</span>
-                <span style="font-size: 12px; color: #67c23a">
-                  {{ item.email }}
-                </span>
+                <div style="flex: 1; min-width: 0">
+                  <div style="display: flex; gap: 8px; align-items: center">
+                    <span style="font-weight: 500">{{ item.username }}</span>
+                    <el-tag size="small" type="info" effect="plain">
+                      ID: {{ item.id }}
+                    </el-tag>
+                  </div>
+                  <div style=" margin-top: 2px;font-size: 12px; color: #67c23a">
+                    {{ item.email }}
+                  </div>
+                </div>
               </div>
             </el-option>
           </el-select>
@@ -1203,6 +1217,26 @@
           </el-radio-group>
         </el-form-item>
 
+        <!-- 邮件标题 - 两种模式都显示 -->
+        <el-form-item label="邮件标题" prop="email_title">
+          <el-input
+            v-model="emailForm.email_title"
+            placeholder="请输入邮件标题"
+            maxlength="200"
+            show-word-limit
+          />
+          <div
+            v-if="emailForm.send_mode === 'template' && selectedTemplate"
+            style="margin-top: 4px; font-size: 12px; color: #909399"
+          >
+            <font-awesome-icon
+              :icon="['fas', 'info-circle']"
+              style="margin-right: 4px"
+            />
+            模板原标题：{{ selectedTemplate.subject }}
+          </div>
+        </el-form-item>
+
         <!-- 模板选择模式 -->
         <template v-if="emailForm.send_mode === 'template'">
           <el-form-item label="选择模板" prop="template_id">
@@ -1212,9 +1246,25 @@
                 placeholder="请选择邮件模板"
                 style="flex: 1"
                 filterable
+                remote
+                remote-show-suffix
                 clearable
+                reserve-keyword
+                :loading="templateSearchLoading || templatesLoading"
+                :no-data-text="
+                  templateSearchLoading
+                    ? '搜索中...'
+                    : templatesLoading
+                      ? '加载中...'
+                      : templateSearchKeyword.trim()
+                        ? '未找到包含「' + templateSearchKeyword + '」的模板'
+                        : '暂无可用模板，请点击刷新按钮'
+                "
+                :remote-method="handleTemplateSearch"
+                :debounce="300"
                 @change="handleTemplateChange"
-                @focus="loadActiveTemplates"
+                @focus="handleTemplateFocus"
+                @visible-change="handleTemplateVisibleChange"
               >
                 <el-option
                   v-for="template in activeTemplates"
@@ -1235,14 +1285,72 @@
                     </el-tag>
                   </div>
                 </el-option>
+                <!-- 加载更多选项 -->
+                <el-option
+                  v-if="templateHasMore && activeTemplates.length > 0"
+                  key="load-more"
+                  label=""
+                  value=""
+                  disabled
+                  style=" font-size: 12px; color: #909399;text-align: center"
+                >
+                  <div
+                    style="
+                      display: flex;
+                      gap: 6px;
+                      align-items: center;
+                      justify-content: center;
+                      padding: 8px;
+                      cursor: pointer;
+                      transition: all 0.2s;
+                    "
+                    @click.stop="loadMoreTemplates"
+                    @mouseenter="
+                      $event.currentTarget.style.backgroundColor = '#f5f7fa'
+                    "
+                    @mouseleave="
+                      $event.currentTarget.style.backgroundColor = 'transparent'
+                    "
+                  >
+                    <font-awesome-icon
+                      :icon="
+                        templatesLoading
+                          ? ['fas', 'spinner']
+                          : ['fas', 'arrow-down']
+                      "
+                      :class="{ 'fa-spin': templatesLoading }"
+                      style="font-size: 12px"
+                    />
+                    <span>
+                      {{
+                        templatesLoading
+                          ? "加载中..."
+                          : "点击加载更多 (已显示 " +
+                            activeTemplates.length +
+                            " 条)"
+                      }}
+                    </span>
+                  </div>
+                </el-option>
               </el-select>
               <el-button
                 type="primary"
-                plain
+                size="default"
                 :loading="templatesLoading"
-                @click="loadActiveTemplates"
+                style=" padding: 8px 16px;border-radius: 6px"
+                @click="
+                  resetTemplatePagination();
+                  loadTemplatesByPage(1, '', false);
+                "
               >
-                <font-awesome-icon :icon="['fas', 'sync']" />
+                <font-awesome-icon
+                  :icon="
+                    templatesLoading ? ['fas', 'spinner'] : ['fas', 'sync']
+                  "
+                  :spin="templatesLoading"
+                  style="margin-right: 6px"
+                />
+                {{ templatesLoading ? "加载中..." : "刷新模板" }}
               </el-button>
             </div>
           </el-form-item>
@@ -1472,6 +1580,24 @@
                     class="email-preview-content"
                     v-html="previewRenderedContent"
                   />
+                  <div
+                    v-if="backendPreviewContent && selectedTemplate"
+                    style="
+                      padding: 8px 12px;
+                      margin-top: 8px;
+                      font-size: 11px;
+                      color: #0369a1;
+                      background-color: #f0f9ff;
+                      border-left: 3px solid #409eff;
+                      border-radius: 0 4px 4px 0;
+                    "
+                  >
+                    <font-awesome-icon
+                      :icon="['fas', 'check-circle']"
+                      style="margin-right: 4px"
+                    />
+                    已根据选中用户数据实时渲染
+                  </div>
                 </div>
               </el-card>
             </div>
@@ -1480,15 +1606,6 @@
 
         <!-- 文字内容模式 -->
         <template v-else>
-          <el-form-item label="邮件标题" prop="email_title">
-            <el-input
-              v-model="emailForm.email_title"
-              placeholder="请输入邮件标题"
-              maxlength="200"
-              show-word-limit
-            />
-          </el-form-item>
-
           <el-form-item label="邮件内容" prop="email_content">
             <el-input
               v-model="emailForm.email_content"
@@ -1579,7 +1696,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed, watch, h } from "vue";
+import {
+  ref,
+  reactive,
+  onMounted,
+  computed,
+  watch,
+  watchEffect,
+  h,
+  nextTick
+} from "vue";
+import { useDebounceFn } from "@vueuse/core";
 import {
   Search,
   Delete,
@@ -1617,7 +1744,12 @@ import { getUserList } from "@/api/user";
 import { getRoleList } from "@/api/role";
 import { sendEmail } from "@/api/emailRecord";
 import { getEmailTemplateList, type EmailTemplate } from "@/api/emailTemplate";
-import debounce from "lodash/debounce";
+import {
+  renderTemplate,
+  getUserTemplateVariables,
+  getPresetVariablesByTemplateType,
+  DEFAULT_TEMPLATE_VARIABLES
+} from "@/utils/templateUtil";
 import EmailRecordTable from "./components/EmailRecordTable.vue";
 import EmailTemplateTable from "./components/EmailTemplateTable.vue";
 import { useUserStoreHook } from "@/store/modules/user";
@@ -1670,6 +1802,7 @@ const userSearchKeyword = ref("");
 
 // 角色选择相关变量
 const roleOptions = ref<any[]>([]);
+const roleLoading = ref(false);
 
 // 邮件通知相关变量
 const emailSettings = reactive({
@@ -1703,11 +1836,18 @@ const emailForm = reactive({
 });
 
 // 模板相关数据
+const allTemplates = ref<EmailTemplate[]>([]); // 所有已加载的模板
 const activeTemplates = ref<EmailTemplate[]>([]); // 可用模板列表
 const selectedTemplate = ref<EmailTemplate | null>(null); // 当前选中的模板
 const templateVariables = ref<string[]>([]); // 模板变量列表
 const previewMode = ref<"filled" | "original">("filled"); // 预览模式：filled-填充后, original-原始模板
 const templatesLoading = ref(false); // 模板加载状态
+const templateSearchLoading = ref(false); // 搜索加载状态
+const templatePage = ref(1); // 当前页码
+const templatePageSize = ref(10); // 每页数量
+const templateHasMore = ref(true); // 是否还有更多数据
+const templateSearchKeyword = ref(""); // 搜索关键词
+const backendPreviewContent = ref(""); // 模板预览的内容
 
 // 默认示例数据
 const defaultSampleVariables: Record<string, string> = {
@@ -1825,6 +1965,12 @@ const previewRenderedSubject = computed(() => {
 
 // 预览渲染后的内容
 const previewRenderedContent = computed(() => {
+  // 如果有模板预览内容，优先使用
+  if (backendPreviewContent.value) {
+    return backendPreviewContent.value;
+  }
+
+  // 否则使用前端预览逻辑
   if (!selectedTemplate.value) return "";
   let content =
     selectedTemplate.value.content || selectedTemplate.value.body || "";
@@ -1912,30 +2058,8 @@ const emailRules = reactive({
     }
   ],
   email_title: [
-    {
-      validator: (rule: any, value: any, callback: any) => {
-        if (emailForm.send_mode === "text" && !value) {
-          callback(new Error("请输入邮件标题"));
-        } else {
-          callback();
-        }
-      },
-      trigger: "blur"
-    },
-    {
-      validator: (rule: any, value: any, callback: any) => {
-        if (
-          emailForm.send_mode === "text" &&
-          value &&
-          (value.length < 1 || value.length > 200)
-        ) {
-          callback(new Error("标题长度应为1-200个字符"));
-        } else {
-          callback();
-        }
-      },
-      trigger: "blur"
-    }
+    { required: true, message: "请输入邮件标题", trigger: "blur" },
+    { min: 1, max: 200, message: "标题长度应为1-200个字符", trigger: "blur" }
   ],
   email_content: [
     {
@@ -1970,45 +2094,47 @@ const emailAiPrompt = ref("");
 const emailAiGenerating = ref(false);
 const emailAiProgress = ref(0);
 
-// 远程搜索用户函数
-const remoteSearchUsers = debounce(async query => {
-  // 如果有查询内容，才进行搜索
-  if (query && query.trim() !== "") {
-    userSelectLoading.value = true;
-    try {
-      // 根据查询内容决定搜索条件
-      const searchParams: any = {};
+// 远程搜索用户函数（简化版，只设置搜索关键词）
+const remoteSearchUsers = (query: string) => {
+  userSearchKeyword.value = query;
+};
 
-      // 判断是否为数字ID查询
-      if (/^\d+$/.test(query)) {
-        searchParams.id = query;
-      } else {
-        searchParams.username = query;
-      }
-
-      const res = await getUserList({
-        ...searchParams,
-        page_size: 10 // 限制显示10条数据
-      });
-
-      if (res.code === 200 && res.data && res.data.list) {
-        userOptions.value = res.data.list;
-      } else {
-        console.error("获取用户列表失败:", res.msg);
-      }
-    } catch (error) {
-      console.error("搜索用户时出错:", error);
-    } finally {
-      userSelectLoading.value = false;
-    }
+// 当下拉框获得焦点时首次加载数据
+const handleFocus = async () => {
+  // 只有在没有任何数据且未加载过时才加载默认数据
+  if (
+    userOptions.value.length === 0 &&
+    !userDataLoaded.value &&
+    !userSelectLoading.value
+  ) {
+    // 直接加载默认数据，不依赖 watch 变化
+    await loadDefaultUsers();
   }
-}, 300);
+};
 
-// 当下拉框获得焦点但没有数据时加载默认数据
-const handleFocus = () => {
-  // 只有当userOptions为空且未加载过数据时才加载默认数据
-  if (userOptions.value.length === 0 && !userDataLoaded.value) {
-    loadDefaultUserOptions();
+// 加载默认用户列表
+const loadDefaultUsers = async () => {
+  userSelectLoading.value = true;
+  try {
+    const res = await getUserList({
+      page_size: 10
+    });
+
+    if (res.code === 200 && res.data && res.data.list) {
+      userOptions.value = res.data.list;
+      userDataLoaded.value = true; // 标记已加载数据
+    } else {
+      console.error(
+        "获取用户列表失败:",
+        (res as any).msg || (res as any).message
+      );
+      userOptions.value = [];
+    }
+  } catch (error) {
+    console.error("加载用户列表出错:", error);
+    userOptions.value = [];
+  } finally {
+    userSelectLoading.value = false;
   }
 };
 
@@ -2236,7 +2362,7 @@ watch(
 
       // 如果切换到需要选择用户或角色的模式，加载数据
       if (newVal === "specific_users") {
-        loadDefaultUserOptions();
+        userSearchKeyword.value = "";
       } else if (newVal === "specific_roles") {
         loadRoleOptions();
       }
@@ -2244,28 +2370,27 @@ watch(
   }
 );
 
-// 加载默认用户列表
-const loadDefaultUserOptions = async () => {
-  if (userOptions.value.length > 0 || userDataLoaded.value) return; // 已有用户数据，不重新加载
-
-  userSelectLoading.value = true;
-  try {
-    const res = await getUserList({
-      page_size: 10
-    });
-
-    if (res.code === 200 && res.data && res.data.list) {
-      userOptions.value = res.data.list;
-      userDataLoaded.value = true; // 标记已加载数据
-    } else {
-      console.error("获取用户列表失败:", res.msg);
+// 监听邮件表单的用户选择变化，实时更新模板预览
+watch(
+  [
+    () => emailForm.receiver_type,
+    () => emailForm.receiver_id,
+    () => emailForm.receiver_ids,
+    () => selectedTemplate.value?.id
+  ],
+  () => {
+    // 只有在选择模板模式下才触发预览更新
+    if (emailForm.send_mode === "template" && selectedTemplate.value) {
+      // 使用 nextTick 确保 DOM 更新后再调用预览
+      nextTick(() => {
+        loadTemplatePreview();
+      });
     }
-  } catch (error) {
-    console.error("加载用户列表出错:", error);
-  } finally {
-    userSelectLoading.value = false;
-  }
-};
+  },
+  { deep: true }
+);
+
+// 加载默认用户列表
 
 // 加载角色列表
 const loadRoleOptions = async () => {
@@ -2657,7 +2782,7 @@ const handleAddNotice = () => {
   resetNoticeForm();
   noticeDialogVisible.value = true;
   // 预加载用户数据
-  loadDefaultUserOptions();
+  userSearchKeyword.value = "";
 };
 
 // 处理编辑公告
@@ -2685,7 +2810,7 @@ const handleEditNotice = (row: any) => {
     );
     // 如果有指定用户，加载用户列表
     if (noticeForm.target_user_ids.length > 0) {
-      loadDefaultUserOptions();
+      userSearchKeyword.value = "";
     }
   }
 
@@ -2834,6 +2959,7 @@ const handleOpenEmailDialog = () => {
   emailForm.email_content = "";
   selectedTemplate.value = null;
   templateVariables.value = [];
+  backendPreviewContent.value = "";
   emailAiPrompt.value = "";
 
   // 加载模板列表
@@ -2860,6 +2986,7 @@ const handleSendEmail = (row: any) => {
   emailForm.email_content = row.content;
   selectedTemplate.value = null;
   templateVariables.value = [];
+  backendPreviewContent.value = "";
   emailAiPrompt.value = "";
 
   // 根据公告的可见性预设接收对象
@@ -2916,40 +3043,138 @@ const loadRoles = async () => {
   }
 };
 
-// 加载活跃模板列表
-const loadActiveTemplates = async () => {
+// 重置模板分页状态
+const resetTemplatePagination = () => {
+  templatePage.value = 1;
+  templateHasMore.value = true;
+  allTemplates.value = [];
+  activeTemplates.value = [];
+  templateSearchKeyword.value = "";
+};
+
+// 加载模板列表（分页）
+const loadTemplatesByPage = async (
+  page: number = 1,
+  keyword: string = "",
+  append: boolean = false
+) => {
   templatesLoading.value = true;
   try {
-    const res = await getEmailTemplateList({
+    const params: any = {
       is_active: 1,
-      page: 1,
-      page_size: 100
-    });
-    if (res.code === 200 && res.data) {
-      activeTemplates.value = res.data.list || [];
+      page,
+      page_size: templatePageSize.value
+    };
+
+    // 如果有搜索关键词，添加到参数中
+    if (keyword.trim()) {
+      params.name = keyword.trim();
+    }
+
+    const res = await getEmailTemplateList(params);
+    if ((res as any).code === 200 && (res as any).data) {
+      const newTemplates = (res as any).data.list || [];
+      const total = (res as any).data.total || 0;
+
+      // 计算是否还有更多数据
+      const currentPage = (res as any).data.page || page;
+      const pageSize = (res as any).data.page_size || templatePageSize.value;
+      templateHasMore.value = currentPage * pageSize < total;
+
+      if (append) {
+        // 追加数据
+        allTemplates.value = [...allTemplates.value, ...newTemplates];
+        activeTemplates.value = [...activeTemplates.value, ...newTemplates];
+      } else {
+        // 替换数据
+        allTemplates.value = newTemplates;
+        activeTemplates.value = newTemplates;
+        templatePage.value = page;
+      }
+
+      return newTemplates;
+    } else {
+      console.error(
+        "加载模板列表失败:",
+        (res as any).msg || (res as any).message
+      );
+      return [];
     }
   } catch (error) {
     console.error("加载模板列表失败:", error);
+    if (!append) {
+      activeTemplates.value = [];
+      allTemplates.value = [];
+    }
+    return [];
   } finally {
     templatesLoading.value = false;
   }
 };
 
+// 加载更多模板
+const loadMoreTemplates = async () => {
+  if (!templateHasMore.value || templatesLoading.value) return;
+
+  const nextPage = templatePage.value + 1;
+  await loadTemplatesByPage(nextPage, templateSearchKeyword.value, true);
+};
+
+// 远程搜索模板（简化版，主要用于设置搜索关键词）
+const handleTemplateSearch = (query: string) => {
+  templateSearchKeyword.value = query;
+};
+
+// 处理模板选择框获得焦点
+const handleTemplateFocus = async () => {
+  // 只有在没有数据且没有正在加载时才加载数据
+  if (
+    activeTemplates.value.length === 0 &&
+    !templatesLoading.value &&
+    !templateSearchLoading.value
+  ) {
+    await loadTemplatesByPage(1, templateSearchKeyword.value || "", false);
+  }
+};
+
+// 处理模板选择框显示/隐藏
+const handleTemplateVisibleChange = async (visible: boolean) => {
+  // 只有在打开下拉框且没有数据时才加载
+  if (
+    visible &&
+    activeTemplates.value.length === 0 &&
+    !templatesLoading.value &&
+    !templateSearchLoading.value
+  ) {
+    await loadTemplatesByPage(1, templateSearchKeyword.value || "", false);
+  }
+};
+
+// 加载活跃模板列表（保持向后兼容）
+const loadActiveTemplates = async () => {
+  resetTemplatePagination();
+  await loadTemplatesByPage(1, "", false);
+};
+
 // 处理发送方式变化
 const handleSendModeChange = () => {
-  // 切换模式时清空相关字段
+  // 切换模式时清空相关字段，但保留用户输入的标题
   if (emailForm.send_mode === "template") {
-    // 切换到模板模式，加载模板列表
-    if (activeTemplates.value.length === 0) {
-      loadActiveTemplates();
+    // 切换到模板模式，只有在没有数据且没有正在加载时才加载数据
+    if (
+      activeTemplates.value.length === 0 &&
+      !templatesLoading.value &&
+      !templateSearchLoading.value
+    ) {
+      loadTemplatesByPage(1, templateSearchKeyword.value || "", false);
     }
-    emailForm.email_title = "";
-    emailForm.email_content = "";
+    emailForm.email_content = ""; // 只清空内容，保留标题
   } else {
     // 切换到文字模式
     emailForm.template_id = undefined;
     selectedTemplate.value = null;
     templateVariables.value = [];
+    backendPreviewContent.value = "";
   }
 
   // 清除验证
@@ -2962,11 +3187,68 @@ const handleSendModeChange = () => {
   }
 };
 
+// 使用前端模板处理工具生成预览
+const loadTemplatePreview = () => {
+  if (!selectedTemplate.value) {
+    backendPreviewContent.value = "";
+    return;
+  }
+
+  // 获取模板内容
+  const templateContent =
+    selectedTemplate.value.content || selectedTemplate.value.body || "";
+
+  // 检查是否选择了用户
+  let hasUser = false;
+  let userId = null;
+  let selectedUser = null;
+
+  if (emailForm.receiver_type === 3 && emailForm.receiver_id) {
+    hasUser = true;
+    userId = emailForm.receiver_id;
+  } else if (
+    emailForm.receiver_type === 2 &&
+    emailForm.receiver_ids.length > 0
+  ) {
+    hasUser = true;
+    userId = emailForm.receiver_ids[0]; // 使用第一个用户
+  }
+
+  // 获取选中的用户信息
+  if (hasUser && userId) {
+    selectedUser = userOptions.value.find(u => u.id === userId);
+  }
+
+  let templateVariables = {};
+
+  // 根据模板类型获取预设变量
+  if (selectedTemplate.value.code) {
+    templateVariables = getPresetVariablesByTemplateType(
+      selectedTemplate.value.code,
+      selectedUser
+    );
+  }
+
+  // 如果有用户信息，添加用户变量
+  if (selectedUser) {
+    const userVars = getUserTemplateVariables(selectedUser);
+    templateVariables = { ...templateVariables, ...userVars };
+  }
+
+  // 使用前端模板工具渲染内容
+  backendPreviewContent.value = renderTemplate(
+    templateContent,
+    templateVariables
+  );
+};
+
 // 处理模板选择变化
 const handleTemplateChange = (templateId: number | undefined) => {
   if (!templateId) {
     selectedTemplate.value = null;
     templateVariables.value = [];
+    backendPreviewContent.value = "";
+    backendPreviewContent.value = "";
     return;
   }
 
@@ -2976,6 +3258,14 @@ const handleTemplateChange = (templateId: number | undefined) => {
     selectedTemplate.value = template;
     // 解析模板变量
     templateVariables.value = parseTemplateVariables(template.variables);
+
+    // 如果标题为空，自动填充模板的标题
+    if (!emailForm.email_title) {
+      emailForm.email_title = template.subject;
+    }
+
+    // 加载预览
+    loadTemplatePreview();
   }
 };
 
@@ -3083,13 +3373,6 @@ ${noticeContent || "请在此填写通知内容..."}
 const submitEmailForm = async () => {
   if (!emailFormRef.value) return;
 
-  // 在验证前清除不需要的字段验证
-  if (emailForm.send_mode === "template") {
-    emailFormRef.value.clearValidate(["email_title", "email_content"]);
-  } else {
-    emailFormRef.value.clearValidate(["template_id"]);
-  }
-
   await emailFormRef.value.validate(async (valid: boolean) => {
     if (!valid) return;
 
@@ -3106,9 +3389,9 @@ const submitEmailForm = async () => {
 
       // 根据发送模式设置数据
       if (emailForm.send_mode === "template") {
-        // 模板模式：传递 template_id
+        // 模板模式：传递 template_id 和用户自定义的标题
         emailData.template_id = emailForm.template_id;
-        // 模板模式不需要 title 和 content，后端会从模板中获取
+        emailData.title = emailForm.email_title; // 使用用户输入的标题
       } else {
         // 文字模式：传递 title 和 content
         emailData.title = emailForm.email_title;
@@ -3165,6 +3448,86 @@ const submitEmailForm = async () => {
     }
   });
 };
+
+// 监听模板搜索关键词变化
+watchEffect(async () => {
+  const keyword = templateSearchKeyword.value;
+
+  // 只有在确实有搜索变化时才处理，避免首次加载时清空数据
+  if (keyword !== undefined && keyword !== null) {
+    // 当用户输入搜索词时才进行搜索
+    if (keyword.trim()) {
+      templateSearchLoading.value = true;
+
+      // 重新开始搜索
+      templatePage.value = 1;
+      templateHasMore.value = true;
+
+      try {
+        // 直接搜索，loadTemplatesByPage 会处理数据替换
+        await loadTemplatesByPage(1, keyword.trim(), false);
+      } catch (error) {
+        console.error("搜索模板失败:", error);
+      } finally {
+        templateSearchLoading.value = false;
+      }
+    } else if (keyword === "" && activeTemplates.value.length === 0) {
+      // 如果搜索词被清空且没有数据，加载默认数据
+      if (!templatesLoading.value && !templateSearchLoading.value) {
+        await loadTemplatesByPage(1, "", false);
+      }
+    }
+  }
+});
+
+// 监听用户搜索关键词变化
+watch(
+  userSearchKeyword,
+  useDebounceFn(async (newKeyword: string, oldKeyword: string) => {
+    // 只有当关键词真正改变时才搜索
+    if (newKeyword !== oldKeyword) {
+      userSelectLoading.value = true;
+
+      try {
+        // 根据查询内容决定搜索条件
+        const searchParams: any = {
+          page_size: 10 // 限制显示10条数据
+        };
+
+        if (newKeyword && newKeyword.trim() !== "") {
+          // 有查询内容时进行搜索
+          // 判断是否为数字ID查询
+          if (/^\d+$/.test(newKeyword)) {
+            searchParams.id = newKeyword;
+          } else {
+            searchParams.username = newKeyword;
+          }
+        }
+
+        const res = await getUserList(searchParams);
+
+        if (res.code === 200 && res.data && res.data.list) {
+          userOptions.value = res.data.list;
+        } else {
+          console.error(
+            "获取用户列表失败:",
+            (res as any).msg || (res as any).message
+          );
+          userOptions.value = [];
+        }
+      } catch (error) {
+        console.error("搜索用户时出错:", error);
+        userOptions.value = [];
+      } finally {
+        userSelectLoading.value = false;
+      }
+    }
+  }, 200), // 200ms 防抖
+  {
+    flush: "post", // 在 DOM 更新后执行
+    immediate: false // 不立即执行，避免首次加载时清空数据
+  }
+);
 
 onMounted(() => {
   fetchNoticeList();

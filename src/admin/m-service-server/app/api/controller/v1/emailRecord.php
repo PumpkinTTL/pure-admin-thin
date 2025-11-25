@@ -87,7 +87,8 @@ class emailRecord extends BaseController
             ]);
         }
 
-        if (empty($data['content'])) {
+        // 如果不是使用模板，则验证内容字段
+        if (empty($data['template_id']) && empty($data['content'])) {
             return json([
                 'code' => 400,
                 'message' => '邮件内容不能为空'

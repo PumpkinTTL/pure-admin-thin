@@ -102,3 +102,15 @@ export const getEmailTemplateByCode = (code: string) => {
     params: { code }
   });
 };
+
+/**
+ * 预览模板渲染效果
+ */
+export const previewEmailTemplate = (
+  id: number,
+  variables?: Record<string, any>
+) => {
+  return http.request("post", "/api/v1/emailTemplate/preview", {
+    data: { id, variables }
+  });
+};

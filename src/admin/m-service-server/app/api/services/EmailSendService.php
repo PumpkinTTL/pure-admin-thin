@@ -15,9 +15,10 @@ class EmailSendService
      * @param string $title 邮件标题
      * @param string $content 邮件内容
      * @param int $recordId 邮件记录ID
+     * @param bool $isHtmlContent 是否已经是完整的HTML内容
      * @return array
      */
-    public static function sendToUser(int $userId, string $title, string $content, int $recordId): array
+    public static function sendToUser(int $userId, string $title, string $content, int $recordId, bool $isHtmlContent = false): array
     {
         try {
             // 获取用户信息
@@ -46,8 +47,14 @@ class EmailSendService
                 'status' => 0 // 待发送
             ]);
 
-            // 生成HTML邮件内容
-            $htmlContent = self::generateEmailHtml($content, ['title' => $title]);
+            // 根据内容类型决定是否需要生成HTML包装
+            if ($isHtmlContent) {
+                // 如果已经是完整的HTML内容，直接使用
+                $htmlContent = $content;
+            } else {
+                // 生成HTML邮件内容
+                $htmlContent = self::generateEmailHtml($content, ['title' => $title]);
+            }
 
             // 发送邮件
             $result = EmailUtil::sendMail($user->email, $title, $htmlContent);
@@ -92,9 +99,10 @@ class EmailSendService
      * @param string $title 邮件标题
      * @param string $content 邮件内容
      * @param int $recordId 邮件记录ID
+     * @param bool $isHtmlContent 是否已经是完整的HTML内容
      * @return array
      */
-    public static function sendToEmail(string $email, string $title, string $content, int $recordId): array
+    public static function sendToEmail(string $email, string $title, string $content, int $recordId, bool $isHtmlContent = false): array
     {
         try {
             // 创建接收者记录
@@ -105,8 +113,14 @@ class EmailSendService
                 'status' => 0 // 待发送
             ]);
 
-            // 生成HTML邮件内容
-            $htmlContent = self::generateEmailHtml($content, ['title' => $title]);
+            // 根据内容类型决定是否需要生成HTML包装
+            if ($isHtmlContent) {
+                // 如果已经是完整的HTML内容，直接使用
+                $htmlContent = $content;
+            } else {
+                // 生成HTML邮件内容
+                $htmlContent = self::generateEmailHtml($content, ['title' => $title]);
+            }
 
             // 发送邮件
             $result = EmailUtil::sendMail($email, $title, $htmlContent);

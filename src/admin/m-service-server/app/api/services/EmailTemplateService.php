@@ -332,4 +332,84 @@ class EmailTemplateService
             ->select()
             ->toArray();
     }
+
+    /**
+     * 预览模板渲染效果
+     * @param int $id 模板ID
+     * @param array $variables 变量数据
+     * @return array
+     */
+    public static function previewTemplate(int $id, array $variables = []): array
+    {
+        try {
+            $template = EmailTemplate::find($id);
+            if (!$template) {
+                return ['success' => false, 'message' => '模板不存在'];
+            }
+
+            // 生成默认变量
+            $defaultVars = [
+                'date' => date('Y-m-d'),
+                'datetime' => date('Y-m-d H:i:s'),
+                'time' => date('H:i:s'),
+                'year' => date('Y'),
+                'site_name' => '苍穹云网络',
+                'company_name' => '苍穹云网络'
+            ];
+
+            // 合并变量
+            $allVariables = array_merge($defaultVars, $variables);
+
+            // 简单的字符串替换
+            $renderedSubject = $template->subject;
+            $renderedContent = $template->content;
+            $replacedVars = [];
+
+            // 替换所有变量 {variable_name}
+            foreach ($allVariables as $key => $value) {
+                $placeholder = '{' . $key . '}';
+                $oldSubject = $renderedSubject;
+                $oldContent = $renderedContent;
+
+                $renderedSubject = str_replace($placeholder, $value, $renderedSubject);
+                $renderedContent = str_replace($placeholder, $value, $renderedContent);
+
+                if ($oldSubject !== $renderedSubject || $oldContent !== $renderedContent) {
+                    $replacedVars[] = [
+                        'placeholder' => $placeholder,
+                        'variable' => $key,
+                        'value' => $value
+                    ];
+                }
+            }
+
+            // 检查还有没有未替换的占位符
+            $missingVars = [];
+            if (preg_match_all('/\{[a-zA-Z0-9_]+\}/', $renderedSubject . $renderedContent, $matches)) {
+                foreach ($matches[0] as $match) {
+                    $missingVars[] = [
+                        'placeholder' => $match,
+                        'variable' => substr($match, 1, -1)
+                    ];
+                }
+            }
+
+            return [
+                'success' => true,
+                'data' => [
+                    'original_subject' => $template->subject,
+                    'original_content' => $template->content,
+                    'rendered_subject' => $renderedSubject,
+                    'rendered_content' => $renderedContent,
+                    'replaced_vars' => $replacedVars,
+                    'missing_vars' => $missingVars,
+                    'has_missing' => !empty($missingVars),
+                    'variables' => $variables
+                ]
+            ];
+        } catch (\Exception $e) {
+            Log::error('预览模板失败: ' . $e->getMessage());
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
 }

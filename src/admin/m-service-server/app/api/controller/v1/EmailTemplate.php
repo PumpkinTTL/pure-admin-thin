@@ -243,11 +243,46 @@ class EmailTemplate extends BaseController
     public function active(): Json
     {
         $templates = EmailTemplateService::getActiveTemplates();
-        
+
         return json([
             'code' => 200,
             'msg' => '获取成功',
             'data' => $templates
+        ]);
+    }
+
+    /**
+     * 预览模板渲染效果
+     */
+    public function preview(): Json
+    {
+        $data = request()->param();
+
+        if (empty($data['id'])) {
+            return json(['code' => 501, 'msg' => '参数错误：缺少模板ID']);
+        }
+
+        $variables = $data['variables'] ?? [];
+        if (is_string($variables)) {
+            $variables = json_decode($variables, true) ?: [];
+        }
+
+        $result = EmailTemplateService::previewTemplate(
+            (int)$data['id'],
+            $variables
+        );
+
+        if ($result['success']) {
+            return json([
+                'code' => 200,
+                'msg' => '预览成功',
+                'data' => $result['data']
+            ]);
+        }
+
+        return json([
+            'code' => 500,
+            'msg' => $result['message']
         ]);
     }
 }
