@@ -53,9 +53,10 @@ class User extends BaseController
         $account = $params['account'];
         $password = $params['password'];
         $action = $params['action'];
+        $inviteCode = $params['invite_code'] ?? null; // 可选的邀请码参数
 
         // 调用服务进行登录（统一处理所有登录方式）
-        $result = UserService::login($account, $password, $action);
+        $result = UserService::login($account, $password, $action, 'Web', $inviteCode);
         return json($result);
     }
 
@@ -80,6 +81,7 @@ class User extends BaseController
         return json($result);
     }
 
+    
     /**
      * 测试邮件发送
      */

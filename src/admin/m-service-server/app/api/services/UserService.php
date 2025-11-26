@@ -33,11 +33,11 @@ class UserService
      * @throws DbException
      * @throws ModelNotFoundException
      */
-    public static function login(string $account, string $password, string $action = 'pwd', string $fingerprint = 'Web'): array
+    public static function login(string $account, string $password, string $action = 'pwd', string $fingerprint = 'Web', ?string $inviteCode = null): array
     {
         // 邮箱验证码登录
         if ($action === 'code') {
-            return self::loginByEmailCode($account, $password, $fingerprint);
+            return self::loginByEmailCode($account, $password, $fingerprint, $inviteCode);
         }
 
         $hidden = ['phone', 'email', 'password', 'ip_address', 'delete_time', 'create_time', 'update_time'];
@@ -1163,7 +1163,7 @@ class UserService
      * @param string $fingerprint 指纹
      * @return array
      */
-    public static function loginByEmailCode(string $email, string $code, string $fingerprint = 'Web'): array
+    public static function loginByEmailCode(string $email, string $code, string $fingerprint = 'Web', ?string $inviteCode = null): array
     {
         // 验证验证码
         $redisKey = "ec:{$email}";
@@ -1192,6 +1192,17 @@ class UserService
             $isNewUser = true;
             $emailPrefix = explode('@', $email)[0];
 
+            // 新用户必须提供邀请码
+            if (!$inviteCode) {
+                return ['code' => 400, 'msg' => '注册需要邀请码'];
+            }
+
+            // 验证邀请码
+            $inviteVerifyResult = self::verifyInviteCode($inviteCode);
+            if ($inviteVerifyResult['code'] != 200) {
+                return $inviteVerifyResult; // 返回邀请码验证失败
+            }
+
             // 生成随机密码
             $autoPassword = 'auto_' . substr(md5(uniqid()), 0, 12);
 
@@ -1206,12 +1217,33 @@ class UserService
                 'ip_address' => request()->ip(),
                 'register_source' => 'email', // 注册来源
                 'register_device' => request()->header('user-agent', ''), // 注册设备信息
+                'invite_code' => $inviteCode, // 保存邀请码（如果有）
             ];
 
             // 调用注册服务
             $registerResult = self::register($userData);
             if ($registerResult['code'] != 1) {
                 return ['code' => 500, 'msg' => '自动注册失败：' . $registerResult['msg']];
+            }
+
+            // 如果使用了邀请码，消耗邀请码
+            if ($inviteCode) {
+                try {
+                    $cardKeyService = new \app\api\services\CardKeyService();
+                    $userId = $registerResult['data']['id'];
+                    $useResult = $cardKeyService->use($inviteCode, $userId, [
+                        'register_email' => $email,
+                        'register_username' => $userData['username']
+                    ]);
+
+                    if (!$useResult['success']) {
+                        LogService::error("邀请码使用失败 - 邀请码: {$inviteCode}, 用户: {$userId}, 错误: " . $useResult['message']);
+                    } else {
+                        LogService::log("邀请码使用成功 - 邀请码: {$inviteCode}, 用户: {$userId}");
+                    }
+                } catch (\Exception $e) {
+                    LogService::error("邀请码使用异常 - 邀请码: {$inviteCode}, 错误: " . $e->getMessage());
+                }
             }
 
             $user = users::with([
@@ -1276,6 +1308,39 @@ class UserService
             'expireTime' => $expireTime,
             'data' => $user
         ];
+    }
+
+    /**
+     * 验证注册邀请码（私有方法，仅内部使用）
+     * @param string $inviteCode 邀请码
+     * @return array
+     */
+    private static function verifyInviteCode(string $inviteCode): array
+    {
+        try {
+            if (empty($inviteCode)) {
+                return ['code' => 400, 'msg' => '邀请码不能为空'];
+            }
+
+            // 验证卡密
+            $cardKeyService = new \app\api\services\CardKeyService();
+            $verifyResult = $cardKeyService->verify($inviteCode);
+
+            if (!$verifyResult['success']) {
+                return ['code' => 400, 'msg' => '邀请码无效：' . $verifyResult['message']];
+            }
+
+            $cardKey = $verifyResult['data'];
+
+            // 检查是否为注册邀请类型
+            if (!$cardKey->cardType || $cardKey->cardType->use_type !== \app\api\model\CardType::USE_TYPE_REGISTER) {
+                return ['code' => 400, 'msg' => '此邀请码不是注册邀请码'];
+            }
+
+            return ['code' => 200, 'msg' => '邀请码验证成功'];
+        } catch (\Exception $e) {
+            return ['code' => 500, 'msg' => '验证失败：' . $e->getMessage()];
+        }
     }
 
     /**
