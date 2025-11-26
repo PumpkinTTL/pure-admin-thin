@@ -372,6 +372,7 @@ class User extends BaseController
 
     /**
      * 删除用户
+     * 支持管理员删除任意用户，普通用户只能删除自己
      * 如果参数real=true，则执行物理删除，同时删除关联数据和文件
      * 否则执行软删除
      */
@@ -402,13 +403,20 @@ class User extends BaseController
         }
 
         // 获取用户ID
-        $id = $params['id'];
+        $targetUid = $params['id'];
+        $currentUid = request()->JWTUid ?? 0;
+
+        // ✅ 数据权限检查
+        $permissionCheck = $this->checkUserDataPermission($currentUid, $targetUid);
+        if (!$permissionCheck['allowed']) {
+            return json(['code' => 403, 'msg' => $permissionCheck['message']]);
+        }
 
         // 记录操作日志
-        LogService::log("请求删除用户：用户ID {$id}，删除方式：" . ($realDelete ? '物理删除' : '软删除'));
+        LogService::log("请求删除用户：用户ID {$targetUid}，删除方式：" . ($realDelete ? '物理删除' : '软删除'));
 
         // 调用服务删除用户
-        $result = UserService::deleteUser($id, $realDelete);
+        $result = UserService::deleteUser($targetUid, $realDelete);
 
         return json($result);
     }
