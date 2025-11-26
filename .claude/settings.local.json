@@ -10,7 +10,8 @@
       "Bash(claude config:*)",
       "Bash(dir:*)",
       "Bash(cat:*)",
-      "Bash(env:*)"
+      "Bash(env:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []
