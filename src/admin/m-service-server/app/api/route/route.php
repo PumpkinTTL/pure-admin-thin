@@ -1,24 +1,29 @@
 <?php
 
 use think\facade\Route;
+
 //用户分组 - 不需要登录的接口（登录、注册等）
 Route::group('/:version/user', function () {
     Route::rule('/login', ':version.User/login');
     Route::rule('/register', ':version.User/register'); // 用户注册
-    Route::rule('/V2Login', ':version.User/V2Login');
     Route::rule('/dualTokenLogin', ':version.User/login'); // 双 token登录
     Route::rule('/refreshToken', ':version.User/refreshToken'); // 刷新token
-    
+
     // 密码重置（不需要登录）
     Route::rule('/requestPasswordReset', ':version.User/requestPasswordReset'); // 请求密码重置
     Route::rule('/verifyResetToken', ':version.User/verifyResetToken'); // 校验重置Token
     Route::rule('/resetPassword', ':version.User/resetPassword'); // 重置密码
     Route::rule('/sendEmailCode', ':version.User/sendEmailCode'); // 发送邮箱验证码
     Route::rule('/testEmail', ':version.User/testEmail'); // 测试邮件发送
+
+    // v2 客户端专用接口 - 不需要登录
+    Route::rule('/checkUsername', ':version.User/checkUsername'); // 检查用户名是否存在
+    Route::rule('/checkEmail', ':version.User/checkEmail'); // 检查邮箱是否存在
 });
 
 //用户分组 - 需要登录的接口（应用 Auth 中间件）
 Route::group('/:version/user', function () {
+    // 管理端接口
     Route::rule('/logout', ':version.User/logout'); // 登出
     Route::rule('/forceLogoutUser', ':version.User/forceLogoutUser'); // 强制失效用户token
     Route::rule('/selectUserInfoById', ':version.User/selectUserInfoById');
@@ -28,10 +33,10 @@ Route::group('/:version/user', function () {
     Route::rule('/update', ':version.User/update');
     Route::rule('/outLogin', ':version.User/outLogin');
     Route::rule('/selectUserListWithRoles', ':version.User/selectUserListWithRoles');
-    
+
     // 密码管理
     Route::rule('/changePassword', ':version.User/changePassword'); // 修改密码
-    
+
     // 会员管理
     Route::rule('/activatePremium', ':version.User/activatePremium'); // 开通会员
     Route::rule('/cancelPremium', ':version.User/cancelPremium'); // 取消会员
@@ -40,10 +45,30 @@ Route::group('/:version/user', function () {
     app\api\middleware\Auth::class
 ]);
 
+// 客户端用户专用接口（v2版本，核心CRUD）
+// 需要登录认证
+Route::group('/v2/user', function () {
+    Route::rule('/profile', 'v2.User/profile'); // 获取用户信息
+    Route::rule('/update', 'v2.User/update'); // 更新用户资料
+    Route::rule('/changePassword', 'v2.User/changePassword'); // 修改密码
+    Route::rule('/membership', 'v2.User/membership'); // 获取会员状态
+    Route::rule('/deactivate', 'v2.User/deactivate'); // 注销账号
+    Route::rule('/logout', 'v2.User/logout'); // 登出
+})->middleware([
+    app\api\middleware\Auth::class
+]);
+
+// 客户端用户专用接口（v2版本，不需要登录）
+Route::group('/v2/user', function () {
+    Route::rule('/checkUsername', 'v2.User/checkUsername'); // 检查用户名是否可用
+    Route::rule('/checkEmail', 'v2.User/checkEmail'); // 检查邮箱是否可用
+});
+
 // 认证相关接口
 Route::group('/:version/auth', function () {
     Route::rule('/refresh', ':version.User/refreshToken'); // 刷新token - 指向User控制器
 });
+
 // 用户信息接口（应用 Auth 中间件）
 Route::group('/:version/user', function () {
     Route::rule('/info', ':version.User/info'); // 获取用户信息
@@ -51,6 +76,7 @@ Route::group('/:version/user', function () {
 })->middleware([
     app\api\middleware\Auth::class
 ]);
+
 //资源分组
 Route::group('/:version/resource', function () {
     Route::rule('selectResourceAll', ':version.resource/selectResourceAll');
@@ -63,11 +89,13 @@ Route::group('/:version/resource', function () {
     Route::rule('getDeletedResources', ':version.resource/getDeletedResources');
     Route::rule('testSoftDelete', ':version.resource/testSoftDelete');
 });
+
 //类别分组
 Route::group('/:version/type', function () {
     Route::rule('selectTypeAll', ':version.Type/selectTypeAll');
     Route::rule('/selectTypeInfoById', ':version.Type/selectTypeInfoById');
 });
+
 //文章
 Route::group('/:version/article', function () {
     Route::rule('getSummary', ':version.article/getSummary');
@@ -83,6 +111,7 @@ Route::group('/:version/article', function () {
 })->middleware([
     app\api\middleware\ArticleAuth::class
 ]);
+
 // 评论组  use
 Route::group('/:version/comments', function () {
     // 查询接口
@@ -123,11 +152,13 @@ Route::group('/:version/favorites', function () {
     Route::get('list', ':version.favorites/list'); // 获取收藏列表
     Route::post('toggle', ':version.favorites/toggle'); // 收藏/取消收藏
 });
+
 //文件分组
 Route::group('/:version/upload', function () {
     Route::rule('uploadFile', ':version.upload/uploadFile');
     Route::rule('deleteFiles', ':version.upload/deleteFiles');
 });
+
 //分类分组
 Route::group('/:version/category', function () {
     Route::rule('selectCategoryAll', ':version.category/selectCategoryAll');
@@ -140,6 +171,7 @@ Route::group('/:version/category', function () {
     Route::rule('testSoftDelete', ':version.category/testSoftDelete');
     Route::rule('testDelete', ':version.category/testDelete');
 });
+
 //路由分组
 Route::group('/:version/route', function () {
     Route::rule('/getRouteByUid', ':version.route/getRouteByUid');
@@ -255,6 +287,7 @@ Route::group('/:version/file', function () {
     // 文件代理访问（解决CORS）
     Route::rule('proxy', ':version.FileProxy/proxy');
 });
+
 Route::group('/:version/api', function () {
     // 获取接口列表
     Route::rule('list', ':version.ApiManager/getApiList');
@@ -408,7 +441,6 @@ Route::group('/:version/donation', function () {
     Route::rule('update', ':version.Donation/update');                  // 更新捐赠记录
     Route::rule('delete', ':version.Donation/delete');                  // 删除捐赠记录（软删除）
     Route::rule('batchDelete', ':version.Donation/batchDelete');        // 批量删除
-    Route::rule('restore', ':version.Donation/restore');                // 恢复捐赠记录
 
     // 状态管理
     Route::rule('updateStatus', ':version.Donation/updateStatus');      // 更新捐赠状态
@@ -432,7 +464,7 @@ Route::group('/:version/level', function () {
     Route::rule('detail', ':version.level/detail');                    // 获取等级详情
     Route::rule('types', ':version.level/types');                      // 获取所有等级类型
     Route::rule('getLevelByExperience', ':version.level/getLevelByExperience'); // 根据经验值获取等级
-    
+
     // 管理接口
     Route::rule('add', ':version.level/add');                          // 添加等级
     Route::rule('update', ':version.level/update');                    // 更新等级
@@ -453,7 +485,7 @@ Route::group('/:version/experience', function () {
     Route::rule('sources', ':version.experience/sources');             // 获取经验来源配置
     Route::rule('sourceStats', ':version.experience/sourceStats');     // 获取经验来源统计
     Route::rule('records', ':version.experience/records');             // 获取等级记录列表（联查用户）
-    
+
     // 操作接口
     Route::rule('add', ':version.experience/add');                     // 添加经验值
     Route::rule('revoke', ':version.experience/revoke');               // 撤销经验记录

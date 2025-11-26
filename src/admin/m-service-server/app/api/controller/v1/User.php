@@ -81,7 +81,7 @@ class User extends BaseController
         return json($result);
     }
 
-    
+
     /**
      * 测试邮件发送
      */
@@ -711,32 +711,6 @@ class User extends BaseController
             LogService::error($e);
             return json(['code' => 0, 'msg' => '获取会员状态失败：' . $e->getMessage()]);
         }
-    }
-    function V2Login(): Json
-    {
-        $version = bin2hex(random_bytes(16));
-        $payload = [
-            'account' => 7709,
-            'id' => 7709,
-            'loginTime' => time(),
-            'platform' => 'Web',
-            'version' => $version
-        ];
-        // 通道token
-        $accesstoken = JWTUtil::generateToken($payload, 10);
-        // 刷新token
-        $refreshToken = AuthUtil::generateTokenKey('refresh', 7709, deviceId: 'pc-web');
-        return json([
-            'code' => 200,
-            'msg' => '登录成功',
-            'data' => [
-                'tokens' => [
-                    'accessToken' => $accesstoken,
-                    'refreshToken' => $refreshToken,
-                    'randomVersion' => $version
-                ]
-            ]
-        ]);
     }
 
     /**

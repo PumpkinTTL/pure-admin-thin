@@ -11,7 +11,8 @@
       "Bash(dir:*)",
       "Bash(cat:*)",
       "Bash(env:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(php think route:list:*)"
     ],
     "deny": [],
     "ask": []
