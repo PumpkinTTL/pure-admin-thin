@@ -104,10 +104,11 @@ class User extends BaseController
 
     /**
      * 查询用户信息
+     * 支持管理员查询任意用户，普通用户只能查询自己
      */
     function selectUserInfoById(): Json
     {
-        //        参数验证
+        // 参数验证
         $validate = Validate::rule([
             'targetUid' => ValidateRule::isRequire(null, '目标用户用户id必须传递')
         ]);
@@ -117,11 +118,55 @@ class User extends BaseController
         }
 
         $targetUid = request()->param('targetUid');
+        $currentUid = request()->JWTUid ?? 0;
+
+        // ✅ 数据权限检查
+        $permissionCheck = $this->checkUserDataPermission($currentUid, $targetUid);
+        if (!$permissionCheck['allowed']) {
+            return json(['code' => 403, 'msg' => $permissionCheck['message']]);
+        }
 
         // 调用服务获取用户信息
         $result = UserService::getUserInfo($targetUid);
 
         return json($result);
+    }
+
+    /**
+     * 检查用户数据权限
+     * @param int $currentUid 当前用户ID
+     * @param int $targetUid 目标用户ID
+     * @return array ['allowed' => bool, 'message' => string]
+     */
+    private function checkUserDataPermission(int $currentUid, int $targetUid): array
+    {
+        try {
+            // 获取当前用户的权限信息
+            $authInfo = \utils\AuthUtil::parseTokenAndGetAuthInfo(null, true);
+
+            if (!$authInfo['success']) {
+                return ['allowed' => false, 'message' => '权限验证失败'];
+            }
+
+            // 检查是否为管理员
+            if ($authInfo['is_admin']) {
+                LogService::log("管理员查询用户信息: 管理员ID {$currentUid}, 目标用户ID {$targetUid}");
+                return ['allowed' => true, 'message' => '管理员有权限查看所有用户信息'];
+            }
+
+            // 普通用户只能查看自己的信息
+            if ($currentUid !== $targetUid) {
+                LogService::warning("普通用户尝试越权查看他人信息: 用户ID {$currentUid}, 目标用户ID {$targetUid}");
+                return ['allowed' => false, 'message' => '只能查看自己的用户信息'];
+            }
+
+            return ['allowed' => true, 'message' => '权限验证通过'];
+
+        } catch (\Exception $e) {
+            LogService::error($e);
+            LogService::log("用户数据权限检查异常: 当前用户 {$currentUid}, 目标用户 {$targetUid}");
+            return ['allowed' => false, 'message' => '权限验证失败'];
+        }
     }
 
     /**
