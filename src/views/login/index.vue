@@ -36,7 +36,7 @@ const { title } = useNav();
 const ruleForm = reactive({
   account: "7709",
   action: "pwd",
-  password: "admin123"
+  password: "admin3306"
 });
 
 const rememberMe = ref(false);
@@ -134,10 +134,15 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="select-none login-page">
-    <!-- 几何装饰元素 -->
-    <div class="geometric-square animate__animated animate__fadeIn animate__delay-1s"></div>
-    <div class="geometric-hexagon animate__animated animate__fadeIn animate__delay-2s"></div>
+  <div class="login-page">
+    <!-- 背景装饰 -->
+    <div class="background-decoration">
+      <div class="decoration-circle decoration-1"></div>
+      <div class="decoration-circle decoration-2"></div>
+      <div class="decoration-circle decoration-3"></div>
+      <div class="decoration-circle decoration-4"></div>
+      <div class="decoration-circle decoration-5"></div>
+    </div>
 
     <!-- 主题切换器 -->
     <div class="theme-switcher">
@@ -145,68 +150,60 @@ onBeforeUnmount(() => {
         @change="dataThemeChange" class="theme-switch" />
     </div>
 
-    <!-- 主容器 -->
+    <!-- 主登录容器 -->
     <div class="main-container">
       <Motion>
-        <div class="login-container">
-          <!-- 左侧问候区域 -->
-          <div class="welcome-section">
-            <div class="welcome-content">
-              <div class="brand-area">
-                <div class="brand-logo">
-                  <i class="fas fa-rocket"></i>
-                </div>
-                <h1 class="welcome-title">{{ title }}</h1>
-                <p class="welcome-subtitle">现代化企业管理系统</p>
+        <div class="login-wrapper">
+          <!-- 左侧品牌展示区域 -->
+          <div class="brand-showcase">
+            <div class="brand-content">
+              <div class="brand-logo">
+                <i class="fas fa-rocket"></i>
               </div>
+              <h1 class="brand-title">{{ title }}</h1>
+              <p class="brand-subtitle">现代化企业管理系统</p>
 
-              <div class="greeting-text">
-                <h2 class="greeting-title">欢迎回来！</h2>
-                <p class="greeting-desc">请登录您的账户继续使用我们的服务</p>
-              </div>
-
-              <div class="features-highlight">
+              <!-- 特性展示 -->
+              <div class="features-showcase">
                 <div class="feature-item">
                   <div class="feature-icon">
                     <i class="fas fa-shield-alt"></i>
                   </div>
-                  <span class="feature-text">安全可靠</span>
+                  <div class="feature-content">
+                    <h3 class="feature-title">安全可靠</h3>
+                    <p class="feature-desc">企业级安全保障，多重防护机制</p>
+                  </div>
                 </div>
 
                 <div class="feature-item">
                   <div class="feature-icon">
                     <i class="fas fa-rocket"></i>
                   </div>
-                  <span class="feature-text">高效便捷</span>
+                  <div class="feature-content">
+                    <h3 class="feature-title">高效便捷</h3>
+                    <p class="feature-desc">简洁操作流程，提升工作效率</p>
+                  </div>
                 </div>
 
                 <div class="feature-item">
                   <div class="feature-icon">
                     <i class="fas fa-users"></i>
                   </div>
-                  <span class="feature-text">团队协作</span>
+                  <div class="feature-content">
+                    <h3 class="feature-title">团队协作</h3>
+                    <p class="feature-desc">多人协同办公，实时数据同步</p>
+                  </div>
                 </div>
-              </div>
-
-              <div class="decorative-elements">
-                <div class="deco-circle deco-1"></div>
-                <div class="deco-circle deco-2"></div>
-                <div class="deco-square deco-3"></div>
               </div>
             </div>
           </div>
 
           <!-- 右侧登录表单区域 -->
-          <div class="form-section">
-            <div class="form-content">
+          <div class="form-showcase">
+            <div class="form-container">
               <div class="form-header">
-                <h3 class="form-title">
-                  <div class="title-icon">
-                    <i class="fas fa-user-circle"></i>
-                  </div>
-                  账户登录
-                </h3>
-                <p class="form-subtitle">输入您的登录凭证</p>
+                <h2 class="form-title">欢迎回来</h2>
+                <p class="form-subtitle">请登录您的账户继续使用我们的服务</p>
               </div>
 
               <el-form ref="ruleFormRef" :model="ruleForm" :rules="loginRules" class="login-form">

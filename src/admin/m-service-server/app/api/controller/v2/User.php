@@ -4,7 +4,7 @@ namespace app\api\controller\v2;
 
 use app\BaseController;
 use app\api\model\users as userModel;
-use app\api\services\UserService;
+use app\api\services\v2\UserService;
 use app\api\services\LogService;
 use think\response\Json;
 use think\validate\ValidateRule;
@@ -32,7 +32,7 @@ class User extends BaseController
                 return json(['code' => 401, 'msg' => '未授权，请重新登录']);
             }
 
-            // 调用UserService获取用户信息
+            // 调用v2 UserService获取用户信息
             $result = UserService::getUserInfo($userId);
 
             if ($result['code'] !== 200) {
@@ -100,90 +100,17 @@ class User extends BaseController
                 return json(['code' => 501, 'msg' => '参数错误', 'info' => $validate->getError()]);
             }
 
-            // 准备更新数据
-            $updateData = [
-                'id' => $currentUserId,
-                'update_time' => date('Y-m-d H:i:s')
-            ];
-
-            // 只更新允许的字段
-            $allowedFields = ['nickname', 'gender', 'signature', 'avatar'];
-            foreach ($allowedFields as $field) {
-                if (isset($params[$field])) {
-                    $updateData[$field] = $params[$field];
-                }
-            }
-
-            // 如果没有要更新的字段
-            if (count($updateData) <= 2) { // 只包含id和update_time
-                return json(['code' => 400, 'msg' => '没有可更新的字段']);
-            }
-
-            // 调用UserService更新用户信息（不传roles和premium，保持现有状态）
-            $result = UserService::updateUser($updateData, [], []);
-
-            if ($result['code'] !== 200) {
-                return json($result);
-            }
+            // 调用v2 UserService更新用户资料（只更新安全字段，不影响角色等信息）
+            $result = UserService::updateUserProfile($currentUserId, $params);
 
             // 记录操作日志
             LogService::log("用户更新个人资料：用户ID {$currentUserId}");
-
-            return json([
-                'code' => 200,
-                'msg' => '资料更新成功',
-                'data' => $result['data']
-            ]);
-
-        } catch (\Exception $e) {
-            LogService::error($e);
-            return json(['code' => 500, 'msg' => '更新资料失败：' . $e->getMessage()]);
-        }
-    }
-
-    /**
-     * 修改密码
-     * 客户端专用
-     * @return Json
-     */
-    public function changePassword(): Json
-    {
-        try {
-            // 从中间件获取用户ID
-            $currentUserId = request()->JWTUid;
-
-            if (!$currentUserId) {
-                return json(['code' => 401, 'msg' => '未授权，请重新登录']);
-            }
-
-            // 获取请求参数
-            $params = request()->param();
-
-            // 参数验证
-            $validate = Validate::rule([
-                'old_password' => ValidateRule::isRequire(null, '旧密码不能为空'),
-                'new_password' => ValidateRule::isRequire(null, '新密码不能为空')
-                    ->min(6, '新密码长度不能少于6位')
-                    ->max(50, '新密码长度不能超过50位'),
-            ]);
-
-            $validateResult = $validate->batch()->check($params);
-            if (!$validateResult) {
-                return json(['code' => 501, 'msg' => '参数错误', 'info' => $validate->getError()]);
-            }
-
-            // 调用UserService修改密码
-            $result = UserService::changePassword(
-                $currentUserId,
-                $params['old_password'],
-                $params['new_password']
-            );
 
             return json($result);
 
         } catch (\Exception $e) {
             LogService::error($e);
-            return json(['code' => 500, 'msg' => '修改密码失败：' . $e->getMessage()]);
+            return json(['code' => 500, 'msg' => '更新资料失败：' . $e->getMessage()]);
         }
     }
 
@@ -202,7 +129,7 @@ class User extends BaseController
                 return json(['code' => 401, 'msg' => '未授权，请重新登录']);
             }
 
-            // 调用UserService检查会员状态
+            // 调用v2 UserService检查会员状态
             $result = UserService::checkPremiumStatus($currentUserId);
 
             return json($result);
@@ -243,8 +170,8 @@ class User extends BaseController
                 return json(['code' => 501, 'msg' => '参数错误', 'info' => $validate->getError()]);
             }
 
-            // 调用UserService软删除用户
-            $result = UserService::deleteUser($currentUserId, false);
+            // 调用v2 UserService软删除用户
+            $result = UserService::deleteAccount($currentUserId, $params['password']);
 
             if ($result['code'] === 200) {
                 // 记录操作日志
@@ -289,28 +216,10 @@ class User extends BaseController
 
             $username = $params['username'];
 
-            // 检查用户名是否已存在
-            $existingUser = userModel::where('username', $username)->find();
+            // 调用v2 UserService检查用户名
+            $result = UserService::checkUsernameAvailable($username);
 
-            if ($existingUser) {
-                return json([
-                    'code' => 400,
-                    'msg' => '用户名已存在',
-                    'data' => [
-                        'username' => $username,
-                        'available' => false
-                    ]
-                ]);
-            }
-
-            return json([
-                'code' => 200,
-                'msg' => '用户名可用',
-                'data' => [
-                    'username' => $username,
-                    'available' => true
-                ]
-            ]);
+            return json($result);
 
         } catch (\Exception $e) {
             LogService::error($e);
@@ -341,28 +250,10 @@ class User extends BaseController
 
             $email = $params['email'];
 
-            // 检查邮箱是否已存在
-            $existingUser = userModel::where('email', $email)->find();
+            // 调用v2 UserService检查邮箱
+            $result = UserService::checkEmailAvailable($email);
 
-            if ($existingUser) {
-                return json([
-                    'code' => 400,
-                    'msg' => '邮箱已被使用',
-                    'data' => [
-                        'email' => $email,
-                        'available' => false
-                    ]
-                ]);
-            }
-
-            return json([
-                'code' => 200,
-                'msg' => '邮箱可用',
-                'data' => [
-                    'email' => $email,
-                    'available' => true
-                ]
-            ]);
+            return json($result);
 
         } catch (\Exception $e) {
             LogService::error($e);
@@ -385,7 +276,7 @@ class User extends BaseController
                 return json(['code' => 401, 'msg' => '未授权，请重新登录']);
             }
 
-            // 调用UserService退出登录
+            // 调用v2 UserService退出登录
             $result = UserService::logout($userId);
 
             return json($result);

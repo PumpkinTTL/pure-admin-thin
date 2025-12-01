@@ -50,9 +50,8 @@ Route::group('/:version/user', function () {
 Route::group('/v2/user', function () {
     Route::rule('/profile', 'v2.User/profile'); // 获取用户信息
     Route::rule('/update', 'v2.User/update'); // 更新用户资料
-    Route::rule('/changePassword', 'v2.User/changePassword'); // 修改密码
     Route::rule('/membership', 'v2.User/membership'); // 获取会员状态
-    Route::rule('/deactivate', 'v2.User/deactivate'); // 注销账号
+    Route::rule('/delete', 'v2.User/delete'); // 注销账号
     Route::rule('/logout', 'v2.User/logout'); // 登出
 })->middleware([
     app\api\middleware\Auth::class

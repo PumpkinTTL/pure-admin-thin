@@ -123,14 +123,19 @@ class PermissionService
         try {
             // 验证必填字段
             if (empty($data['name']) || empty($data['iden'])) {
-                return ['code' => 400, 'msg' => '权限名称和标识符不能为空'];
+                return ['code' => 400, 'msg' => '模块名称和权限标识不能为空'];
             }
             
-            // 检查名称是否已存在
-            $exists = permissions::where('name', $data['name'])->find();
+            // 验证权限标识格式：必须是 module:action 或 module:action:scope 格式
+            if (!preg_match('/^[a-zA-Z][a-zA-Z0-9_]*:[a-zA-Z][a-zA-Z0-9_]*(?::[a-zA-Z][a-zA-Z0-9_]*)?$/', $data['iden'])) {
+                return ['code' => 400, 'msg' => '权限标识格式错误，必须是 module:action 格式（如：user:view）'];
+            }
+            
+            // 检查权限标识是否已存在（iden字段应该是唯一的）
+            $exists = permissions::where('iden', $data['iden'])->find();
             if ($exists) {
-                LogService::log("添加权限失败，名称已存在：{$data['name']}", [], 'warning');
-                return ['code' => 400, 'msg' => '权限名称已存在'];
+                LogService::log("添加权限失败，权限标识已存在：{$data['iden']}", [], 'warning');
+                return ['code' => 400, 'msg' => '权限标识已存在'];
             }
             
             // 创建权限 (模型的$disuse属性会自动过滤real字段)
@@ -166,12 +171,18 @@ class PermissionService
                 return ['code' => 404, 'msg' => '权限不存在'];
             }
             
-            // 如果更新名称，检查是否与其他权限冲突
-            if (isset($data['name']) && $data['name'] !== $permission->name) {
-                $exists = permissions::where('name', $data['name'])->where('id', '<>', $id)->find();
+            // 如果更新权限标识，验证格式和唯一性
+            if (isset($data['iden']) && $data['iden'] !== $permission->iden) {
+                // 验证权限标识格式
+                if (!preg_match('/^[a-zA-Z][a-zA-Z0-9_]*:[a-zA-Z][a-zA-Z0-9_]*(?::[a-zA-Z][a-zA-Z0-9_]*)?$/', $data['iden'])) {
+                    return ['code' => 400, 'msg' => '权限标识格式错误，必须是 module:action 格式（如：user:view）'];
+                }
+                
+                // 检查权限标识是否已存在
+                $exists = permissions::where('iden', $data['iden'])->where('id', '<>', $id)->find();
                 if ($exists) {
-                    LogService::log("更新权限失败，名称已存在：{$data['name']}", [], 'warning');
-                    return ['code' => 400, 'msg' => '权限名称已存在'];
+                    LogService::log("更新权限失败，权限标识已存在：{$data['iden']}", [], 'warning');
+                    return ['code' => 400, 'msg' => '权限标识已存在'];
                 }
             }
             
@@ -260,7 +271,7 @@ class PermissionService
     }
 
     /**
-     * 将权限列表按照iden字段分组组织为树形结构
+     * 将权限列表按照name字段（模块）分组组织为树形结构
      * @param array|Collection $permissions 权限列表
      * @return array
      */
@@ -270,7 +281,7 @@ class PermissionService
             return [];
         }
         
-        // 按权限类型分组
+        // 按模块（name字段）分组
         $groupedPermissions = [];
         
         foreach ($permissions as $permission) {
@@ -280,15 +291,15 @@ class PermissionService
             $iden = is_array($permission) ? $permission['iden'] : $permission->iden;
             $description = is_array($permission) ? $permission['description'] : $permission->description;
             
-            // 确保该分组存在
-            if (!isset($groupedPermissions[$iden])) {
-                $groupedPermissions[$iden] = [];
+            // 按name字段（模块）分组，如 'user', 'article', 'comment'
+            if (!isset($groupedPermissions[$name])) {
+                $groupedPermissions[$name] = [];
             }
             
-            // 添加到对应分组
-            $groupedPermissions[$iden][] = [
+            // 添加到对应模块分组
+            $groupedPermissions[$name][] = [
                 'id' => $id,
-                'name' => $name,
+                'name' => $description,  // 显示权限说明作为名称
                 'iden' => $iden,
                 'description' => $description
             ];

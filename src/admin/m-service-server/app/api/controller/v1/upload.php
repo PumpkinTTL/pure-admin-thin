@@ -189,9 +189,45 @@ class Upload
             // 提交事务
             Db::commit();
 
+            // 检查是否所有文件都是重复文件
+            $allDuplicates = true;
+            $hasNewFiles = false;
+            foreach ($result as $file) {
+                if (!($file['is_duplicate'] ?? false)) {
+                    $allDuplicates = false;
+                    $hasNewFiles = true;
+                    break;
+                }
+            }
+
+            // 根据文件上传情况返回不同的提示信息
+            if ($allDuplicates) {
+                $msg = '文件已存在，无需重复上传';
+                $code = 201; // 新状态码：表示文件已存在
+            } else if ($hasNewFiles) {
+                $duplicateCount = \count(array_filter($result, function($file) {
+                    return $file['is_duplicate'] ?? false;
+                }));
+                $newCount = \count($result) - $duplicateCount;
+
+                if ($duplicateCount > 0 && $newCount > 0) {
+                    $msg = "部分文件上传成功，新增{$newCount}个文件，{$duplicateCount}个文件已存在";
+                    $code = 202; // 新状态码：表示部分上传成功
+                } else if ($newCount > 0) {
+                    $msg = "上传成功，共新增{$newCount}个文件";
+                    $code = 200; // 标准成功状态：全部新文件上传成功
+                } else {
+                    $msg = '上传成功';
+                    $code = 200;
+                }
+            } else {
+                $msg = '上传成功';
+                $code = 200;
+            }
+
             return json([
-                'code' => 200,
-                'msg' => '上传成功',
+                'code' => $code,
+                'msg' => $msg,
                 'data' => $result
             ]);
 

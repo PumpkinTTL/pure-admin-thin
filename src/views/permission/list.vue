@@ -3,11 +3,11 @@
     <el-dialog v-model="showAddOrEditModal" :title="currentPermission.id ? '编辑权限' : '新增权限'" width="550"
       :before-close="handleClose">
       <el-form :model="currentPermission" ref="permissionFormRef" :rules="permissionRules" label-width="100px">
-        <el-form-item label="权限名称" prop="name">
-          <el-input v-model="currentPermission.name" placeholder="请输入权限名称" />
+        <el-form-item label="模块名称" prop="name">
+          <el-input v-model="currentPermission.name" placeholder="请输入模块名称，如：user、article" />
         </el-form-item>
         <el-form-item label="权限标识" prop="iden">
-          <el-input v-model="currentPermission.iden" placeholder="请输入权限标识，如user.add" />
+          <el-input v-model="currentPermission.iden" placeholder="请输入权限标识，如：user:view 或 user:view:all" />
         </el-form-item>
         <el-form-item label="权限描述" prop="description">
           <el-input v-model="currentPermission.description" type="textarea" placeholder="请输入权限描述" />
@@ -240,79 +240,82 @@
           @current-change="handleCurrentChange" />
       </div>
 
-      <div v-else>
-        <el-card shadow="never" class="tree-card">
-          <template #header>
-            <div class="tree-header">
-              <span class="header-title">权限分类列表</span>
-              <div class="header-buttons">
-                <el-button type="primary" :icon="CirclePlus" @click="handleAdd" size="small">新增权限</el-button>
-                <el-button :icon="Sort" size="small" @click="toggleTableType">{{ toggleButtonText }}</el-button>
+      <div v-else class="tree-container">
+        <div class="tree-header">
+          <span class="header-title">权限分类列表</span>
+          <div class="header-buttons">
+            <el-button type="primary" :icon="CirclePlus" @click="handleAdd" size="small">新增权限</el-button>
+            <el-button :icon="Sort" size="small" @click="toggleTableType">{{ toggleButtonText }}</el-button>
+          </div>
+        </div>
+
+        <div class="simple-tree" v-show="!tableLoading">
+          <div v-for="category in permissionsTree" :key="category.id" class="tree-category">
+            <div class="category-header" @click="toggleCategory(category.id)">
+              <el-icon class="category-toggle-icon" v-if="expandedCategories.includes(category.id)">
+                <ArrowDown />
+              </el-icon>
+              <el-icon class="category-toggle-icon" v-else>
+                <ArrowRight />
+              </el-icon>
+              <el-icon class="category-icon">
+                <component :is="getPermissionTypeIcon(category.iden)"></component>
+              </el-icon>
+              <span class="category-name">{{ category.name }}</span>
+              <span class="category-count">({{ category.children?.length || 0 }})</span>
+            </div>
+
+            <div v-if="category.children && category.children.length > 0 && expandedCategories.includes(category.id)"
+              class="permissions-list">
+              <div v-for="permission in category.children" :key="permission.id" class="permission-item">
+                <div class="permission-main">
+                  <el-icon class="permission-icon">
+                    <component :is="getPermissionTypeIcon(permission.iden)"></component>
+                  </el-icon>
+                  <el-tag size="small" :type="getTagTypeByPermissionType(permission.iden)" class="permission-tag">
+                    {{ permission.iden }}
+                  </el-tag>
+                  <span class="permission-name">{{ permission.name }}</span>
+                </div>
+
+                <div class="permission-actions">
+                  <template v-if="!permission.delete_time">
+                    <el-button type="primary" link size="small" @click.stop="handleEdit(permission)">
+                      <el-icon>
+                        <Edit />
+                      </el-icon>
+                    </el-button>
+                    <el-button type="danger" link size="small" @click.stop="handleDelete(permission)">
+                      <el-icon>
+                        <Delete />
+                      </el-icon>
+                    </el-button>
+                    <el-button type="success" link size="small" @click.stop="handleAssignApi(permission)">
+                      <el-icon>
+                        <Link />
+                      </el-icon>
+                    </el-button>
+                  </template>
+                  <template v-else>
+                    <el-button type="warning" link size="small" @click.stop="handleRestore(permission)">
+                      <el-icon>
+                        <RefreshRight />
+                      </el-icon>
+                    </el-button>
+                    <el-button type="danger" link size="small" @click.stop="handleDelete(permission, true)">
+                      <el-icon>
+                        <Delete />
+                      </el-icon>
+                    </el-button>
+                  </template>
+                </div>
               </div>
             </div>
-          </template>
-
-          <el-tree v-loading="tableLoading" :data="permissionsTree" :props="{
-            label: 'name',
-            children: 'children'
-          }" node-key="id" default-expand-all highlight-current :expand-on-click-node="false" class="basic-tree">
-            <template #default="{ node, data }">
-              <span class="tree-node">
-                <!-- 分类节点 -->
-                <span v-if="data.id?.toString().startsWith('category-')" class="category-node">
-                  <el-icon>
-                    <component :is="getPermissionTypeIcon(data.iden)"></component>
-                  </el-icon>
-                  <span class="category-label">{{ node.label }}</span>
-                </span>
-
-                <!-- 权限节点 -->
-                <span v-else class="permission-node">
-                  <span class="permission-info">
-                    <el-icon>
-                      <component :is="getPermissionTypeIcon(data.iden)"></component>
-                    </el-icon>
-                    <el-tag size="small" :type="getTagTypeByPermissionType(data.iden)">{{ data.iden }}</el-tag>
-                    <span class="permission-name">{{ node.label }}</span>
-                    <span class="permission-desc">{{ data.description }}</span>
-                  </span>
-
-                  <span class="node-actions">
-                    <template v-if="!data.delete_time">
-                      <el-button type="primary" link size="small" @click.stop="handleEdit(data)">
-                        <el-icon>
-                          <Edit />
-                        </el-icon>编辑
-                      </el-button>
-                      <el-button type="danger" link size="small" @click.stop="handleDelete(data)">
-                        <el-icon>
-                          <Delete />
-                        </el-icon>删除
-                      </el-button>
-                      <el-button type="success" link size="small" @click.stop="handleAssignApi(data)">
-                        <el-icon>
-                          <Link />
-                        </el-icon>分配API
-                      </el-button>
-                    </template>
-                    <template v-else>
-                      <el-button type="warning" link size="small" @click.stop="handleRestore(data)">
-                        <el-icon>
-                          <RefreshRight />
-                        </el-icon>恢复
-                      </el-button>
-                      <el-button type="danger" link size="small" @click.stop="handleDelete(data, true)">
-                        <el-icon>
-                          <Delete />
-                        </el-icon>彻底删除
-                      </el-button>
-                    </template>
-                  </span>
-                </span>
-              </span>
-            </template>
-          </el-tree>
-        </el-card>
+            <div v-if="!category.children || category.children.length === 0" class="no-permissions">
+              <span class="empty-text">暂无权限</span>
+            </div>
+          </div>
+        </div>
       </div>
     </el-card>
   </div>
@@ -343,7 +346,9 @@ import {
   Link,
   Sort,
   Bell,
-  Check
+  Check,
+  ArrowDown,
+  ArrowRight
 } from "@element-plus/icons-vue";
 import { message } from "@/utils/message";
 import {
@@ -386,6 +391,7 @@ const submitting = ref(false);
 const permissionFormRef = ref<any>(null);
 const tableType = ref<"flat" | "tree">("flat");
 const permissionsTree = ref<PermissionInfo[]>([]);
+const expandedCategories = ref<string[]>([]);
 
 // 表格样式
 const headerCellStyle = {
@@ -413,12 +419,16 @@ const allPermissions = ref<PermissionInfo[]>([]);
 // 表单校验规则
 const permissionRules = {
   name: [
-    { required: true, message: "请输入权限名称", trigger: "blur" },
+    { required: true, message: "请输入模块名称", trigger: "blur" },
     { min: 2, max: 50, message: "长度应为 2 到 50 个字符", trigger: "blur" }
   ],
   iden: [
     { required: true, message: "请输入权限标识", trigger: "blur" },
-    { pattern: /^[a-zA-Z0-9_:.]+$/, message: "权限标识只能包含字母、数字、下划线、冒号和点", trigger: "blur" }
+    {
+      pattern: /^[a-zA-Z][a-zA-Z0-9_]*:[a-zA-Z][a-zA-Z0-9_]*(?::[a-zA-Z][a-zA-Z0-9_]*)?$/,
+      message: "格式错误，必须是 module:action 格式（如：user:view）",
+      trigger: "blur"
+    }
   ]
 };
 
@@ -532,6 +542,16 @@ const formatCategoryName = (category: string) => {
     open: "开放接口"
   };
   return categoryMap[category] || category;
+};
+
+// 切换分类展开/折叠
+const toggleCategory = (categoryId: string) => {
+  const index = expandedCategories.value.indexOf(categoryId);
+  if (index > -1) {
+    expandedCategories.value.splice(index, 1);
+  } else {
+    expandedCategories.value.push(categoryId);
+  }
 };
 
 // 获取权限列表
@@ -1179,17 +1199,25 @@ onMounted(async () => {
     }
   }
 
-  .tree-card {
+  .tree-container {
     margin-top: 10px;
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 
     .tree-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #f3f4f6;
 
       .header-title {
-        font-size: 16px;
-        font-weight: bold;
+        font-size: 15px;
+        font-weight: 600;
+        color: #111827;
       }
 
       .header-buttons {
@@ -1198,105 +1226,174 @@ onMounted(async () => {
       }
     }
 
-    .basic-tree {
-      margin-top: 15px;
-
-      .el-tree-node {
-        position: relative;
-        margin: 4px 0;
-      }
-
-      .el-tree-node__content {
-        height: auto;
-        padding: 6px 0;
+    .simple-tree {
+      .tree-category {
+        margin-bottom: 12px;
+        background: #ffffff;
+        border: 1px solid #e4e7ed;
         border-radius: 4px;
-        transition: background-color 0.3s;
+        overflow: hidden;
 
-        &:hover {
-          background-color: #f0f7ff !important;
-        }
-      }
-
-      .el-tree-node.is-current>.el-tree-node__content {
-        background-color: #ecf5ff !important;
-        color: #409EFF;
-      }
-
-      .el-tree-node__children {
-        padding-left: 24px;
-      }
-
-      // 分类节点
-      .el-tree>.el-tree-node>.el-tree-node__content {
-        background-color: #f5f7fa;
-        margin-bottom: 8px;
-        border-radius: 4px;
-        border-left: 3px solid #409EFF;
-      }
-
-      // 节点内容样式
-      .tree-node {
-        width: 100%;
-        display: flex;
-        align-items: center;
-      }
-
-      .category-node {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 0;
-
-        .el-icon {
-          color: #409EFF;
-          font-size: 18px;
-        }
-
-        .category-label {
-          font-weight: bold;
-          font-size: 15px;
-          color: #303133;
-        }
-      }
-
-      .permission-node {
-        width: 100%;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 6px 0;
-
-        .permission-info {
+        .category-header {
           display: flex;
           align-items: center;
-          gap: 8px;
+          padding: 12px 16px;
+          background: #fafafa;
+          border-bottom: 1px solid #e8e8e8;
+          cursor: pointer;
+          transition: background-color 0.2s;
+          user-select: none;
 
-          .el-icon {
-            color: #909399;
+          &:hover {
+            background: #f0f0f0;
+          }
+
+          .category-toggle-icon {
+            width: 16px;
+            height: 16px;
+            color: #666;
+            margin-right: 8px;
+            transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+          }
+
+          .category-icon {
+            width: 18px;
+            height: 18px;
+            color: #409eff;
+            margin-right: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .category-name {
             font-size: 14px;
+            font-weight: 600;
+            color: #303133;
+            flex: 1;
           }
 
-          .permission-name {
-            color: #606266;
-            margin-left: 4px;
-          }
-
-          .permission-desc {
-            color: #909399;
+          .category-count {
             font-size: 12px;
-            margin-left: 8px;
+            color: #909399;
+            background: #f4f4f5;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: normal;
           }
         }
 
-        .node-actions {
-          display: flex;
-          gap: 4px;
-          opacity: 0.6;
-          transition: opacity 0.2s;
-        }
+        .permissions-list {
+          padding: 0;
+          background: #fff;
 
-        &:hover .node-actions {
-          opacity: 1;
+          .permission-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: all 0.15s ease;
+
+            &:last-child {
+              border-bottom: none;
+            }
+
+            &:hover {
+              background: #f9fafb;
+            }
+
+            .permission-main {
+              display: flex;
+              align-items: center;
+              flex: 1;
+              gap: 10px;
+              min-width: 0;
+
+              .permission-icon {
+                width: 16px;
+                height: 16px;
+                color: #6b7280;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+              }
+
+              .permission-tag {
+                font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+                font-size: 11px;
+                font-weight: 500;
+                padding: 3px 8px;
+                border-radius: 3px;
+                white-space: nowrap;
+                flex-shrink: 0;
+              }
+
+              .permission-name {
+                font-size: 13px;
+                font-weight: 500;
+                color: #374151;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+              }
+
+              .permission-desc {
+                font-size: 12px;
+                color: #9ca3af;
+                margin-left: 6px;
+              }
+            }
+
+            .permission-actions {
+              display: flex;
+              gap: 4px;
+              opacity: 0;
+              transition: opacity 0.2s ease;
+              flex-shrink: 0;
+
+              .el-button {
+                width: 24px;
+                height: 24px;
+                padding: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 4px;
+
+                .el-icon {
+                  font-size: 14px;
+                  margin: 0;
+                }
+
+                &:hover {
+                  transform: scale(1.1);
+                }
+              }
+            }
+
+            &:hover .permission-actions {
+              opacity: 1;
+            }
+          }
+        }
+      }
+
+      .no-permissions {
+        padding: 24px;
+        text-align: center;
+        background: #fafafa;
+        border-top: 1px solid #f0f0f0;
+
+        .empty-text {
+          color: #9ca3af;
+          font-size: 13px;
+          font-style: italic;
         }
       }
     }

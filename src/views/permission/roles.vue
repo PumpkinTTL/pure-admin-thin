@@ -28,7 +28,7 @@
     </el-dialog>
 
     <el-dialog v-model="showPermissionModal" title="分配权限" width="850" :before-close="handleClose"
-      class="permission-dialog">
+      class="permission-dialog" center align-center>
       <el-form label-width="100px" v-if="currentRole.id">
         <div class="role-info-box">
           <div class="role-info-header">
@@ -82,18 +82,8 @@
             </div>
             <div class="right">
               <div class="search-box">
-                <el-input v-model="searchQuery" placeholder="搜索权限..." :prefix-icon="Search" clearable size="small" />
+                <el-input v-model="searchQuery" placeholder="搜索权限（支持权限标识、说明搜索）..." :prefix-icon="Search" clearable size="default" />
               </div>
-              <el-button type="primary" size="small" @click="checkAllPermissions" plain>
-                <el-icon>
-                  <Check />
-                </el-icon> 全选当前组
-              </el-button>
-              <el-button type="info" size="small" @click="uncheckAllPermissions" plain>
-                <el-icon>
-                  <Close />
-                </el-icon> 取消当前组
-              </el-button>
             </div>
           </div>
 
@@ -119,9 +109,9 @@
                         permissions.length }} 个权限项</div>
                       <div class="actions">
                         <el-button type="primary" size="small" link
-                          @click.stop="selectCategoryAll(category)">全选此类</el-button>
+                          @click.stop="selectCategoryAll(category)">全选当前组</el-button>
                         <el-button type="warning" size="small" link
-                          @click.stop="unselectCategoryAll(category)">取消此类</el-button>
+                          @click.stop="unselectCategoryAll(category)">取消当前组</el-button>
                       </div>
                     </div>
                     <div class="tree-container">
@@ -135,15 +125,12 @@
                         <template #default="{ data }">
                           <div class="tree-node" :class="{ 'node-selected': isNodeSelected(category, data.id) }">
                             <div class="node-content">
-                              <span class="node-label">{{ data.name }}</span>
+                              <div class="node-main">
+                                <el-tag v-if="data.iden" size="small" type="info" class="node-iden">{{ data.iden }}</el-tag>
+                                <span class="node-label">{{ data.name }}</span>
+                              </div>
                               <div class="node-meta">
                                 <span v-if="data.id" class="node-id">ID: {{ data.id }}</span>
-                                <el-tooltip v-if="data.description" placement="top" effect="light">
-                                  <template #content>{{ data.description }}</template>
-                                  <el-icon class="info-icon">
-                                    <InfoFilled />
-                                  </el-icon>
-                                </el-tooltip>
                               </div>
                             </div>
                           </div>
@@ -230,14 +217,14 @@
       <el-table v-loading="tableLoading" border :data="rolesList" style="width: 100%"
         :header-cell-style="headerCellStyle" size="small" @selection-change="handleSelectionChange"
         @sort-change="handleSortChange" class="roles-table">
-        <el-table-column type="selection" width="45" align="center" />
-        <el-table-column show-overflow-tooltip prop="id" width="70" label="ID" sortable="custom"
+        <el-table-column type="selection" width="50" align="center" />
+        <el-table-column show-overflow-tooltip prop="id" label="ID" sortable="custom" min-width="80"
           :sort-orders="['ascending', 'descending', null]">
           <template #default="{ row }">
             <el-tag size="small" type="info" effect="plain" round class="id-tag">{{ row.id }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column show-overflow-tooltip label="角色名称" prop="name" sortable="custom">
+        <el-table-column show-overflow-tooltip label="角色名称" prop="name" sortable="custom" min-width="150">
           <template #default="{ row }">
             <div class="cell-with-icon">
               <el-icon>
@@ -247,27 +234,27 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column show-overflow-tooltip label="角色标识" prop="iden" width="100">
+        <el-table-column show-overflow-tooltip label="角色标识" prop="iden" min-width="120">
           <template #default="{ row }">
             <el-tag :type="row.iden === 'admin' ? 'danger' : 'success'" size="small" effect="plain">
               {{ row.iden }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column show-overflow-tooltip label="显示顺序" prop="show_weight" sortable="custom" width="80">
+        <el-table-column show-overflow-tooltip label="显示顺序" prop="show_weight" sortable="custom" min-width="100">
           <template #default="{ row }">
             <el-tag size="small" type="warning" effect="plain">{{ row.show_weight }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column show-overflow-tooltip label="状态" width="80" prop="status" sortable="custom">
+        <el-table-column show-overflow-tooltip label="状态" prop="status" sortable="custom" min-width="90">
           <template #default="{ row }">
             <el-switch v-model="row.status" :active-value="1" :inactive-value="0" inline-prompt active-text="启"
               inactive-text="禁" @change="handleStatusChange(row)" />
           </template>
         </el-table-column>
-        <el-table-column show-overflow-tooltip label="创建时间" prop="create_time" sortable="custom" width="150" />
-        <el-table-column show-overflow-tooltip label="描述" prop="description" />
-        <el-table-column fixed="right" align="center" header-align="center" label="操作" width="180">
+        <el-table-column show-overflow-tooltip label="创建时间" prop="create_time" sortable="custom" min-width="160" />
+        <el-table-column show-overflow-tooltip label="描述" prop="description" min-width="200" />
+        <el-table-column fixed="right" align="center" header-align="center" label="操作" width="200">
           <template #default="{ row }">
             <div class="action-buttons">
               <template v-if="!row.delete_time">
@@ -668,6 +655,9 @@ const handleEdit = (row: RoleInfo) => {
 
 // 分配权限
 const handleAssignPermission = async (row: RoleInfo) => {
+  // 清空之前的缓存数据
+  clearPermissionCache();
+  
   currentRole.value = { ...row };
   showPermissionModal.value = true;
 
@@ -719,7 +709,11 @@ const submitPermissions = async () => {
     const res = await assignRolePermissions(currentRole.value.id, allCheckedPermissions);
     if (res.code === 200) {
       message("权限分配成功", { type: "success" });
+      // 清空缓存并关闭对话框
+      clearPermissionCache();
       showPermissionModal.value = false;
+      // 刷新角色列表
+      await fetchRoleList();
     } else {
       message(res.msg || "权限分配失败", { type: "error" });
     }
@@ -829,9 +823,19 @@ const handleClose = (done: () => void) => {
     cancelButtonText: "取消"
   })
     .then(() => {
+      // 清空权限选择缓存
+      clearPermissionCache();
       done();
     })
     .catch(() => { });
+};
+
+// 清空权限缓存
+const clearPermissionCache = () => {
+  selectedPermissionsByCategory.value = {};
+  selectedPermissions.value = [];
+  searchQuery.value = "";
+  activePermissionTab.value = 'user';
 };
 
 // 状态切换处理
@@ -1356,17 +1360,15 @@ onMounted(() => {
       }
     }
 
-    :deep(.role-tag) {
-      display: inline-flex;
-      align-items: center;
-      padding: 0 10px;
-      height: 28px;
-      line-height: 26px;
-      font-size: 13px;
-      gap: 5px;
-
-      .el-icon {
-        font-size: 14px;
+    // 修复tag内icon对齐问题
+    :deep(.el-tag) {
+      display: inline-flex !important;
+      align-items: center !important;
+      
+      .el-tag__content {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
       }
     }
   }
@@ -1418,19 +1420,10 @@ onMounted(() => {
         gap: 8px;
 
         .search-box {
-          width: 200px;
-          margin-right: 4px;
+          width: 380px;
 
-          :deep(.el-input__wrapper) {
-            border-radius: 16px;
-          }
-        }
-
-        .el-button {
-          height: 32px;
-
-          .el-icon {
-            margin-right: 4px;
+          :deep(.el-input__inner) {
+            font-size: 14px;
           }
         }
       }
@@ -1531,6 +1524,11 @@ onMounted(() => {
       .actions {
         display: flex;
         gap: 8px;
+
+        .el-button {
+          font-size: 12px;
+          padding: 4px 12px;
+        }
       }
     }
 
@@ -1563,10 +1561,13 @@ onMounted(() => {
       display: flex;
       align-items: center;
       width: 100%;
+      padding: 4px 0;
 
       &.node-selected {
-        color: #409EFF;
-        font-weight: 500;
+        .node-label {
+          color: #409EFF;
+          font-weight: 500;
+        }
       }
 
       .node-content {
@@ -1574,32 +1575,44 @@ onMounted(() => {
         align-items: center;
         justify-content: space-between;
         flex: 1;
+        gap: 12px;
 
-        .node-label {
-          font-size: 13px;
+        .node-main {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex: 1;
+
+          .node-iden {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            min-width: 140px;
+            text-align: center;
+            background-color: #ecf5ff;
+            border-color: #d9ecff;
+            color: #409eff;
+          }
+
+          .node-label {
+            font-size: 13px;
+            color: #606266;
+            line-height: 1.5;
+          }
         }
 
         .node-meta {
           display: flex;
           align-items: center;
           gap: 8px;
+          flex-shrink: 0;
 
           .node-id {
             font-size: 11px;
             color: #909399;
             background-color: #f5f7fa;
-            padding: 2px 6px;
+            padding: 2px 8px;
             border-radius: 10px;
-          }
-
-          .info-icon {
-            color: #c0c4cc;
-            font-size: 14px;
-            cursor: pointer;
-
-            &:hover {
-              color: #909399;
-            }
+            white-space: nowrap;
           }
         }
       }
@@ -1651,18 +1664,10 @@ onMounted(() => {
 
         .right {
           width: 100%;
-          flex-wrap: wrap;
 
           .search-box {
             width: 100%;
             margin-right: 0;
-            margin-bottom: 8px;
-          }
-
-          .el-button {
-            flex: 1;
-            justify-content: center;
-            padding-left: 8px;
             padding-right: 8px;
           }
         }
