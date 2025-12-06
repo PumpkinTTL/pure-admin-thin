@@ -1,806 +1,780 @@
 <template>
-  <div class="api-container">
-    <div class="api-header">
-      <div class="title">API接口管理</div>
-      <el-button type="primary" size="small" @click="handleReset(false)">
-        <el-icon>
-          <RefreshRight />
-        </el-icon>同步
-      </el-button>
-    </div>
+  <div class="app-container">
+    <el-card shadow="never" class="main-card">
+      <!-- 顶部操作区 -->
+      <div class="header-section">
+        <!-- 搜索区 -->
+        <div class="search-area">
+          <el-form :inline="true" :model="searchParams" class="search-form">
+            <el-form-item label="关键词">
+              <el-input
+                v-model="searchParams.keyword"
+                placeholder="搜索路径或控制器"
+                clearable
+                size="small"
+                style="width: 200px"
+                @keyup.enter="handleSearch"
+              >
+                <template #prefix>
+                  <el-icon>
+                    <Search />
+                  </el-icon>
+                </template>
+              </el-input>
+            </el-form-item>
+            <el-form-item label="模块">
+              <el-input
+                v-model="searchParams.module"
+                placeholder="模块名称"
+                clearable
+                size="small"
+                style="width: 140px"
+                @keyup.enter="handleSearch"
+              />
+            </el-form-item>
+            <el-form-item label="状态">
+              <el-select
+                v-model="searchParams.status"
+                placeholder="全部"
+                clearable
+                size="small"
+                style="width: 110px"
+              >
+                <el-option label="开放" :value="1" />
+                <el-option label="维护" :value="0" />
+                <el-option label="关闭" :value="3" />
+              </el-select>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" size="small" @click="handleSearch">
+                <el-icon>
+                  <Search />
+                </el-icon>
+                查询
+              </el-button>
+              <el-button size="small" @click="resetSearch">
+                <el-icon>
+                  <RefreshLeft />
+                </el-icon>
+                重置
+              </el-button>
+            </el-form-item>
+          </el-form>
+        </div>
 
-    <div class="filter-bar">
-      <div class="left">
-        <el-input v-model="searchParams.keyword" placeholder="搜索路径/控制器/方法" clearable size="small" class="search-input"
-          @keyup.enter="handleSearch" @clear="handleSearch">
-          <template #prefix><el-icon>
-              <Search />
-            </el-icon></template>
-        </el-input>
-        <el-select v-model="searchParams.status" placeholder="状态" clearable size="small" @change="handleSearch">
-          <el-option label="全部" value="" />
-          <el-option label="开放" :value="1" />
-          <el-option label="维护" :value="0" />
-          <el-option label="关闭" :value="3" />
-        </el-select>
-        <el-button type="primary" size="small" @click="handleSearch">
-          <el-icon>
-            <Search />
-          </el-icon>
-        </el-button>
-        <el-button size="small" @click="fetchApiList">
-          <el-icon>
-            <Refresh />
-          </el-icon>
-        </el-button>
+        <!-- 操作区 -->
+        <div class="action-area">
+          <el-button
+            type="primary"
+            size="small"
+            plain
+            @click="handleReset(false)"
+          >
+            <el-icon>
+              <RefreshRight />
+            </el-icon>
+            同步接口
+          </el-button>
+          <el-button
+            type="success"
+            size="small"
+            plain
+            :disabled="!selectedApis.length"
+          >
+            <el-icon>
+              <Check />
+            </el-icon>
+            批量启用
+          </el-button>
+          <el-button
+            type="danger"
+            size="small"
+            plain
+            :disabled="!selectedApis.length"
+          >
+            <el-icon>
+              <Close />
+            </el-icon>
+            批量禁用
+          </el-button>
+          <el-divider
+            direction="vertical"
+            style="height: 24px; margin: 0 8px"
+          />
+          <el-button
+            size="small"
+            plain
+            @click="fetchApiList"
+            class="refresh-btn"
+          >
+            <el-icon>
+              <Refresh />
+            </el-icon>
+            刷新
+          </el-button>
+        </div>
       </div>
-      <div class="right">
-        <el-button type="success" size="small" @click="handleBatchEnable" :disabled="!selectedApis.length">
-          <el-icon>
-            <Check />
-          </el-icon>启用
-        </el-button>
-        <el-button type="info" size="small" @click="handleBatchDisable" :disabled="!selectedApis.length">
-          <el-icon>
-            <Close />
-          </el-icon>禁用
-        </el-button>
-      </div>
-    </div>
 
-    <div class="table-wrap">
-      <el-table :data="apiList" @selection-change="handleSelectionChange" v-loading="tableLoading" border size="small"
-        :row-class-name="tableRowClassName" style="width: 100%">
-        <el-table-column type="selection" align="center" />
-        <el-table-column label="ID" prop="id" align="center" />
+      <el-divider style="margin: 16px 0" />
+
+      <!-- 表格 -->
+      <el-table
+        :data="apiList"
+        v-loading="tableLoading"
+        @selection-change="handleSelectionChange"
+      >
+        <el-table-column type="selection" align="center" fixed />
+        <el-table-column prop="id" label="ID" align="center">
+          <template #default="{ row }">
+            <span class="id-text">#{{ row.id }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="版本" align="center">
+          <template #default="{ row }">
+            <el-tag size="small" effect="plain">
+              {{ row.version || "v1" }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="方法" align="center">
           <template #default="{ row }">
-            <el-tag :class="getMethodClass(row.method)" size="small" effect="plain">{{ row.method.toLowerCase()
-            }}</el-tag>
+            <el-tag :type="getMethodType(row.method)" size="small">
+              {{ row.method }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="应用" align="center" prop="app">
+        <el-table-column label="接口路径" show-overflow-tooltip>
           <template #default="{ row }">
-            <span>{{ getAppName(row.full_path) }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="版本" align="center" prop="version" />
-        <el-table-column label="路径" prop="full_path" min-width="120">
-          <template #default="{ row }">
-            <div class="controller-cell">
-              <el-icon>
+            <div class="path-cell">
+              <el-icon class="path-icon">
                 <Link />
               </el-icon>
-              <span>{{ row.full_path }}</span>
+              <span class="path-text">{{ row.full_path }}</span>
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="控制器" prop="model" min-width="100">
+        <el-table-column label="模块" align="center">
           <template #default="{ row }">
-            <div class="controller-cell">
-              <el-icon>
-                <Grid />
-              </el-icon>
-              <span>{{ row.model }}</span>
-            </div>
+            <el-tag v-if="row.module" type="info" size="small" effect="plain">
+              {{ row.module }}
+            </el-tag>
+            <span v-else class="text-muted">-</span>
           </template>
         </el-table-column>
-        <el-table-column label="方法" min-width="80">
+        <el-table-column label="模型" align="center">
           <template #default="{ row }">
-            <div class="controller-cell">
-              <el-icon>
-                <Operation />
-              </el-icon>
-              <span>{{ getActionFromPath(row.path) }}</span>
-            </div>
+            <el-tag v-if="row.model" size="small" effect="plain">
+              {{ row.model }}
+            </el-tag>
+            <span v-else class="text-muted">-</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="权限模式" align="center">
+          <template #default="{ row }">
+            <el-tag
+              v-if="row.check_mode === 'auto'"
+              type="success"
+              size="small"
+              effect="plain"
+            >
+              自动
+            </el-tag>
+            <el-tag
+              v-else-if="row.check_mode === 'manual'"
+              type="warning"
+              size="small"
+              effect="plain"
+            >
+              手动
+            </el-tag>
+            <el-tag v-else type="info" size="small" effect="plain">公开</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="指定权限" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span v-if="row.required_permission" class="permission-text">
+              {{ row.required_permission }}
+            </span>
+            <span v-else class="text-muted">-</span>
           </template>
         </el-table-column>
         <el-table-column label="状态" align="center">
           <template #default="{ row }">
-            <div class="status-indicator">
-              <span class="status-dot" :class="getStatusClass(row.status)"></span>
-              <span class="status-text" :class="getStatusClass(row.status)">{{ getStatusText(row.status) }}</span>
-            </div>
+            <el-tag v-if="row.status === 1" type="success" size="small">
+              开放
+            </el-tag>
+            <el-tag v-else-if="row.status === 0" type="warning" size="small">
+              维护
+            </el-tag>
+            <el-tag v-else type="info" size="small">关闭</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" align="center">
+        <el-table-column label="更新时间" align="center">
           <template #default="{ row }">
-            <div class="actions">
-              <el-button type="primary" link size="small" @click="handleEdit(row)">
-                <el-icon>
-                  <Edit />
-                </el-icon>
-              </el-button>
-              <el-dropdown @command="(cmd) => setApiStatus(row, cmd)" trigger="click">
-                <el-button type="info" link size="small">
-                  <el-icon>
-                    <ArrowDown />
-                  </el-icon>
-                </el-button>
-                <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item :command="1" :disabled="row.status === 1">开放</el-dropdown-item>
-                    <el-dropdown-item :command="0" :disabled="row.status === 0">维护</el-dropdown-item>
-                    <el-dropdown-item :command="3" :disabled="row.status === 3">关闭</el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
-            </div>
+            <span class="time-text">{{ row.update_time || "-" }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" align="center" fixed="right">
+          <template #default="{ row }">
+            <el-button
+              type="primary"
+              link
+              size="small"
+              @click="handleEdit(row)"
+            >
+              <el-icon>
+                <Edit />
+              </el-icon>
+              编辑
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
-    </div>
 
-    <div class="pagination">
-      <el-pagination v-model:current-page="searchParams.page" v-model:page-size="searchParams.page_size"
-        :page-sizes="[5, 10, 20, 50, 100]" background layout="total, sizes, prev, pager, next" :total="totalCount"
-        @size-change="handleSizeChange" @current-change="handleCurrentChange" small />
-    </div>
-
-    <el-dialog v-model="editDialogVisible" title="编辑接口信息" width="450px" align-center destroy-on-close>
-      <el-form :model="editForm" label-width="70px" size="small">
-        <el-form-item label="请求方式">
-          <el-tag :class="getMethodClass(editForm.method)" size="small">
-            {{ editForm.method.toLowerCase() }}
-          </el-tag>
-        </el-form-item>
-        <el-form-item label="应用">
-          <span>{{ getAppName(editForm.full_path) }}</span>
-        </el-form-item>
-        <el-form-item label="版本">
-          <span>{{ editForm.version }}</span>
-        </el-form-item>
-        <el-form-item label="接口路径">
-          <div class="api-path-display">{{ editForm.full_path }}</div>
-        </el-form-item>
-        <el-form-item label="控制器">
-          <div class="info-display">{{ editForm.model }}</div>
-        </el-form-item>
-        <el-form-item label="方法">
-          <div class="info-display">{{ getActionFromPath(editForm.path) }}</div>
-        </el-form-item>
-        <el-form-item label="描述">
-          <el-input v-model="editForm.description" type="textarea" :rows="3" placeholder="请输入接口描述" />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-radio-group v-model="editForm.status">
-            <el-radio :label="1">
-              <div class="radio-option">
-                <span class="status-dot success"></span>
-                <span>开放</span>
-              </div>
-            </el-radio>
-            <el-radio :label="0">
-              <div class="radio-option">
-                <span class="status-dot warning"></span>
-                <span>维护</span>
-              </div>
-            </el-radio>
-            <el-radio :label="3">
-              <div class="radio-option">
-                <span class="status-dot info"></span>
-                <span>关闭</span>
-              </div>
-            </el-radio>
-          </el-radio-group>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button size="small" @click="editDialogVisible = false">取消</el-button>
-          <el-button type="primary" size="small" @click="confirmEdit" :loading="editLoading">确定</el-button>
-        </div>
-      </template>
-    </el-dialog>
+      <!-- 分页 -->
+      <div class="pagination-wrap">
+        <el-pagination
+          v-model:current-page="searchParams.page"
+          v-model:page-size="searchParams.page_size"
+          :total="totalCount"
+          :page-sizes="[5, 10, 20, 50, 100]"
+          background
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
+    </el-card>
   </div>
+
+  <!-- 编辑对话框 -->
+  <el-dialog
+    v-model="editDialogVisible"
+    title="编辑接口"
+    width="500px"
+    :close-on-click-modal="false"
+  >
+    <el-form :model="editForm" label-width="70px" size="small">
+      <el-form-item label="路径">
+        <div class="info-display">
+          <el-icon class="info-icon">
+            <Link />
+          </el-icon>
+          <span>{{ editForm.full_path }}</span>
+        </div>
+      </el-form-item>
+
+      <el-form-item label="方法">
+        <el-tag :type="getMethodType(editForm.method)" size="small">
+          {{ editForm.method }}
+        </el-tag>
+      </el-form-item>
+
+      <el-form-item label="模块">
+        <el-input
+          v-model="editForm.module"
+          placeholder="如：user、role"
+          clearable
+        >
+          <template #prefix>
+            <el-icon>
+              <Box />
+            </el-icon>
+          </template>
+        </el-input>
+      </el-form-item>
+
+      <el-form-item label="权限模式">
+        <el-select v-model="editForm.check_mode" style="width: 100%">
+          <el-option label="自动检查（RESTful）" value="auto" />
+          <el-option label="手动指定（推荐）" value="manual" />
+          <el-option label="不检查（公开）" value="none" />
+        </el-select>
+      </el-form-item>
+
+      <div v-if="editForm.check_mode === 'auto'" style="margin: 0 0 18px 70px">
+        <el-alert type="info" :closable="false" style="font-size: 12px">
+          自动映射为：
+          <code class="permission-code">
+            {{ editForm.module || "module" }}:{{
+              getAutoPermissionAction(editForm.method)
+            }}
+          </code>
+        </el-alert>
+      </div>
+
+      <el-form-item label="指定权限" v-if="editForm.check_mode === 'manual'">
+        <el-select
+          v-model="editForm.required_permission"
+          placeholder="请选择权限"
+          filterable
+          clearable
+          style="width: 100%"
+          :loading="permissionLoading"
+        >
+          <template #prefix>
+            <el-icon>
+              <Key />
+            </el-icon>
+          </template>
+          <el-option
+            v-for="perm in permissionList"
+            :key="perm.id"
+            :label="`${perm.name} (${perm.iden})`"
+            :value="perm.iden"
+          >
+            <div class="permission-option">
+              <div class="permission-option-header">
+                <span class="permission-name">{{ perm.name }}</span>
+                <span class="permission-iden">{{ perm.iden }}</span>
+              </div>
+              <div v-if="perm.description" class="permission-desc">
+                {{ perm.description }}
+              </div>
+            </div>
+          </el-option>
+        </el-select>
+      </el-form-item>
+
+      <el-form-item label="状态">
+        <el-radio-group v-model="editForm.status" size="small">
+          <el-radio :label="1">开放</el-radio>
+          <el-radio :label="0">维护</el-radio>
+          <el-radio :label="3">关闭</el-radio>
+        </el-radio-group>
+      </el-form-item>
+
+      <el-form-item label="描述">
+        <el-input
+          v-model="editForm.description"
+          type="textarea"
+          :rows="3"
+          placeholder="请输入接口描述"
+          maxlength="200"
+          show-word-limit
+        />
+      </el-form-item>
+    </el-form>
+
+    <template #footer>
+      <el-button @click="editDialogVisible = false" size="small">
+        取消
+      </el-button>
+      <el-button
+        type="primary"
+        @click="confirmEdit"
+        :loading="editLoading"
+        size="small"
+      >
+        保存
+      </el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup lang="ts">
-defineOptions({
-  name: "SystemApi"
-});
-
-import { ref, reactive, onMounted } from 'vue';
-import { ElMessageBox } from 'element-plus';
+import { ref, reactive, onMounted } from "vue";
 import {
-  Refresh, RefreshRight, Search, Check, Close, Edit,
-  Grid, Operation, Link, InfoFilled, Connection, ArrowDown
-} from '@element-plus/icons-vue';
-import {
-  getApiList, getApiDetail, updateApi, resetApiData, updateApiStatus, batchUpdateApiStatus
-} from '@/api/api';
-import { message } from '@/utils/message';
+  Search,
+  RefreshLeft,
+  RefreshRight,
+  Check,
+  Close,
+  Refresh,
+  Edit,
+  Link,
+  Box,
+  Key
+} from "@element-plus/icons-vue";
+import { getApiList, updateApi, resetApiData } from "@/api/api";
+import { getPermissionList, type PermissionInfo } from "@/api/permission";
+import { message } from "@/utils/message";
 
-// 定义扩展的ApiInfo类型
-interface ExtendedApiInfo {
+const selectedApis = ref<number[]>([]);
+
+const handleSelectionChange = (selection: any[]) => {
+  selectedApis.value = selection.map(item => item.id);
+};
+
+interface ApiInfo {
   id: number;
-  path: string;
-  full_path: string;
+  version?: string;
   method: string;
-  model: string;
-  version: string;
-  create_time: string;
-  update_time: string;
-  description: string;
+  module?: string;
+  model?: string;
+  path?: string;
+  full_path: string;
+  check_mode?: "auto" | "manual" | "none";
+  required_permission?: string;
+  description?: string;
   status: number;
+  create_time?: string;
+  update_time?: string;
 }
 
-// 状态变量
+const searchParams = reactive({
+  keyword: "",
+  module: "",
+  status: undefined as number | undefined,
+  page: 1,
+  page_size: 5
+});
+
+const apiList = ref<ApiInfo[]>([]);
+const totalCount = ref(0);
 const tableLoading = ref(false);
 const editDialogVisible = ref(false);
 const editLoading = ref(false);
-const selectedApis = ref<number[]>([]);
-const apiList = ref<ExtendedApiInfo[]>([]);
-const totalCount = ref(0);
-const editForm = reactive<ExtendedApiInfo>({
+const permissionList = ref<PermissionInfo[]>([]);
+const permissionLoading = ref(false);
+const editForm = reactive<ApiInfo>({
   id: 0,
-  path: '',
-  full_path: '',
-  method: '',
-  model: '',
-  version: '',
-  create_time: '',
-  update_time: '',
-  description: '',
+  full_path: "",
+  method: "",
+  module: "",
+  check_mode: "auto",
+  required_permission: "",
+  description: "",
   status: 1
 });
 
-// 消息提示函数
-const success = (msg: string) => message(msg, { type: 'success' });
-const error = (msg: string) => message(msg, { type: 'error' });
-const warning = (msg: string) => message(msg, { type: 'warning' });
-
-// 搜索参数
-const searchParams = reactive({
-  page: 1,
-  page_size: 5,
-  keyword: '',
-  status: undefined as number | string | undefined,
-});
-
-// 获取方法对应的样式类
-const getMethodClass = (method: string) => {
-  if (!method) return '';
-
-  const methodLower = method.toLowerCase();
-  switch (methodLower) {
-    case 'get': return 'get';
-    case 'post': return 'post';
-    case 'put': return 'put';
-    case 'delete': return 'delete';
-    case 'patch': return 'patch';
-    case 'options': return 'options';
-    case 'head': return 'head';
-    case 'connect': return 'connect';
-    case 'trace': return 'trace';
-    case 'any': return 'any';
-    default: return 'other';
-  }
+const getMethodType = (
+  method: string
+): "success" | "info" | "warning" | "primary" | "danger" => {
+  const map: Record<
+    string,
+    "success" | "info" | "warning" | "primary" | "danger"
+  > = {
+    GET: "success",
+    POST: "primary",
+    PUT: "warning",
+    DELETE: "danger",
+    PATCH: "warning",
+    ANY: "info"
+  };
+  return map[method] || "info";
 };
 
-// 获取状态文本
-const getStatusText = (status: number) => {
-  switch (status) {
-    case 0: return '维护';
-    case 1: return '开放';
-    case 3: return '关闭';
-    default: return '未知';
-  }
+const getAutoPermissionAction = (method: string): string => {
+  const map: Record<string, string> = {
+    GET: "view",
+    POST: "add",
+    PUT: "edit",
+    PATCH: "edit",
+    DELETE: "delete",
+    ANY: "unknown"
+  };
+  return map[method] || "unknown";
 };
 
-// 获取状态样式类
-const getStatusClass = (status: number) => {
-  switch (status) {
-    case 0: return 'warning';
-    case 1: return 'success';
-    case 3: return 'info';
-    default: return '';
-  }
-};
-
-// 从路径中提取应用名称
-const getAppName = (fullPath: string) => {
-  if (!fullPath) return '';
-
-  // 匹配 /api/xxx/ 格式
-  const match = fullPath.match(/\/([^\/]+)\/[^\/]+\//);
-  if (match && match[1]) {
-    return match[1];
-  }
-
-  return '';
-};
-
-// 从路径中提取方法名
-const getActionFromPath = (path: string) => {
-  if (!path) return '';
-
-  // 移除开头的斜杠
-  const cleanPath = path.startsWith('/') ? path.substring(1) : path;
-
-  // 如果路径中包含斜杠，取最后一部分
-  if (cleanPath.includes('/')) {
-    const parts = cleanPath.split('/');
-    return parts[parts.length - 1];
-  }
-
-  // 如果路径中包含冒号（参数），取冒号前的部分
-  if (cleanPath.includes(':')) {
-    return cleanPath.split(':')[0];
-  }
-
-  return cleanPath;
-};
-
-// 表格行样式
-const tableRowClassName = ({ row }: { row: ExtendedApiInfo }) => {
-  if (row.status === 3) return 'closed-row';
-  if (row.status === 0) return 'maintenance-row';
-  return '';
-};
-
-// 获取API接口列表
 const fetchApiList = async () => {
   tableLoading.value = true;
   try {
-    // 创建一个新的参数对象，确保类型正确
-    const params: any = {
-      page: searchParams.page,
-      page_size: searchParams.page_size,
-      keyword: searchParams.keyword
-    };
-
-    // 只有当status不是undefined时才添加到请求参数
-    if (searchParams.status !== undefined) {
-      getApis
-      params.status = Number(searchParams.status);
-    }
-
-    const res: any = await getApiList(params);
-    if (res?.code === 200 && res?.data) {
+    const res: any = await getApiList(searchParams);
+    if (res?.code === 200) {
       apiList.value = res.data.list || [];
       totalCount.value = res.data.total || 0;
-    } else {
-      error(res?.msg || '获取接口列表失败');
     }
-  } catch (err) {
-    console.error('获取接口列表失败:', err);
-    error('获取接口列表失败，请稍后重试');
+  } catch (error) {
+    message("获取列表失败", { type: "error" });
   } finally {
     tableLoading.value = false;
   }
 };
 
-// 搜索
 const handleSearch = () => {
   searchParams.page = 1;
-  // 处理状态参数，确保空字符串转为undefined
-  if (searchParams.status === '') {
-    searchParams.status = undefined;
+  fetchApiList();
+};
+
+const resetSearch = () => {
+  searchParams.keyword = "";
+  searchParams.module = "";
+  searchParams.status = undefined;
+  searchParams.page = 1;
+  fetchApiList();
+};
+
+const fetchPermissionList = async () => {
+  permissionLoading.value = true;
+  try {
+    const res: any = await getPermissionList({ page: 1, limit: 1000 });
+    if (res?.code === 200) {
+      permissionList.value = res.data.list || [];
+    }
+  } catch (error) {
+    console.error("获取权限列表失败", error);
+  } finally {
+    permissionLoading.value = false;
   }
-  fetchApiList();
 };
 
-// 分页大小变化
-const handleSizeChange = (val: number) => {
-  searchParams.page_size = val;
-  fetchApiList();
-};
-
-// 页码变化
-const handleCurrentChange = (val: number) => {
-  searchParams.page = val;
-  fetchApiList();
-};
-
-// 选择变化
-const handleSelectionChange = (selection: ExtendedApiInfo[]) => {
-  selectedApis.value = selection.map(item => item.id);
-};
-
-// 编辑接口
-const handleEdit = (row: ExtendedApiInfo) => {
-  editForm.id = row.id;
-  editForm.path = row.path;
-  editForm.full_path = row.full_path;
-  editForm.method = row.method;
-  editForm.model = row.model;
-  editForm.version = row.version;
-  editForm.description = row.description || '';
-  editForm.status = row.status;
+const handleEdit = (row: ApiInfo) => {
+  Object.assign(editForm, row);
   editDialogVisible.value = true;
+  // 打开对话框时加载权限列表
+  if (permissionList.value.length === 0) {
+    fetchPermissionList();
+  }
 };
 
-// 确认编辑
 const confirmEdit = async () => {
   editLoading.value = true;
   try {
     const res: any = await updateApi({
       id: editForm.id,
+      module: editForm.module,
+      check_mode: editForm.check_mode,
+      required_permission: editForm.required_permission,
       description: editForm.description,
       status: editForm.status
     });
     if (res?.code === 200) {
-      success('更新成功');
+      message("更新成功", { type: "success" });
       editDialogVisible.value = false;
       fetchApiList();
-    } else {
-      error(res?.msg || '更新失败');
     }
-  } catch (err) {
-    console.error('更新接口信息失败:', err);
-    error('更新接口信息失败，请稍后重试');
+  } catch (error) {
+    message("更新失败", { type: "error" });
   } finally {
     editLoading.value = false;
   }
 };
 
-// 设置接口状态
-const setApiStatus = async (row: ExtendedApiInfo, status: number) => {
-  try {
-    const res: any = await updateApiStatus(row.id, status);
-    if (res?.code === 200) {
-      const statusText = getStatusText(status);
-      success(`接口状态已更新为: ${statusText}`);
-      row.status = status;
-    } else {
-      error(res?.msg || '状态修改失败');
-    }
-  } catch (err) {
-    console.error('修改接口状态失败:', err);
-    error('修改接口状态失败，请稍后重试');
-  }
-};
-
-// 批量启用
-const handleBatchEnable = () => {
-  if (selectedApis.value.length === 0) {
-    warning('请选择要启用的接口');
-    return;
-  }
-
-  ElMessageBox.confirm(`确定要启用选中的 ${selectedApis.value.length} 个接口吗？`, '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(async () => {
-    try {
-      const res: any = await batchUpdateApiStatus(selectedApis.value, 1);
-      if (res?.code === 200) {
-        success('批量启用成功');
-        fetchApiList();
-      } else {
-        error(res?.msg || '批量启用失败');
-      }
-    } catch (err) {
-      console.error('批量启用接口失败:', err);
-      error('批量启用接口失败，请稍后重试');
-    }
-  }).catch(() => {
-    // 用户取消操作
-  });
-};
-
-// 批量禁用
-const handleBatchDisable = () => {
-  if (selectedApis.value.length === 0) {
-    warning('请选择要禁用的接口');
-    return;
-  }
-
-  ElMessageBox.confirm(`确定要禁用选中的 ${selectedApis.value.length} 个接口吗？`, '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(async () => {
-    try {
-      const res: any = await batchUpdateApiStatus(selectedApis.value, 0);
-      if (res?.code === 200) {
-        success('批量禁用成功');
-        fetchApiList();
-      } else {
-        error(res?.msg || '批量禁用失败');
-      }
-    } catch (err) {
-      console.error('批量禁用接口失败:', err);
-      error('批量禁用接口失败，请稍后重试');
-    }
-  }).catch(() => {
-    // 用户取消操作
-  });
-};
-
-// 同步接口
 const handleReset = async (clearExisting: boolean) => {
+  tableLoading.value = true;
   try {
-    tableLoading.value = true;
     const res: any = await resetApiData(clearExisting);
     if (res?.code === 200) {
-      success(`成功${clearExisting ? '重置' : '同步'}接口数据，共导入 ${res.data.imported_count} 个接口`);
+      message(`成功同步 ${res.data.imported_count} 个接口`, {
+        type: "success"
+      });
       fetchApiList();
-    } else {
-      error(res?.msg || `${clearExisting ? '重置' : '同步'}接口数据失败`);
     }
-  } catch (err) {
-    console.error(`${clearExisting ? '重置' : '同步'}接口数据失败:`, err);
-    error(`${clearExisting ? '重置' : '同步'}接口数据失败，请稍后重试`);
+  } catch (error) {
+    message("同步失败", { type: "error" });
   } finally {
     tableLoading.value = false;
   }
 };
 
-// 组件挂载时执行
+const handleSizeChange = () => {
+  searchParams.page = 1;
+  fetchApiList();
+};
+
+const handleCurrentChange = () => {
+  fetchApiList();
+};
+
 onMounted(() => {
   fetchApiList();
 });
 </script>
 
 <style lang="scss" scoped>
-.api-container {
-  display: flex;
-  flex-direction: column;
-  background-color: #fff;
-  font-size: 12px;
+.app-container {
+  padding: 20px;
 
-  .api-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 16px;
-    border-bottom: 1px solid #e8e8e8;
-
-    .title {
-      font-size: 14px;
-      font-weight: 500;
-      color: #333;
-    }
-  }
-
-  .filter-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 16px;
-    background-color: #fafafa;
-
-    .left {
+  .main-card {
+    // 顶部操作区
+    .header-section {
       display: flex;
-      gap: 8px;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 20px;
+      padding: 16px;
+      background: #fafbfc;
+      border-radius: 4px;
+      margin-bottom: 0;
 
-      .search-input {}
+      .search-area {
+        flex: 1;
+
+        .search-form {
+          margin-bottom: 0;
+
+          :deep(.el-form-item) {
+            margin-bottom: 0;
+            margin-right: 12px;
+
+            &:last-child {
+              margin-right: 0;
+            }
+
+            .el-form-item__label {
+              font-weight: 500;
+              color: #606266;
+              font-size: 13px;
+            }
+          }
+        }
+      }
+
+      .action-area {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+
+        .refresh-btn {
+          &:hover {
+            color: #409eff;
+            border-color: #c6e2ff;
+            background-color: #ecf5ff;
+          }
+        }
+      }
     }
 
-    .right {
-      display: flex;
-      gap: 8px;
-    }
-  }
+    :deep(.el-table) {
+      font-size: 13px;
 
-  .table-wrap {
-    flex: 1;
-    overflow: auto;
-    padding: 0 16px;
-
-    .el-table {
-      :deep(.el-table__header) th {
-        background-color: #fafafa;
+      .el-table__header th {
+        background: #fafafa;
         color: #606266;
-        padding: 8px 0;
+        font-weight: 600;
+        font-size: 13px;
+      }
+
+      .el-table__body tr:hover > td {
+        background: #f5f7fa !important;
+      }
+    }
+
+    .pagination-wrap {
+      margin-top: 16px;
+      display: flex;
+      justify-content: flex-end;
+      padding: 12px 0 0;
+      border-top: 1px solid #ebeef5;
+    }
+  }
+
+  // ID 文本
+  .id-text {
+    font-family: "Consolas", monospace;
+    font-size: 12px;
+    color: #909399;
+  }
+
+  // 路径单元格 - 唯一保留图标的地方
+  .path-cell {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    .path-icon {
+      color: #409eff;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .path-text {
+      font-family: "Consolas", "Monaco", "Courier New", monospace;
+      font-size: 12px;
+      color: #303133;
+    }
+  }
+
+  // 权限文本
+  .permission-text {
+    font-family: "Consolas", "Monaco", monospace;
+    font-size: 12px;
+    color: #606266;
+  }
+
+  // 时间文本
+  .time-text {
+    font-size: 12px;
+    color: #909399;
+  }
+
+  .text-muted {
+    color: #c0c4cc;
+    font-size: 12px;
+  }
+
+  // 对话框样式
+  :deep(.el-dialog) {
+    .el-dialog__body {
+      padding: 20px 24px;
+    }
+
+    .el-form-item {
+      margin-bottom: 18px;
+
+      .el-form-item__label {
+        font-size: 13px;
+        color: #606266;
         font-weight: 500;
       }
-
-      :deep(.el-table__row) {
-        td {
-          padding: 6px 0;
-        }
-      }
-
-      .closed-row td {
-        color: #999;
-        background-color: #fafafa;
-      }
-
-      .maintenance-row td {
-        background-color: #fffef8;
-      }
     }
   }
 
-  .el-tag {
-    font-size: 11px;
-    height: 20px;
-    line-height: 18px;
-    padding: 0 4px;
-
-    &.get {
-      color: #389e0d;
-      background-color: #f6ffed;
-      border-color: #b7eb8f;
-    }
-
-    &.post {
-      color: #1890ff;
-      background-color: #e6f7ff;
-      border-color: #91d5ff;
-    }
-
-    &.put {
-      color: #fa8c16;
-      background-color: #fff7e6;
-      border-color: #ffd591;
-    }
-
-    &.delete {
-      color: #f5222d;
-      background-color: #fff1f0;
-      border-color: #ffa39e;
-    }
-
-    &.any {
-      color: #722ed1;
-      background-color: #f9f0ff;
-      border-color: #d3adf7;
-    }
-
-    &.patch,
-    &.options,
-    &.head,
-    &.connect,
-    &.trace,
-    &.other {
-      color: #722ed1;
-      background-color: #f9f0ff;
-      border-color: #d3adf7;
-    }
-  }
-
-  .path-cell,
-  .controller-cell {
-    font-family: 'SFMono-Regular', Consolas, monospace;
-    font-size: 11px;
-  }
-
-  .controller-cell {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-
-    .el-icon {
-      color: #909399;
-      font-size: 12px;
-    }
-  }
-
-  .status-indicator {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-  }
-
-  .status-dot {
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-
-    &.success {
-      background-color: #52c41a;
-      box-shadow: 0 0 3px rgba(82, 196, 26, 0.5);
-    }
-
-    &.warning {
-      background-color: #faad14;
-      box-shadow: 0 0 3px rgba(250, 173, 20, 0.5);
-    }
-
-    &.info {
-      background-color: #999;
-      box-shadow: 0 0 3px rgba(153, 153, 153, 0.5);
-    }
-  }
-
-  .status-text {
-    display: inline-block;
-    padding: 0 6px;
-    height: 20px;
-    line-height: 20px;
-    border-radius: 2px;
-    font-size: 11px;
-
-    &.success {
-      color: #52c41a;
-      background: #f6ffed;
-    }
-
-    &.warning {
-      color: #faad14;
-      background: #fffbe6;
-    }
-
-    &.info {
-      color: #999;
-      background: #f5f5f5;
-    }
-  }
-
-  .actions {
-    display: flex;
-    justify-content: center;
-    gap: 2px;
-  }
-
-  .pagination {
-    padding: 12px 16px;
-    display: flex;
-    justify-content: flex-end;
-    border-top: 1px solid #e8e8e8;
-  }
-
-  .api-path-display,
+  // 信息展示
   .info-display {
-    padding: 6px 10px;
-    background-color: #fafafa;
-    border-radius: 2px;
-    border: 1px solid #e8e8e8;
-    font-family: 'SFMono-Regular', Consolas, monospace;
-    font-size: 12px;
-    color: #333;
-    word-break: break-all;
-  }
-
-  .radio-option {
     display: flex;
     align-items: center;
-    gap: 4px;
-  }
+    padding: 6px 10px;
+    background: #f5f7fa;
+    border-radius: 4px;
+    font-family: "Consolas", "Monaco", monospace;
+    font-size: 12px;
+    color: #606266;
 
-  :deep(.el-form-item) {
-    margin-bottom: 14px;
-  }
-
-  :deep(.el-dialog__body) {
-    padding: 15px 20px;
-  }
-
-  :deep(.el-dialog__header) {
-    padding: 12px 20px;
-    margin-right: 0;
-    background-color: #fafafa;
-    border-bottom: 1px solid #e8e8e8;
-
-    .el-dialog__title {
-      font-size: 14px;
-      font-weight: 500;
+    .info-icon {
+      color: #409eff;
+      margin-right: 6px;
+      font-size: 13px;
     }
   }
 
-  :deep(.el-dialog__footer) {
-    padding: 10px 20px;
-    border-top: 1px solid #e8e8e8;
-
+  // 权限代码
+  .permission-code {
+    background: #ecf5ff;
+    color: #409eff;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: "Consolas", monospace;
+    font-size: 12px;
+    font-weight: 500;
+    margin-left: 4px;
   }
 
-  @media (max-width: 768px) {
-    .api-container {
-      .filter-bar {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
+  // 权限下拉选项
+  :deep(.el-select-dropdown__item) {
+    height: auto;
+    padding: 10px 12px;
 
-        .left,
-        .right {
-          width: 100%;
+    .permission-option {
+      .permission-option-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 4px;
+
+        .permission-name {
+          font-size: 13px;
+          color: #303133;
+          font-weight: 500;
         }
 
-        .right {
-          justify-content: flex-end;
+        .permission-iden {
+          font-size: 12px;
+          color: #909399;
+          font-family: "Consolas", monospace;
+          background: #f5f7fa;
+          padding: 2px 8px;
+          border-radius: 3px;
         }
+      }
 
-        .search-input {
-          flex: 1;
-          width: auto;
-        }
+      .permission-desc {
+        font-size: 12px;
+        color: #909399;
+        line-height: 1.5;
+        margin-top: 4px;
       }
     }
   }
