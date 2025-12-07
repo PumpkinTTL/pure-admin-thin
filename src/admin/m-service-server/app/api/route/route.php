@@ -2,79 +2,102 @@
 
 use think\facade\Route;
 
-//用户分组 - 不需要登录的接口（登录、注册等）
+// ============================================
+// 用户模块路由组
+// ============================================
+
+// ========================================
+// v1 版本 - 管理端接口
+// ========================================
 Route::group('/:version/user', function () {
-    Route::rule('/login', ':version.User/login');
-    Route::rule('/register', ':version.User/register'); // 用户注册
-    Route::rule('/dualTokenLogin', ':version.User/login'); // 双 token登录
-    Route::rule('/refreshToken', ':version.User/refreshToken'); // 刷新token
-
-    // 密码重置（不需要登录）
-    Route::rule('/requestPasswordReset', ':version.User/requestPasswordReset'); // 请求密码重置
-    Route::rule('/verifyResetToken', ':version.User/verifyResetToken'); // 校验重置Token
-    Route::rule('/resetPassword', ':version.User/resetPassword'); // 重置密码
-    Route::rule('/sendEmailCode', ':version.User/sendEmailCode'); // 发送邮箱验证码
-    Route::rule('/testEmail', ':version.User/testEmail'); // 测试邮件发送
-
-    // v2 客户端专用接口 - 不需要登录
-    Route::rule('/checkUsername', ':version.User/checkUsername'); // 检查用户名是否存在
-    Route::rule('/checkEmail', ':version.User/checkEmail'); // 检查邮箱是否存在
+    
+    // ========================================
+    // 公开接口（无需登录）
+    // ========================================
+    Route::group(function () {
+        // --- 登录注册 ---
+        Route::rule('/login', ':version.User/login');                           // 用户登录
+        Route::rule('/register', ':version.User/register');                     // 用户注册
+        
+        // --- 密码重置流程 ---
+        Route::rule('/requestPasswordReset', ':version.User/requestPasswordReset'); // 请求密码重置
+        Route::rule('/verifyResetToken', ':version.User/verifyResetToken');     // 校验重置Token
+        Route::rule('/resetPassword', ':version.User/resetPassword');           // 重置密码
+        
+        // --- 邮箱验证 ---
+        Route::rule('/sendEmailCode', ':version.User/sendEmailCode');           // 发送邮箱验证码
+        Route::rule('/testEmail', ':version.User/testEmail');                   // 测试邮件发送
+    });
+    
+    // ========================================
+    // 需要登录的接口
+    // ========================================
+    Route::group(function () {
+        // --- 用户信息查询 ---
+        Route::rule('/selectUserInfoById', ':version.User/selectUserInfoById'); // 根据ID查询用户信息
+        Route::rule('/selectUserListWithRoles', ':version.User/selectUserListWithRoles'); // 查询用户列表（含角色）
+        
+        // --- 用户管理CRUD ---
+        Route::rule('/add', ':version.User/add');                               // 添加用户
+        Route::rule('/update', ':version.User/update');                         // 更新用户信息
+        Route::rule('/delete', ':version.User/delete');                         // 删除用户
+        Route::rule('/restore', ':version.User/restore');                       // 恢复删除的用户
+        
+        // --- 会员管理 ---
+        Route::rule('/activatePremium', ':version.User/activatePremium');       // 开通会员
+        Route::rule('/cancelPremium', ':version.User/cancelPremium');           // 取消会员
+        Route::rule('/getPremiumStatus', ':version.User/getPremiumStatus');     // 查询会员状态
+        
+        // --- 密码管理 ---
+        Route::rule('/changePassword', ':version.User/changePassword');         // 修改密码
+        
+        // --- 登录管理 ---
+        Route::rule('/logout', ':version.User/logout');                         // 登出
+        
+        // --- Token管理 ---
+        Route::rule('/refreshToken', ':version.User/refreshToken');             // 刷新token
+    })->middleware([app\api\middleware\Auth::class]);
+    
 });
 
-//用户分组 - 需要登录的接口（应用 Auth 中间件）
+// ============================================
+// v2 版本 - 客户端接口
+// ============================================
 Route::group('/:version/user', function () {
-    // 管理端接口
-    Route::rule('/logout', ':version.User/logout'); // 登出
-    Route::rule('/forceLogoutUser', ':version.User/forceLogoutUser'); // 强制失效用户token
-    Route::rule('/selectUserInfoById', ':version.User/selectUserInfoById');
-    Route::rule('/add', ':version.User/add');
-    Route::rule('/delete', ':version.User/delete');
-    Route::rule('/restore', ':version.User/restore');
-    Route::rule('/update', ':version.User/update');
-    Route::rule('/outLogin', ':version.User/outLogin');
-    Route::rule('/selectUserListWithRoles', ':version.User/selectUserListWithRoles');
-
-    // 密码管理
-    Route::rule('/changePassword', ':version.User/changePassword'); // 修改密码
-
-    // 会员管理
-    Route::rule('/activatePremium', ':version.User/activatePremium'); // 开通会员
-    Route::rule('/cancelPremium', ':version.User/cancelPremium'); // 取消会员
-    Route::rule('/getPremiumStatus', ':version.User/getPremiumStatus'); // 查询会员状态
-})->middleware([
-    app\api\middleware\Auth::class
-]);
-
-// 客户端用户专用接口（v2版本，核心CRUD）
-// 需要登录认证
-Route::group('/v2/user', function () {
-    Route::rule('/profile', 'v2.User/profile'); // 获取用户信息
-    Route::rule('/update', 'v2.User/update'); // 更新用户资料
-    Route::rule('/membership', 'v2.User/membership'); // 获取会员状态
-    Route::rule('/delete', 'v2.User/delete'); // 注销账号
-    Route::rule('/logout', 'v2.User/logout'); // 登出
-})->middleware([
-    app\api\middleware\Auth::class
-]);
-
-// 客户端用户专用接口（v2版本，不需要登录）
-Route::group('/v2/user', function () {
-    Route::rule('/checkUsername', 'v2.User/checkUsername'); // 检查用户名是否可用
-    Route::rule('/checkEmail', 'v2.User/checkEmail'); // 检查邮箱是否可用
+    
+    // ========================================
+    // 公开接口（无需登录）
+    // ========================================
+    Route::group(function () {
+        // --- 用户名/邮箱检查 ---
+        Route::rule('/checkUsername', ':version.User/checkUsername');           // 检查用户名是否可用
+        Route::rule('/checkEmail', ':version.User/checkEmail');                 // 检查邮箱是否可用
+    });
+    
+    // ========================================
+    // 需要登录的接口
+    // ========================================
+    Route::group(function () {
+        // --- 个人资料管理 ---
+        Route::rule('/profile', ':version.User/profile');                       // 获取用户信息
+        Route::rule('/update', ':version.User/update');                         // 更新用户资料
+        
+        // --- 会员管理 ---
+        Route::rule('/membership', ':version.User/membership');                 // 获取会员状态
+        
+        // --- 账号管理 ---
+        Route::rule('/delete', ':version.User/delete');                         // 注销账号
+        Route::rule('/logout', ':version.User/logout');                         // 登出
+    })->middleware([app\api\middleware\Auth::class]);
+    
 });
 
-// 认证相关接口
+// ========================================
+// 认证相关接口（兼容性路由）
+// ========================================
 Route::group('/:version/auth', function () {
-    Route::rule('/refresh', ':version.User/refreshToken'); // 刷新token - 指向User控制器
+    Route::rule('/refresh', ':version.User/refreshToken');                      // 刷新token（指向User控制器）
 });
-
-// 用户信息接口（应用 Auth 中间件）
-Route::group('/:version/user', function () {
-    Route::rule('/info', ':version.User/info'); // 获取用户信息
-    Route::rule('/testToken', ':version.User/testToken'); // 测试token读取
-})->middleware([
-    app\api\middleware\Auth::class
-]);
 
 //资源分组
 Route::group('/:version/resource', function () {

@@ -437,7 +437,7 @@ class User extends BaseController
     /**
      * 退出登录
      */
-    function outLogin(): Json
+    function logout(): Json
     {
         // 调用服务退出登录
         $result = UserService::logout(request()->JWTUid);
