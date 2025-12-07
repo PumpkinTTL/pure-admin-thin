@@ -105,9 +105,9 @@ Route::group('/:version/resource', function () {
     Route::rule('add', ':version.resource/add');
     Route::rule('selectResourceById', ':version.resource/selectResourceById');
     Route::rule('update', ':version.resource/update');
-    Route::rule('delete', ':version.resource/deleteResource');
+    Route::rule('delete', ':version.resource/delete');
     Route::rule('restore', ':version.resource/restore');
-    Route::rule('forceDelete', ':version.resource/forceDeleteResource');
+    Route::rule('forceDelete', ':version.resource/forceDelete');
     Route::rule('getDeletedResources', ':version.resource/getDeletedResources');
     Route::rule('testSoftDelete', ':version.resource/testSoftDelete');
 });
@@ -115,7 +115,6 @@ Route::group('/:version/resource', function () {
 //类别分组
 Route::group('/:version/type', function () {
     Route::rule('selectTypeAll', ':version.Type/selectTypeAll');
-    Route::rule('/selectTypeInfoById', ':version.Type/selectTypeInfoById');
 });
 
 //文章
@@ -164,8 +163,6 @@ Route::group('/:version/comments', function () {
 // 点赞组
 Route::group('/:version/likes', function () {
     Route::rule('toggle', ':version.likes/toggle'); // 点赞/取消点赞
-    Route::rule('check', ':version.likes/check'); // 检查是否点赞
-    Route::rule('batchCheck', ':version.likes/batchCheck'); // 批量检查点赞状态
     Route::rule('list', ':version.likes/list'); // 获取用户点赞列表
 });
 
@@ -190,8 +187,6 @@ Route::group('/:version/category', function () {
     Route::rule('delete', ':version.category/delete');
     Route::rule('restore', ':version.category/restore');
     Route::rule('getDeletedCategories', ':version.category/getDeletedCategories');
-    Route::rule('testSoftDelete', ':version.category/testSoftDelete');
-    Route::rule('testDelete', ':version.category/testDelete');
 });
 
 //路由分组
@@ -304,8 +299,6 @@ Route::group('/:version/file', function () {
     Route::rule('update', ':version.File/updateFile');
     // 读取文件内容（文本预览）
     Route::rule('content', ':version.File/readFileContent');
-    // 创建文件记录（手动添加）
-    Route::rule('createRecord', ':version.File/createFileRecord');
     // 文件代理访问（解决CORS）
     Route::rule('proxy', ':version.FileProxy/proxy');
 });

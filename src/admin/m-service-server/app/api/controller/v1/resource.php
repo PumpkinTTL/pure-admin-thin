@@ -128,7 +128,7 @@ class resource extends BaseController
      * 删除资源（支持单个和批量删除）
      * @return Json
      */
-    public function deleteResource(): Json
+    public function delete(): Json
     {
         $params = request()->param();
 
@@ -202,7 +202,7 @@ class resource extends BaseController
      * 彻底删除资源
      * @return Json
      */
-    public function forceDeleteResource(): Json
+    public function forceDelete(): Json
     {
         $id = request()->param('id');
         $result = resourceService::forceDeleteResource($id);
