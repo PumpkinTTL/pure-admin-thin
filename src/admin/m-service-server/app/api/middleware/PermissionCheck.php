@@ -66,7 +66,7 @@ class PermissionCheck
     }
     
     /**
-     * 自动权限检查
+     * 自动权限检查（改进版 - 修复通配符权限提升漏洞）
      */
     private function checkAutoPermission($request, $api, $next): Response
     {
@@ -77,44 +77,100 @@ class PermissionCheck
         // 2. 映射 HTTP 方法到操作
         $action = $this->mapMethodToAction($method);
         
-        // 3. 构建所需权限列表（按优先级）
-        $requiredPermissions = [
-            "{$module}:{$action}:all",   // 最高权限：查看所有
-            "{$module}:{$action}:dept",  // 中等权限：查看部门
-            "{$module}:{$action}:own",   // 最低权限：查看自己
-            "{$module}:*",               // 模块所有权限
-            "*:*:*"                      // 超级管理员
-        ];
-        
-        // 4. 获取用户权限
+        // 3. 获取用户权限
         $userPermissions = $this->getUserPermissions($request->userId);
         
-        // 5. 匹配权限（按优先级）
-        foreach ($requiredPermissions as $perm) {
-            if (in_array($perm, $userPermissions)) {
-                // 匹配成功！
-                
-                // 6. 提取数据权限范围
-                $scope = $this->extractScope($perm);
-                
-                // 7. 注入到请求中，供业务逻辑使用
+        // 4. 检查超级管理员权限（最高优先级）
+        if (in_array('*:*:*', $userPermissions) || in_array('*', $userPermissions)) {
+            $request->dataScope = 'all';
+            $request->matchedPermission = '*:*:*';
+            return $next($request);
+        }
+        
+        // 5. 按优先级检查精确权限（带数据范围）
+        $scopePriority = ['all', 'dept', 'own'];
+        foreach ($scopePriority as $scope) {
+            $exactPermission = "{$module}:{$action}:{$scope}";
+            if (in_array($exactPermission, $userPermissions)) {
+                // 精确匹配成功
                 $request->dataScope = $scope;
-                $request->matchedPermission = $perm;
-                
-                // 8. 继续执行业务逻辑
+                $request->matchedPermission = $exactPermission;
                 return $next($request);
             }
         }
         
-        // 9. 没有匹配的权限
+        // 6. 检查通配符权限（需要更严格的验证）
+        foreach ($userPermissions as $perm) {
+            if (strpos($perm, '*') === false) {
+                continue; // 跳过非通配符权限
+            }
+            
+            // 检查是否匹配当前模块和操作
+            $matchResult = $this->matchWildcardPermission($perm, $module, $action);
+            if ($matchResult['matched']) {
+                $request->dataScope = $matchResult['scope'];
+                $request->matchedPermission = $perm;
+                return $next($request);
+            }
+        }
+        
+        // 7. 没有匹配的权限
         return json([
             'code' => 403,
             'msg' => '无权限访问',
             'data' => [
-                'required_permissions' => $requiredPermissions,
+                'required_permissions' => [
+                    "{$module}:{$action}:all",
+                    "{$module}:{$action}:dept",
+                    "{$module}:{$action}:own"
+                ],
                 'hint' => '请联系管理员分配相应权限'
             ]
         ]);
+    }
+    
+    /**
+     * 匹配通配符权限（改进版 - 更安全的通配符处理）
+     * @param string $wildcardPerm 用户的通配符权限（如：user:*:*, user:view:*, *:view:*）
+     * @param string $module 需要的模块（如：user）
+     * @param string $action 需要的操作（如：view）
+     * @return array ['matched' => bool, 'scope' => string]
+     */
+    private function matchWildcardPermission(string $wildcardPerm, string $module, string $action): array
+    {
+        $parts = explode(':', $wildcardPerm);
+        
+        // 确保权限格式正确（至少2段）
+        if (count($parts) < 2) {
+            return ['matched' => false, 'scope' => 'none'];
+        }
+        
+        $permModule = $parts[0] ?? '';
+        $permAction = $parts[1] ?? '';
+        $permScope = $parts[2] ?? '';
+        
+        // 1. 检查模块是否匹配
+        if ($permModule !== '*' && $permModule !== $module) {
+            return ['matched' => false, 'scope' => 'none'];
+        }
+        
+        // 2. 检查操作是否匹配
+        if ($permAction !== '*' && $permAction !== $action) {
+            return ['matched' => false, 'scope' => 'none'];
+        }
+        
+        // 3. 确定数据范围
+        $scope = 'all'; // 默认最高权限
+        
+        if ($permScope !== '' && $permScope !== '*') {
+            // 如果明确指定了范围，使用指定的范围
+            $scope = $permScope;
+        } else if ($permModule === '*' || $permAction === '*') {
+            // 如果模块或操作是通配符，给予最高权限
+            $scope = 'all';
+        }
+        
+        return ['matched' => true, 'scope' => $scope];
     }
     
     /**
@@ -139,6 +195,8 @@ class PermissionCheck
         if ($this->hasPermission($requiredPermission, $userPermissions)) {
             // 有权限，继续执行
             $request->matchedPermission = $requiredPermission;
+            // 提取并注入数据范围（供业务逻辑使用）
+            $request->dataScope = $this->extractScopeFromPermission($requiredPermission);
             return $next($request);
         }
         
@@ -154,35 +212,89 @@ class PermissionCheck
     }
     
     /**
-     * 检查是否有权限（支持通配符）
+     * 检查是否有权限（支持通配符 - 改进版）
+     * 用于手动模式的权限检查
      */
     private function hasPermission(string $required, array $userPermissions): bool
     {
-        // 1. 精确匹配
+        // 1. 精确匹配（最优先）
         if (in_array($required, $userPermissions)) {
             return true;
         }
         
-        // 2. 检查通配符权限
+        // 2. 检查超级管理员权限
+        if (in_array('*', $userPermissions) || 
+            in_array('*:*', $userPermissions) || 
+            in_array('*:*:*', $userPermissions)) {
+            return true;
+        }
+        
+        // 3. 检查通配符权限（更严格的匹配）
         foreach ($userPermissions as $perm) {
-            // 超级管理员（匹配所有）
-            if ($perm === '*' || $perm === '*:*' || $perm === '*:*:*') {
-                return true;
+            // 跳过非通配符权限
+            if (strpos($perm, '*') === false) {
+                continue;
             }
             
-            // 通配符匹配
-            if (strpos($perm, '*') !== false) {
-                // 将通配符权限转换为正则表达式
-                // 'user:*' → '^user:[^:]+$'
-                // 'user:*:*' → '^user:[^:]+:[^:]+$'
-                $pattern = '/^' . str_replace('*', '[^:]+', preg_quote($perm, '/')) . '$/';
-                if (preg_match($pattern, $required)) {
-                    return true;
-                }
+            // 使用改进的通配符匹配逻辑
+            if ($this->matchWildcardPattern($perm, $required)) {
+                return true;
             }
         }
         
         return false;
+    }
+    
+    /**
+     * 通配符模式匹配（改进版 - 更安全且灵活）
+     * @param string $pattern 通配符模式（如：user:*:*, user:*, article:*:*:*）
+     * @param string $required 需要的权限（如：user:view:all）
+     * @return bool
+     */
+    private function matchWildcardPattern(string $pattern, string $required): bool
+    {
+        // 将通配符权限和需要的权限都拆分成段
+        $patternParts = explode(':', $pattern);
+        $requiredParts = explode(':', $required);
+        
+        // 获取最小段数（用于匹配）
+        $minLength = min(count($patternParts), count($requiredParts));
+        
+        // 逐段匹配（只匹配到最短的那个）
+        for ($i = 0; $i < $minLength; $i++) {
+            $patternPart = $patternParts[$i];
+            $requiredPart = $requiredParts[$i];
+            
+            // 如果是通配符，跳过这一段
+            if ($patternPart === '*') {
+                continue;
+            }
+            
+            // 如果不是通配符，必须精确匹配
+            if ($patternPart !== $requiredPart) {
+                return false;
+            }
+        }
+        
+        // 如果pattern比required短，检查pattern的最后一段是否是通配符
+        if (count($patternParts) < count($requiredParts)) {
+            // 最后一段必须是通配符才能匹配更长的权限
+            $lastPart = end($patternParts);
+            if ($lastPart !== '*') {
+                return false;
+            }
+        }
+        
+        // 如果pattern比required长，检查多余的段是否都是通配符
+        if (count($patternParts) > count($requiredParts)) {
+            for ($i = count($requiredParts); $i < count($patternParts); $i++) {
+                if ($patternParts[$i] !== '*') {
+                    return false;
+                }
+            }
+        }
+        
+        return true;
     }
     
     /**
@@ -200,9 +312,11 @@ class PermissionCheck
     }
     
     /**
-     * 提取权限范围
+     * 从权限字符串中提取数据范围
+     * @param string $permission 权限字符串（如：user:view:dept）
+     * @return string 数据范围（all/dept/own）
      */
-    private function extractScope(string $permission): string
+    private function extractScopeFromPermission(string $permission): string
     {
         // 'user:view:dept' → ['user', 'view', 'dept']
         $parts = explode(':', $permission);
@@ -215,7 +329,13 @@ class PermissionCheck
             return 'all';
         }
         
-        return $scope;
+        // 验证是否是有效的范围
+        if (in_array($scope, ['all', 'dept', 'own'])) {
+            return $scope;
+        }
+        
+        // 如果不是标准范围，默认返回 own（最保守）
+        return 'own';
     }
     
     /**
