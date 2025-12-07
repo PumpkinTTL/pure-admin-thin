@@ -143,15 +143,7 @@ const systemRouter = {
         icon: "ep:clock"
       }
     },
-    {
-      path: "/system/api",
-      name: "SystemApi",
-      meta: {
-        title: "接口管理",
-        roles: ["superAdmin"],
-        icon: "ep:connection"
-      }
-    },
+
     {
       path: "/system/backup",
       name: "SystemBackup",
@@ -323,46 +315,14 @@ const permissionRouter = {
       }
     },
     {
-      path: "/permission/page/index",
-      name: "PermissionPage",
+      path: "/permission/api",
+      name: "PermissionApi",
+      component: "/src/views/system/api.vue",
       meta: {
-        title: "页面权限",
-        roles: ["superAdmin", "common"],
-        icon: "ep:message-box"
-      }
-    },
-    {
-      path: "/permission/button",
-      meta: {
-        title: "按钮权限",
+        title: "接口管理",
         roles: ["superAdmin"],
-        icon: "ep:operation"
-      },
-      children: [
-        {
-          path: "/permission/button/router",
-          component: "permission/button/index",
-          name: "PermissionButtonRouter",
-          meta: {
-            title: "路由返回按钮权限",
-            auths: [
-              "permission:btn:add",
-              "permission:btn:edit",
-              "permission:btn:delete"
-            ],
-            icon: "ep:operation"
-          }
-        },
-        {
-          path: "/permission/button/login",
-          component: "permission/button/perms",
-          name: "PermissionButtonLogin",
-          meta: {
-            title: "登录接口返回按钮权限",
-            icon: "ep:key"
-          }
-        }
-      ]
+        icon: "ep:connection"
+      }
     }
   ]
 };

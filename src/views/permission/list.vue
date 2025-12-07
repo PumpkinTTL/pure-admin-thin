@@ -1,62 +1,120 @@
 <template>
   <div class="permission-container">
-    <el-dialog v-model="showAddOrEditModal" :title="currentPermission.id ? '编辑权限' : '新增权限'" width="550"
-      :before-close="handleClose">
-      <el-form :model="currentPermission" ref="permissionFormRef" :rules="permissionRules" label-width="100px">
+    <el-dialog
+      v-model="showAddOrEditModal"
+      :title="currentPermission.id ? '编辑权限' : '新增权限'"
+      width="550"
+      :before-close="handleClose"
+    >
+      <el-form
+        ref="permissionFormRef"
+        :model="currentPermission"
+        :rules="permissionRules"
+        label-width="100px"
+      >
         <el-form-item label="模块名称" prop="name">
-          <el-input v-model="currentPermission.name" placeholder="请输入模块名称，如：user、article" />
+          <el-input
+            v-model="currentPermission.name"
+            placeholder="请输入模块名称，如：user、article"
+          />
         </el-form-item>
         <el-form-item label="权限标识" prop="iden">
-          <el-input v-model="currentPermission.iden" placeholder="请输入权限标识，如：user:view 或 user:view:all" />
+          <el-input
+            v-model="currentPermission.iden"
+            placeholder="请输入权限标识，如：user:view 或 user:view:all"
+          />
         </el-form-item>
         <el-form-item label="权限描述" prop="description">
-          <el-input v-model="currentPermission.description" type="textarea" placeholder="请输入权限描述" />
+          <el-input
+            v-model="currentPermission.description"
+            type="textarea"
+            placeholder="请输入权限描述"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="showAddOrEditModal = false">取消</el-button>
-          <el-button type="primary" @click="submitPermission" :loading="submitting">确认</el-button>
+          <el-button
+            type="primary"
+            :loading="submitting"
+            @click="submitPermission"
+          >
+            确认
+          </el-button>
         </div>
       </template>
     </el-dialog>
 
     <!-- 分配API对话框 -->
-    <el-dialog v-model="showAssignApiModal" :before-close="handleClose" destroy-on-close>
+    <el-dialog
+      v-model="showAssignApiModal"
+      :before-close="handleClose"
+      destroy-on-close
+    >
       <el-form label-width="100px" class="assign-api-form">
         <div class="permission-info-card">
           <div class="permission-info-item">
             <span class="info-label">权限ID</span>
-            <el-tag type="info" effect="plain" size="small" class="id-tag">{{ currentPermission.id }}</el-tag>
+            <el-tag type="info" effect="plain" size="small" class="id-tag">
+              {{ currentPermission.id }}
+            </el-tag>
           </div>
           <div class="permission-info-item">
             <span class="info-label">权限名称</span>
-            <span class="permission-name-text">{{ currentPermission.name }}</span>
+            <span class="permission-name-text">
+              {{ currentPermission.name }}
+            </span>
           </div>
           <div class="permission-info-item">
             <span class="info-label">权限标识</span>
-            <el-tag :type="getTagTypeByPermissionType(currentPermission.iden)" size="small">{{ currentPermission.iden
-            }}</el-tag>
+            <el-tag
+              :type="getTagTypeByPermissionType(currentPermission.iden)"
+              size="small"
+            >
+              {{ currentPermission.iden }}
+            </el-tag>
           </div>
         </div>
         <el-divider content-position="left">
           <span class="api-divider-title">API接口分配</span>
         </el-divider>
-        <div class="api-container" v-loading="apiLoading" element-loading-text="加载API接口中...">
+        <div
+          v-loading="apiLoading"
+          class="api-container"
+          element-loading-text="加载API接口中..."
+        >
           <div class="api-filter">
-            <el-input v-model="apiSearchKeyword" placeholder="搜索接口" clearable @input="filterApis">
-              <template #prefix><el-icon>
+            <el-input
+              v-model="apiSearchKeyword"
+              placeholder="搜索接口"
+              clearable
+              @input="filterApis"
+            >
+              <template #prefix>
+                <el-icon>
                   <Search />
-                </el-icon></template>
+                </el-icon>
+              </template>
             </el-input>
-            <el-select v-model="apiSearchMethod" placeholder="请求方法" clearable @change="filterApis">
+            <el-select
+              v-model="apiSearchMethod"
+              placeholder="请求方法"
+              clearable
+              @change="filterApis"
+            >
               <el-option label="全部" value="" />
               <el-option label="GET" value="GET" />
               <el-option label="POST" value="POST" />
               <el-option label="PUT" value="PUT" />
               <el-option label="DELETE" value="DELETE" />
             </el-select>
-            <el-select v-model="apiSearchStatus" placeholder="状态" clearable @change="filterApis">
+            <el-select
+              v-model="apiSearchStatus"
+              placeholder="状态"
+              clearable
+              @change="filterApis"
+            >
               <el-option label="全部" value="" />
               <el-option label="开放" :value="1" />
               <el-option label="维护" :value="0" />
@@ -66,7 +124,11 @@
           <div class="api-selection">
             <div class="api-list-header">
               <div class="api-checkbox">
-                <el-checkbox v-model="selectAllApis" @change="handleSelectAllApis" :indeterminate="isIndeterminate" />
+                <el-checkbox
+                  v-model="selectAllApis"
+                  :indeterminate="isIndeterminate"
+                  @change="handleSelectAllApis"
+                />
               </div>
               <div class="api-id">ID</div>
               <div class="api-method">方法</div>
@@ -75,23 +137,37 @@
             </div>
             <div class="api-list">
               <template v-if="filteredApis.length > 0">
-                <div class="api-item" v-for="api in filteredApis" :key="api.id">
+                <div v-for="api in filteredApis" :key="api.id" class="api-item">
                   <div class="api-checkbox">
-                    <el-checkbox v-model="api.selected" @change="handleApiCheckChange" />
+                    <el-checkbox
+                      v-model="api.selected"
+                      @change="handleApiCheckChange"
+                    />
                   </div>
                   <div class="api-id">{{ api.id }}</div>
                   <div class="api-method">
-                    <el-tag :class="getMethodClass(api.method)" size="small">{{ api.method.toLowerCase() }}</el-tag>
+                    <el-tag :class="getMethodClass(api.method)" size="small">
+                      {{ api.method.toLowerCase() }}
+                    </el-tag>
                   </div>
                   <div class="api-path">
-                    <el-tooltip :content="api.full_path" placement="top" :show-after="500">
+                    <el-tooltip
+                      :content="api.full_path"
+                      placement="top"
+                      :show-after="500"
+                    >
                       <div class="api-path-text">{{ api.full_path }}</div>
                     </el-tooltip>
                   </div>
                   <div class="api-status">
                     <div class="status-indicator">
-                      <span class="status-dot" :class="getApiStatusClass(api.status)"></span>
-                      <span class="status-text">{{ getApiStatusText(api.status) }}</span>
+                      <span
+                        class="status-dot"
+                        :class="getApiStatusClass(api.status)"
+                      />
+                      <span class="status-text">
+                        {{ getApiStatusText(api.status) }}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -99,19 +175,32 @@
               <el-empty v-else description="暂无数据" />
             </div>
           </div>
-          <div class="api-info" v-if="filteredApis.length > 0">
-            <span>已选择 <strong>{{apiList.filter(api => api.selected).length}}</strong> 个API</span>
-            <span>共 <strong>{{ filteredApis.length }}</strong> 个API</span>
+          <div v-if="filteredApis.length > 0" class="api-info">
+            <span>
+              已选择
+              <strong>{{ apiList.filter(api => api.selected).length }}</strong>
+              个API
+            </span>
+            <span>
+              共
+              <strong>{{ filteredApis.length }}</strong>
+              个API
+            </span>
           </div>
         </div>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="showAssignApiModal = false" plain>取 消</el-button>
-          <el-button type="primary" @click="submitApiAssignment" :loading="apiSubmitting">
+          <el-button plain @click="showAssignApiModal = false">取 消</el-button>
+          <el-button
+            type="primary"
+            :loading="apiSubmitting"
+            @click="submitApiAssignment"
+          >
             <el-icon>
               <Check />
-            </el-icon>确认分配
+            </el-icon>
+            确认分配
           </el-button>
         </div>
       </template>
@@ -124,29 +213,55 @@
             <span class="header-title">权限管理</span>
           </el-col>
           <el-col :xs="24" :sm="12" :md="8" :lg="6" :xl="4">
-            <el-input v-model="searchForm.name" placeholder="权限名称" clearable />
+            <el-input
+              v-model="searchForm.name"
+              placeholder="权限名称"
+              clearable
+            />
           </el-col>
           <el-col :xs="24" :sm="12" :md="8" :lg="6" :xl="4">
-            <el-input v-model="searchForm.iden" placeholder="权限标识" clearable />
+            <el-input
+              v-model="searchForm.iden"
+              placeholder="权限标识"
+              clearable
+            />
           </el-col>
           <el-col :xs="24" :sm="12" :md="8" :lg="6" :xl="4">
-            <el-input v-model="searchForm.description" placeholder="权限描述" clearable />
+            <el-input
+              v-model="searchForm.description"
+              placeholder="权限描述"
+              clearable
+            />
           </el-col>
           <el-col :xs="24" :sm="12" :md="8" :lg="6" :xl="4">
-            <el-select v-model="searchForm.delete_status" placeholder="删除状态" style="width: 100%">
-              <el-option label="全部" :value="undefined" />
-              <el-option label="仅未删除" :value="undefined" />
+            <el-select
+              v-model="searchForm.delete_status"
+              placeholder="删除状态"
+              style="width: 100%"
+            >
+              <el-option label="全部" value="" />
+              <el-option label="仅未删除" value="not_deleted" />
               <el-option label="包含已删除" value="with_deleted" />
               <el-option label="仅已删除" value="only_deleted" />
             </el-select>
           </el-col>
           <el-col :xs="12" :sm="6" :md="4" :lg="3" :xl="2">
-            <el-button type="primary" :icon="Search" style="width: 100%" @click="handleSearch">
+            <el-button
+              type="primary"
+              :icon="Search"
+              style="width: 100%"
+              @click="handleSearch"
+            >
               搜索
             </el-button>
           </el-col>
           <el-col :xs="12" :sm="6" :md="4" :lg="3" :xl="2">
-            <el-button type="default" :icon="RefreshLeft" style="width: 100%" @click="resetSearchForm">
+            <el-button
+              type="default"
+              :icon="RefreshLeft"
+              style="width: 100%"
+              @click="resetSearchForm"
+            >
               重置
             </el-button>
           </el-col>
@@ -155,10 +270,26 @@
 
       <div class="table-toolbar">
         <div class="left-tools">
-          <el-button type="primary" :icon="CirclePlus" @click="handleAdd" size="small">新增权限</el-button>
-          <el-button type="danger" :icon="Delete" :disabled="selectedPermissions.length === 0"
-            @click="handleBatchDelete" size="small">批量删除</el-button>
-          <el-button :icon="Sort" size="small" @click="toggleTableType">{{ toggleButtonText }}</el-button>
+          <el-button
+            type="primary"
+            :icon="CirclePlus"
+            size="small"
+            @click="handleAdd"
+          >
+            新增权限
+          </el-button>
+          <el-button
+            type="danger"
+            :icon="Delete"
+            :disabled="selectedPermissions.length === 0"
+            size="small"
+            @click="handleBatchDelete"
+          >
+            批量删除
+          </el-button>
+          <el-button :icon="Sort" size="small" @click="toggleTableType">
+            {{ toggleButtonText }}
+          </el-button>
         </div>
         <div class="right-tools">
           <el-button :icon="Printer" circle title="打印" size="small" />
@@ -167,66 +298,150 @@
       </div>
 
       <div v-if="tableType === 'flat'">
-        <el-table v-loading="tableLoading" border :data="permissionsList" style="width: 100%; margin-bottom: 20px;"
-          :header-cell-style="headerCellStyle" size="small" @selection-change="handleSelectionChange"
-          @sort-change="handleSortChange" class="permissions-table">
+        <el-table
+          v-loading="tableLoading"
+          border
+          :data="permissionsList"
+          style="width: 100%; margin-bottom: 20px"
+          :header-cell-style="headerCellStyle"
+          size="small"
+          class="permissions-table"
+          @selection-change="handleSelectionChange"
+          @sort-change="handleSortChange"
+        >
           <el-table-column type="selection" width="45" align="center" />
           <el-table-column prop="id" label="ID" width="100">
             <template #default="{ row }">
-              <el-tag size="small" :type="row.id?.toString().startsWith('category-') ? 'primary' : 'info'"
-                effect="plain">
-                {{ row.id?.toString().startsWith('category-') ? '分类' : row.id }}
+              <el-tag
+                size="small"
+                :type="
+                  row.id?.toString().startsWith('category-')
+                    ? 'primary'
+                    : 'info'
+                "
+                effect="plain"
+              >
+                {{
+                  row.id?.toString().startsWith("category-") ? "分类" : row.id
+                }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column show-overflow-tooltip label="权限名称" prop="name" sortable="custom">
+          <el-table-column
+            show-overflow-tooltip
+            label="权限名称"
+            prop="name"
+            sortable="custom"
+          >
             <template #default="{ row }">
               <div class="cell-with-icon">
                 <el-icon>
-                  <component :is="getPermissionTypeIcon(row.iden)"></component>
+                  <component :is="getPermissionTypeIcon(row.iden)" />
                 </el-icon>
                 <span>{{ row.name }}</span>
               </div>
             </template>
           </el-table-column>
-          <el-table-column show-overflow-tooltip label="权限标识" prop="iden" width="180">
+          <el-table-column
+            show-overflow-tooltip
+            label="权限标识"
+            prop="iden"
+            width="180"
+          >
             <template #default="{ row }">
-              <el-tag :type="getTagTypeByPermissionType(row.iden)" size="small" effect="plain">{{ row.iden }}</el-tag>
+              <el-tag
+                :type="getTagTypeByPermissionType(row.iden)"
+                size="small"
+                effect="plain"
+              >
+                {{ row.iden }}
+              </el-tag>
             </template>
           </el-table-column>
-          <el-table-column show-overflow-tooltip label="描述" prop="description" />
-          <el-table-column show-overflow-tooltip label="创建时间" prop="create_time" sortable="custom" width="180" />
-          <el-table-column show-overflow-tooltip label="更新时间" prop="update_time" sortable="custom" width="180" />
-          <el-table-column fixed="right" align="center" header-align="center" label="操作">
+          <el-table-column
+            show-overflow-tooltip
+            label="描述"
+            prop="description"
+          />
+          <el-table-column
+            show-overflow-tooltip
+            label="创建时间"
+            prop="create_time"
+            sortable="custom"
+            width="180"
+          />
+          <el-table-column
+            show-overflow-tooltip
+            label="更新时间"
+            prop="update_time"
+            sortable="custom"
+            width="180"
+          />
+          <el-table-column
+            fixed="right"
+            align="center"
+            header-align="center"
+            label="操作"
+          >
             <template #default="{ row }">
               <div class="action-buttons">
                 <template v-if="!row.delete_time">
-                  <el-button type="primary" link size="small" @click="handleEdit(row)">
+                  <el-button
+                    type="primary"
+                    link
+                    size="small"
+                    @click="handleEdit(row)"
+                  >
                     <el-icon>
                       <Edit />
-                    </el-icon>编辑
+                    </el-icon>
+                    编辑
                   </el-button>
-                  <el-button type="danger" link size="small" @click="handleDelete(row)">
+                  <el-button
+                    type="danger"
+                    link
+                    size="small"
+                    @click="handleDelete(row)"
+                  >
                     <el-icon>
                       <Delete />
-                    </el-icon>删除
+                    </el-icon>
+                    删除
                   </el-button>
-                  <el-button type="success" link size="small" @click="handleAssignApi(row)">
+                  <el-button
+                    type="success"
+                    link
+                    size="small"
+                    @click="handleAssignApi(row)"
+                  >
                     <el-icon>
                       <Link />
-                    </el-icon>分配API
+                    </el-icon>
+                    分配API
                   </el-button>
                 </template>
                 <template v-else>
-                  <el-button type="warning" link size="small" @click="handleRestore(row)">
+                  <el-button
+                    type="warning"
+                    link
+                    size="small"
+                    @click="handleRestore(row)"
+                  >
                     <el-icon>
                       <RefreshRight />
-                    </el-icon>恢复
+                    </el-icon>
+                    恢复
                   </el-button>
-                  <el-button type="danger" link size="small" @click="handleDelete(row, true)">
+                  <el-button
+                    type="danger"
+                    link
+                    size="small"
+                    @click="handleDelete(row, true)"
+                  >
                     <el-icon>
                       <Delete />
-                    </el-icon>彻底删除
+                    </el-icon>
+                    彻底删除
                   </el-button>
                 </template>
               </div>
@@ -234,45 +449,84 @@
           </el-table-column>
         </el-table>
 
-        <el-pagination v-model:current-page="pageConfig.currentPage" v-model:page-size="pageConfig.pageSize"
-          style="justify-content: flex-end; margin-top: 12px;" :page-sizes="[5, 10, 20, 30]" :background="true"
-          layout="total, sizes, prev, pager, next, jumper" :total="pageConfig.total" @size-change="handleSizeChange"
-          @current-change="handleCurrentChange" />
+        <el-pagination
+          v-model:current-page="pageConfig.currentPage"
+          v-model:page-size="pageConfig.pageSize"
+          style="justify-content: flex-end; margin-top: 12px"
+          :page-sizes="[5, 10, 20, 30]"
+          :background="true"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="pageConfig.total"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
       </div>
 
       <div v-else class="tree-container">
         <div class="tree-header">
           <span class="header-title">权限分类列表</span>
           <div class="header-buttons">
-            <el-button type="primary" :icon="CirclePlus" @click="handleAdd" size="small">新增权限</el-button>
-            <el-button :icon="Sort" size="small" @click="toggleTableType">{{ toggleButtonText }}</el-button>
+            <el-button
+              type="primary"
+              :icon="CirclePlus"
+              size="small"
+              @click="handleAdd"
+            >
+              新增权限
+            </el-button>
+            <el-button :icon="Sort" size="small" @click="toggleTableType">
+              {{ toggleButtonText }}
+            </el-button>
           </div>
         </div>
 
-        <div class="simple-tree" v-show="!tableLoading">
-          <div v-for="category in permissionsTree" :key="category.id" class="tree-category">
+        <div v-show="!tableLoading" class="simple-tree">
+          <div
+            v-for="category in permissionsTree"
+            :key="category.id"
+            class="tree-category"
+          >
             <div class="category-header" @click="toggleCategory(category.id)">
-              <el-icon class="category-toggle-icon" v-if="expandedCategories.includes(category.id)">
+              <el-icon
+                v-if="expandedCategories.includes(category.id)"
+                class="category-toggle-icon"
+              >
                 <ArrowDown />
               </el-icon>
-              <el-icon class="category-toggle-icon" v-else>
+              <el-icon v-else class="category-toggle-icon">
                 <ArrowRight />
               </el-icon>
               <el-icon class="category-icon">
-                <component :is="getPermissionTypeIcon(category.iden)"></component>
+                <component :is="getPermissionTypeIcon(category.iden)" />
               </el-icon>
               <span class="category-name">{{ category.name }}</span>
-              <span class="category-count">({{ category.children?.length || 0 }})</span>
+              <span class="category-count">
+                ({{ category.children?.length || 0 }})
+              </span>
             </div>
 
-            <div v-if="category.children && category.children.length > 0 && expandedCategories.includes(category.id)"
-              class="permissions-list">
-              <div v-for="permission in category.children" :key="permission.id" class="permission-item">
+            <div
+              v-if="
+                category.children &&
+                category.children.length > 0 &&
+                expandedCategories.includes(category.id)
+              "
+              class="permissions-list"
+            >
+              <div
+                v-for="permission in category.children"
+                :key="permission.id"
+                class="permission-item"
+              >
                 <div class="permission-main">
                   <el-icon class="permission-icon">
-                    <component :is="getPermissionTypeIcon(permission.iden)"></component>
+                    <component :is="getPermissionTypeIcon(permission.iden)" />
                   </el-icon>
-                  <el-tag size="small" :type="getTagTypeByPermissionType(permission.iden)" class="permission-tag">
+                  <el-tag
+                    size="small"
+                    :type="getTagTypeByPermissionType(permission.iden)"
+                    class="permission-tag"
+                  >
                     {{ permission.iden }}
                   </el-tag>
                   <span class="permission-name">{{ permission.name }}</span>
@@ -280,29 +534,54 @@
 
                 <div class="permission-actions">
                   <template v-if="!permission.delete_time">
-                    <el-button type="primary" link size="small" @click.stop="handleEdit(permission)">
+                    <el-button
+                      type="primary"
+                      link
+                      size="small"
+                      @click.stop="handleEdit(permission)"
+                    >
                       <el-icon>
                         <Edit />
                       </el-icon>
                     </el-button>
-                    <el-button type="danger" link size="small" @click.stop="handleDelete(permission)">
+                    <el-button
+                      type="danger"
+                      link
+                      size="small"
+                      @click.stop="handleDelete(permission)"
+                    >
                       <el-icon>
                         <Delete />
                       </el-icon>
                     </el-button>
-                    <el-button type="success" link size="small" @click.stop="handleAssignApi(permission)">
+                    <el-button
+                      type="success"
+                      link
+                      size="small"
+                      @click.stop="handleAssignApi(permission)"
+                    >
                       <el-icon>
                         <Link />
                       </el-icon>
                     </el-button>
                   </template>
                   <template v-else>
-                    <el-button type="warning" link size="small" @click.stop="handleRestore(permission)">
+                    <el-button
+                      type="warning"
+                      link
+                      size="small"
+                      @click.stop="handleRestore(permission)"
+                    >
                       <el-icon>
                         <RefreshRight />
                       </el-icon>
                     </el-button>
-                    <el-button type="danger" link size="small" @click.stop="handleDelete(permission, true)">
+                    <el-button
+                      type="danger"
+                      link
+                      size="small"
+                      @click.stop="handleDelete(permission, true)"
+                    >
                       <el-icon>
                         <Delete />
                       </el-icon>
@@ -311,7 +590,10 @@
                 </div>
               </div>
             </div>
-            <div v-if="!category.children || category.children.length === 0" class="no-permissions">
+            <div
+              v-if="!category.children || category.children.length === 0"
+              class="no-permissions"
+            >
               <span class="empty-text">暂无权限</span>
             </div>
           </div>
@@ -395,12 +677,12 @@ const expandedCategories = ref<string[]>([]);
 
 // 表格样式
 const headerCellStyle = {
-  backgroundColor: '#f5f7fa',
-  color: '#606266',
-  fontWeight: '600',
-  textAlign: 'center' as const,
-  height: '40px',
-  padding: '6px 0'
+  backgroundColor: "#f5f7fa",
+  color: "#606266",
+  fontWeight: "600",
+  textAlign: "center" as const,
+  height: "40px",
+  padding: "6px 0"
 };
 
 // 页面配置
@@ -425,7 +707,8 @@ const permissionRules = {
   iden: [
     { required: true, message: "请输入权限标识", trigger: "blur" },
     {
-      pattern: /^[a-zA-Z][a-zA-Z0-9_]*:[a-zA-Z][a-zA-Z0-9_]*(?::[a-zA-Z][a-zA-Z0-9_]*)?$/,
+      pattern:
+        /^[a-zA-Z][a-zA-Z0-9_]*:[a-zA-Z][a-zA-Z0-9_]*(?::[a-zA-Z][a-zA-Z0-9_]*)?$/,
       message: "格式错误，必须是 module:action 格式（如：user:view）",
       trigger: "blur"
     }
@@ -449,7 +732,7 @@ const permissionTypeTagMap = {
   article: "warning",
   notice: "info",
   open: "danger",
-  default: "default"
+  default: "info"
 };
 
 // 获取权限类型图标
@@ -515,8 +798,8 @@ const fetchPermissionTree = async () => {
 
       // 排序处理，确保用户管理在最前面
       treeData.sort((a, b) => {
-        if (a.iden === 'user') return -1;
-        if (b.iden === 'user') return 1;
+        if (a.iden === "user") return -1;
+        if (b.iden === "user") return 1;
         return a.name.localeCompare(b.name);
       });
 
@@ -671,7 +954,9 @@ const submitPermission = async () => {
       }
 
       if (res.code === 200) {
-        message(currentPermission.value.id ? "更新权限成功" : "创建权限成功", { type: "success" });
+        message(currentPermission.value.id ? "更新权限成功" : "创建权限成功", {
+          type: "success"
+        });
         showAddOrEditModal.value = false;
 
         // 刷新权限列表
@@ -682,11 +967,23 @@ const submitPermission = async () => {
           fetchPermissionTree();
         }
       } else {
-        message(res.msg || (currentPermission.value.id ? "更新权限失败" : "创建权限失败"), { type: "error" });
+        message(
+          res.msg ||
+            (currentPermission.value.id ? "更新权限失败" : "创建权限失败"),
+          { type: "error" }
+        );
       }
     } catch (error) {
-      console.error(currentPermission.value.id ? "更新权限错误:" : "创建权限错误:", error);
-      message(currentPermission.value.id ? "更新权限失败，请稍后重试" : "创建权限失败，请稍后重试", { type: "error" });
+      console.error(
+        currentPermission.value.id ? "更新权限错误:" : "创建权限错误:",
+        error
+      );
+      message(
+        currentPermission.value.id
+          ? "更新权限失败，请稍后重试"
+          : "创建权限失败，请稍后重试",
+        { type: "error" }
+      );
     } finally {
       submitting.value = false;
     }
@@ -695,7 +992,7 @@ const submitPermission = async () => {
 
 // 删除权限
 const handleDelete = (row: PermissionInfo, isRealDelete: boolean = false) => {
-  const confirmTitle = isRealDelete ? '彻底删除确认' : '删除确认';
+  const confirmTitle = isRealDelete ? "彻底删除确认" : "删除确认";
   const confirmMsg = isRealDelete
     ? `确定要彻底删除权限 "${row.name}" 吗？此操作无法恢复！`
     : `确定要删除权限 "${row.name}" 吗？`;
@@ -703,26 +1000,30 @@ const handleDelete = (row: PermissionInfo, isRealDelete: boolean = false) => {
   ElMessageBox.confirm(confirmMsg, confirmTitle, {
     confirmButtonText: "确定删除",
     cancelButtonText: "取消",
-    type: "warning",
-  }).then(async () => {
-    try {
-      const res = await deletePermission(row.id, isRealDelete);
-      if (res.code === 200) {
-        message(isRealDelete ? "彻底删除权限成功" : "删除权限成功", { type: "success" });
-        fetchPermissionList();
+    type: "warning"
+  })
+    .then(async () => {
+      try {
+        const res = await deletePermission(row.id, isRealDelete);
+        if (res.code === 200) {
+          message(isRealDelete ? "彻底删除权限成功" : "删除权限成功", {
+            type: "success"
+          });
+          fetchPermissionList();
 
-        // 如果是树形结构，更新树
-        if (tableType.value === "tree") {
-          fetchPermissionTree();
+          // 如果是树形结构，更新树
+          if (tableType.value === "tree") {
+            fetchPermissionTree();
+          }
+        } else {
+          message(res.msg || "删除权限失败", { type: "error" });
         }
-      } else {
-        message(res.msg || "删除权限失败", { type: "error" });
+      } catch (error) {
+        console.error("删除权限错误:", error);
+        message("删除权限失败，请稍后重试", { type: "error" });
       }
-    } catch (error) {
-      console.error("删除权限错误:", error);
-      message("删除权限失败，请稍后重试", { type: "error" });
-    }
-  }).catch(() => { });
+    })
+    .catch(() => {});
 };
 
 // 恢复权限
@@ -758,31 +1059,40 @@ const handleBatchDelete = () => {
 
   // 使用render函数创建自定义内容
   const renderContent = () => {
-    return h('div', null, [
-      h('p', null, `确定要删除选中的 ${selectedPermissions.value.length} 个权限吗？`),
-      h('div', { style: 'margin-top: 16px; display: flex; align-items: center;' }, [
-        h('input', {
-          type: 'checkbox',
-          style: 'width: 16px; height: 16px; margin-right: 8px; cursor: pointer;',
-          checked: isRealDelete.value,
-          onInput: (event) => {
-            isRealDelete.value = (event.target as HTMLInputElement).checked;
-          }
-        }),
-        h('span', null, '永久删除（否则为软删除，可在回收站恢复）')
-      ])
+    return h("div", null, [
+      h(
+        "p",
+        null,
+        `确定要删除选中的 ${selectedPermissions.value.length} 个权限吗？`
+      ),
+      h(
+        "div",
+        { style: "margin-top: 16px; display: flex; align-items: center;" },
+        [
+          h("input", {
+            type: "checkbox",
+            style:
+              "width: 16px; height: 16px; margin-right: 8px; cursor: pointer;",
+            checked: isRealDelete.value,
+            onInput: event => {
+              isRealDelete.value = (event.target as HTMLInputElement).checked;
+            }
+          }),
+          h("span", null, "永久删除（否则为软删除，可在回收站恢复）")
+        ]
+      )
     ]);
   };
 
   ElMessageBox({
-    title: '批量删除确认',
+    title: "批量删除确认",
     message: renderContent(),
     showCancelButton: true,
-    confirmButtonText: '确定删除',
-    cancelButtonText: '取消',
-    type: 'warning',
+    confirmButtonText: "确定删除",
+    cancelButtonText: "取消",
+    type: "warning",
     beforeClose: (action, instance, done) => {
-      if (action === 'confirm') {
+      if (action === "confirm") {
         instance.confirmButtonLoading = true;
         // 执行批量删除
         batchDeletePermissions(isRealDelete.value)
@@ -807,8 +1117,8 @@ const batchDeletePermissions = async (isRealDelete: boolean) => {
   // 显示加载提示
   const loading = ElLoading.service({
     lock: true,
-    text: '批量删除中...',
-    background: 'rgba(0, 0, 0, 0.7)'
+    text: "批量删除中...",
+    background: "rgba(0, 0, 0, 0.7)"
   });
 
   // 逐个删除权限
@@ -830,7 +1140,7 @@ const batchDeletePermissions = async (isRealDelete: boolean) => {
 
   // 显示结果
   if (success > 0) {
-    message(`成功删除 ${success} 个权限`, { type: 'success' });
+    message(`成功删除 ${success} 个权限`, { type: "success" });
     fetchPermissionList();
     selectedPermissions.value = [];
 
@@ -841,7 +1151,7 @@ const batchDeletePermissions = async (isRealDelete: boolean) => {
   }
 
   if (failed > 0) {
-    message(`${failed} 个权限删除失败`, { type: 'error' });
+    message(`${failed} 个权限删除失败`, { type: "error" });
   }
 };
 
@@ -854,7 +1164,7 @@ const handleClose = (done: () => void) => {
     .then(() => {
       done();
     })
-    .catch(() => { });
+    .catch(() => {});
 };
 
 // 状态切换处理 - 因为API不支持status字段，需要修改
@@ -886,9 +1196,9 @@ const apiLoading = ref(false);
 const apiSubmitting = ref(false);
 const apiList = ref<any[]>([]);
 const selectedApiIds = ref<number[]>([]);
-const apiSearchKeyword = ref('');
-const apiSearchMethod = ref('');
-const apiSearchStatus = ref('');
+const apiSearchKeyword = ref("");
+const apiSearchMethod = ref("");
+const apiSearchStatus = ref("");
 const selectAllApis = ref(false);
 const isIndeterminate = ref(false);
 
@@ -902,7 +1212,7 @@ const fetchApiList = async () => {
     const res: any = await getApiList({
       page: 1,
       page_size: 1000, // 获取足够多的API
-      keyword: '',
+      keyword: ""
     });
 
     if (res?.code === 200 && res?.data) {
@@ -917,11 +1227,11 @@ const fetchApiList = async () => {
         await loadPermissionApis(currentPermission.value.id);
       }
     } else {
-      message(res?.msg || '获取API列表失败', { type: 'error' });
+      message(res?.msg || "获取API列表失败", { type: "error" });
     }
   } catch (err) {
-    console.error('获取API列表失败:', err);
-    message('获取API列表失败，请稍后重试', { type: 'error' });
+    console.error("获取API列表失败:", err);
+    message("获取API列表失败，请稍后重试", { type: "error" });
   } finally {
     setTimeout(() => {
       apiLoading.value = false;
@@ -939,7 +1249,7 @@ const loadPermissionApis = async (permissionId: number) => {
       const permissionApiData = res.data;
       const assignedApis = permissionApiData.apis || [];
 
-      console.log('获取到的权限API数据:', permissionApiData);
+      console.log("获取到的权限API数据:", permissionApiData);
 
       // 更新当前权限信息，确保ID显示正确
       currentPermission.value = {
@@ -951,7 +1261,9 @@ const loadPermissionApis = async (permissionId: number) => {
       // 标记已分配的API为选中状态
       apiList.value.forEach(api => {
         // 检查API是否在已分配的列表中
-        api.selected = assignedApis.some(assignedApi => assignedApi.id === api.id);
+        api.selected = assignedApis.some(
+          assignedApi => assignedApi.id === api.id
+        );
       });
 
       // 更新全选状态
@@ -959,27 +1271,33 @@ const loadPermissionApis = async (permissionId: number) => {
 
       // 显示API数量信息
       if (assignedApis.length > 0) {
-        message(`该权限已分配 ${assignedApis.length} 个API接口`, { type: 'success' });
+        message(`该权限已分配 ${assignedApis.length} 个API接口`, {
+          type: "success"
+        });
       }
     }
   } catch (err) {
-    console.error('获取权限API失败:', err);
-    message('获取权限API失败，请稍后重试', { type: 'error' });
+    console.error("获取权限API失败:", err);
+    message("获取权限API失败，请稍后重试", { type: "error" });
   }
 };
 
 // 过滤API列表
 const filteredApis = computed(() => {
   return apiList.value.filter(api => {
-    const matchKeyword = !apiSearchKeyword.value ||
-      api.full_path.toLowerCase().includes(apiSearchKeyword.value.toLowerCase()) ||
+    const matchKeyword =
+      !apiSearchKeyword.value ||
+      api.full_path
+        .toLowerCase()
+        .includes(apiSearchKeyword.value.toLowerCase()) ||
       api.model.toLowerCase().includes(apiSearchKeyword.value.toLowerCase());
 
-    const matchMethod = !apiSearchMethod.value ||
+    const matchMethod =
+      !apiSearchMethod.value ||
       api.method.toUpperCase() === apiSearchMethod.value.toUpperCase();
 
-    const matchStatus = apiSearchStatus.value === '' ||
-      api.status === apiSearchStatus.value;
+    const matchStatus =
+      apiSearchStatus.value === "" || api.status === apiSearchStatus.value;
 
     return matchKeyword && matchMethod && matchStatus;
   });
@@ -993,8 +1311,11 @@ const filterApis = () => {
 // 更新全选状态
 const updateSelectAllStatus = () => {
   const selectedCount = filteredApis.value.filter(api => api.selected).length;
-  selectAllApis.value = selectedCount === filteredApis.value.length && filteredApis.value.length > 0;
-  isIndeterminate.value = selectedCount > 0 && selectedCount < filteredApis.value.length;
+  selectAllApis.value =
+    selectedCount === filteredApis.value.length &&
+    filteredApis.value.length > 0;
+  isIndeterminate.value =
+    selectedCount > 0 && selectedCount < filteredApis.value.length;
 };
 
 // 全选/取消全选
@@ -1018,17 +1339,23 @@ const submitApiAssignment = async () => {
   apiSubmitting.value = true;
   try {
     // 提交分配API的请求
-    const res: any = await assignPermissionApis(currentPermission.value.id, selectedApiIds);
+    const res: any = await assignPermissionApis(
+      currentPermission.value.id,
+      selectedApiIds
+    );
 
     if (res?.code === 200) {
-      message(`成功为权限 ${currentPermission.value.name} 分配了 ${selectedApis.length} 个API接口`, { type: 'success' });
+      message(
+        `成功为权限 ${currentPermission.value.name} 分配了 ${selectedApis.length} 个API接口`,
+        { type: "success" }
+      );
       showAssignApiModal.value = false;
     } else {
-      message(res?.msg || 'API分配失败', { type: 'error' });
+      message(res?.msg || "API分配失败", { type: "error" });
     }
   } catch (err) {
-    console.error('API分配失败:', err);
-    message('API分配失败，请稍后重试', { type: 'error' });
+    console.error("API分配失败:", err);
+    message("API分配失败，请稍后重试", { type: "error" });
   } finally {
     apiSubmitting.value = false;
   }
@@ -1038,7 +1365,7 @@ const submitApiAssignment = async () => {
 const handleAssignApi = async (row: PermissionInfo) => {
   // 确保row.id存在且正确传递
   if (!row.id) {
-    message('权限ID不存在，无法分配API', { type: 'error' });
+    message("权限ID不存在，无法分配API", { type: "error" });
     return;
   }
 
@@ -1053,40 +1380,59 @@ const handleAssignApi = async (row: PermissionInfo) => {
 // API状态类
 const getApiStatusClass = (status: number) => {
   switch (status) {
-    case 0: return 'warning';
-    case 1: return 'success';
-    case 3: return 'info';
-    default: return '';
+    case 0:
+      return "warning";
+    case 1:
+      return "success";
+    case 3:
+      return "info";
+    default:
+      return "";
   }
 };
 
 // API状态文本
 const getApiStatusText = (status: number) => {
   switch (status) {
-    case 0: return '维护';
-    case 1: return '开放';
-    case 3: return '关闭';
-    default: return '未知';
+    case 0:
+      return "维护";
+    case 1:
+      return "开放";
+    case 3:
+      return "关闭";
+    default:
+      return "未知";
   }
 };
 
 // 获取方法对应的样式类
 const getMethodClass = (method: string) => {
-  if (!method) return '';
+  if (!method) return "";
 
   const methodLower = method.toLowerCase();
   switch (methodLower) {
-    case 'get': return 'get';
-    case 'post': return 'post';
-    case 'put': return 'put';
-    case 'delete': return 'delete';
-    case 'patch': return 'patch';
-    case 'options': return 'options';
-    case 'head': return 'head';
-    case 'connect': return 'connect';
-    case 'trace': return 'trace';
-    case 'any': return 'any';
-    default: return 'other';
+    case "get":
+      return "get";
+    case "post":
+      return "post";
+    case "put":
+      return "put";
+    case "delete":
+      return "delete";
+    case "patch":
+      return "patch";
+    case "options":
+      return "options";
+    case "head":
+      return "head";
+    case "connect":
+      return "connect";
+    case "trace":
+      return "trace";
+    case "any":
+      return "any";
+    default:
+      return "other";
   }
 };
 
@@ -1104,6 +1450,18 @@ onMounted(async () => {
 .permission-container {
   padding: 20px;
 
+  @media (width >= 1920px) {
+    .el-col {
+      margin-bottom: 0;
+    }
+  }
+
+  @media (width <= 767px) {
+    .el-col {
+      margin-bottom: 8px;
+    }
+  }
+
   .header-title {
     font-size: 16px;
     font-weight: bold;
@@ -1117,21 +1475,14 @@ onMounted(async () => {
 
   // 对话框样式优化
   :deep(.el-dialog) {
-
     overflow: hidden;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-
-
-
-
-
-
+    box-shadow: 0 4px 16px rgb(0 0 0 / 10%);
   }
 
   .table-toolbar {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
     margin-bottom: 16px;
 
     .left-tools,
@@ -1161,19 +1512,19 @@ onMounted(async () => {
 
   .permissions-table {
     .id-tag {
-      font-size: 11px;
       padding: 0 6px;
+      font-size: 11px;
     }
 
     .cell-with-icon {
       display: flex;
+      gap: 6px;
       align-items: center;
       justify-content: flex-start;
-      gap: 6px;
 
       .el-icon {
         font-size: 14px;
-        color: #409EFF;
+        color: #409eff;
       }
     }
   }
@@ -1183,35 +1534,23 @@ onMounted(async () => {
   }
 
   .text-muted {
-    color: #999;
     font-style: italic;
-  }
-
-  @media (min-width: 1920px) {
-    .el-col {
-      margin-bottom: 0;
-    }
-  }
-
-  @media (max-width: 767px) {
-    .el-col {
-      margin-bottom: 8px;
-    }
+    color: #999;
   }
 
   .tree-container {
+    padding: 20px;
     margin-top: 10px;
     background: #fff;
     border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 5%);
 
     .tree-header {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
+      justify-content: space-between;
       padding-bottom: 12px;
+      margin-bottom: 20px;
       border-bottom: 1px solid #f3f4f6;
 
       .header-title {
@@ -1229,61 +1568,61 @@ onMounted(async () => {
     .simple-tree {
       .tree-category {
         margin-bottom: 12px;
-        background: #ffffff;
+        overflow: hidden;
+        background: #fff;
         border: 1px solid #e4e7ed;
         border-radius: 4px;
-        overflow: hidden;
 
         .category-header {
           display: flex;
           align-items: center;
           padding: 12px 16px;
+          cursor: pointer;
+          user-select: none;
           background: #fafafa;
           border-bottom: 1px solid #e8e8e8;
-          cursor: pointer;
           transition: background-color 0.2s;
-          user-select: none;
 
           &:hover {
             background: #f0f0f0;
           }
 
           .category-toggle-icon {
-            width: 16px;
-            height: 16px;
-            color: #666;
-            margin-right: 8px;
-            transition: transform 0.2s;
             display: flex;
+            flex-shrink: 0;
             align-items: center;
             justify-content: center;
-            flex-shrink: 0;
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+            color: #666;
+            transition: transform 0.2s;
           }
 
           .category-icon {
-            width: 18px;
-            height: 18px;
-            color: #409eff;
-            margin-right: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
+            width: 18px;
+            height: 18px;
+            margin-right: 8px;
+            color: #409eff;
           }
 
           .category-name {
+            flex: 1;
             font-size: 14px;
             font-weight: 600;
             color: #303133;
-            flex: 1;
           }
 
           .category-count {
+            padding: 2px 8px;
             font-size: 12px;
+            font-weight: normal;
             color: #909399;
             background: #f4f4f5;
-            padding: 2px 8px;
             border-radius: 10px;
-            font-weight: normal;
           }
         }
 
@@ -1309,66 +1648,67 @@ onMounted(async () => {
 
             .permission-main {
               display: flex;
-              align-items: center;
               flex: 1;
               gap: 10px;
+              align-items: center;
               min-width: 0;
 
               .permission-icon {
+                display: flex;
+                flex-shrink: 0;
+                align-items: center;
+                justify-content: center;
                 width: 16px;
                 height: 16px;
                 color: #6b7280;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                flex-shrink: 0;
               }
 
               .permission-tag {
-                font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+                flex-shrink: 0;
+                padding: 3px 8px;
+                font-family:
+                  "SF Mono", Monaco, Inconsolata, "Roboto Mono", monospace;
                 font-size: 11px;
                 font-weight: 500;
-                padding: 3px 8px;
-                border-radius: 3px;
                 white-space: nowrap;
-                flex-shrink: 0;
+                border-radius: 3px;
               }
 
               .permission-name {
+                overflow: hidden;
                 font-size: 13px;
                 font-weight: 500;
                 color: #374151;
-                white-space: nowrap;
-                overflow: hidden;
                 text-overflow: ellipsis;
+                white-space: nowrap;
               }
 
               .permission-desc {
+                margin-left: 6px;
                 font-size: 12px;
                 color: #9ca3af;
-                margin-left: 6px;
               }
             }
 
             .permission-actions {
               display: flex;
+              flex-shrink: 0;
               gap: 4px;
               opacity: 0;
               transition: opacity 0.2s ease;
-              flex-shrink: 0;
 
               .el-button {
-                width: 24px;
-                height: 24px;
-                padding: 0;
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                width: 24px;
+                height: 24px;
+                padding: 0;
                 border-radius: 4px;
 
                 .el-icon {
-                  font-size: 14px;
                   margin: 0;
+                  font-size: 14px;
                 }
 
                 &:hover {
@@ -1391,9 +1731,9 @@ onMounted(async () => {
         border-top: 1px solid #f0f0f0;
 
         .empty-text {
-          color: #9ca3af;
           font-size: 13px;
           font-style: italic;
+          color: #9ca3af;
         }
       }
     }
@@ -1404,14 +1744,14 @@ onMounted(async () => {
     width: 100%;
 
     .permission-info-card {
-      background-color: #f8f9fb;
-      border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 20px;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
       display: flex;
       flex-wrap: wrap;
       gap: 16px;
+      padding: 16px;
+      margin-bottom: 20px;
+      background-color: #f8f9fb;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgb(0 0 0 / 5%);
 
       .permission-info-item {
         display: flex;
@@ -1419,10 +1759,10 @@ onMounted(async () => {
         min-width: 200px;
 
         .info-label {
-          color: #909399;
-          font-size: 14px;
-          margin-right: 8px;
           width: 70px;
+          margin-right: 8px;
+          font-size: 14px;
+          color: #909399;
         }
 
         .permission-name-text {
@@ -1431,7 +1771,7 @@ onMounted(async () => {
         }
 
         .id-tag {
-          font-family: 'SFMono-Regular', Consolas, monospace;
+          font-family: SFMono-Regular, Consolas, monospace;
         }
       }
     }
@@ -1444,7 +1784,7 @@ onMounted(async () => {
     .api-divider-title {
       font-size: 14px;
       font-weight: bold;
-      color: #409EFF;
+      color: #409eff;
     }
 
     .el-form-item {
@@ -1453,17 +1793,17 @@ onMounted(async () => {
   }
 
   .api-container {
+    position: relative;
+    width: 100%;
     margin-top: 16px;
+    overflow: hidden;
+    background-color: #fff;
     border: 1px solid #ebeef5;
     border-radius: 8px;
-    overflow: hidden;
-    width: 100%;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-    background-color: #fff;
-    position: relative;
+    box-shadow: 0 2px 12px rgb(0 0 0 / 4%);
 
     :deep(.el-loading-mask) {
-      background-color: rgba(255, 255, 255, 0.9);
+      background-color: rgb(255 255 255 / 90%);
 
       .el-loading-spinner {
         .circular {
@@ -1472,9 +1812,9 @@ onMounted(async () => {
         }
 
         .el-loading-text {
-          color: #409EFF;
-          font-size: 14px;
           margin-top: 8px;
+          font-size: 14px;
+          color: #409eff;
         }
       }
     }
@@ -1492,15 +1832,15 @@ onMounted(async () => {
       min-width: 180px;
 
       :deep(.el-input__wrapper) {
-        box-shadow: 0 0 0 1px #dcdfe6 inset;
         border-radius: 4px;
+        box-shadow: 0 0 0 1px #dcdfe6 inset;
 
         &:hover {
           box-shadow: 0 0 0 1px #c0c4cc inset;
         }
 
         &.is-focus {
-          box-shadow: 0 0 0 1px #409EFF inset;
+          box-shadow: 0 0 0 1px #409eff inset;
         }
       }
     }
@@ -1515,10 +1855,10 @@ onMounted(async () => {
   }
 
   .api-selection {
+    position: relative;
     height: 400px;
     overflow-y: auto;
     background-color: #fff;
-    position: relative;
 
     &::-webkit-scrollbar {
       width: 6px;
@@ -1536,21 +1876,21 @@ onMounted(async () => {
   }
 
   .api-list-header {
-    display: flex;
-    padding: 12px 16px;
-    background-color: #f8f9fb;
-    border-bottom: 1px solid #ebeef5;
-    font-weight: 600;
     position: sticky;
     top: 0;
     z-index: 1;
-    color: #606266;
+    display: flex;
+    padding: 12px 16px;
     font-size: 13px;
+    font-weight: 600;
+    color: #606266;
+    background-color: #f8f9fb;
+    border-bottom: 1px solid #ebeef5;
 
     .api-checkbox {
-      width: 40px;
       display: flex;
       align-items: center;
+      width: 40px;
     }
 
     .api-id {
@@ -1580,9 +1920,9 @@ onMounted(async () => {
 
   .api-item {
     display: flex;
+    align-items: center;
     padding: 12px 16px;
     border-bottom: 1px solid #ebeef5;
-    align-items: center;
     transition: all 0.2s;
 
     &:last-child {
@@ -1607,10 +1947,10 @@ onMounted(async () => {
 
     .api-id {
       width: 80px;
-      text-align: center;
-      color: #909399;
-      font-family: 'SFMono-Regular', Consolas, monospace;
+      font-family: SFMono-Regular, Consolas, monospace;
       font-size: 12px;
+      color: #909399;
+      text-align: center;
     }
 
     .api-method {
@@ -1618,15 +1958,15 @@ onMounted(async () => {
       text-align: center;
 
       .el-tag {
-        text-transform: uppercase;
-        font-size: 11px;
-        height: 22px;
-        line-height: 20px;
-        padding: 0 6px;
         min-width: 48px;
-        text-align: center;
-        border-radius: 4px;
+        height: 22px;
+        padding: 0 6px;
+        font-size: 11px;
         font-weight: 500;
+        line-height: 20px;
+        text-align: center;
+        text-transform: uppercase;
+        border-radius: 4px;
 
         &.get {
           color: #389e0d;
@@ -1673,16 +2013,16 @@ onMounted(async () => {
 
     .api-path {
       flex: 1;
-      overflow: hidden;
       padding-left: 8px;
+      overflow: hidden;
 
       .api-path-text {
-        font-family: 'SFMono-Regular', Consolas, monospace;
-        font-size: 12px;
-        white-space: nowrap;
         overflow: hidden;
-        text-overflow: ellipsis;
+        font-family: SFMono-Regular, Consolas, monospace;
+        font-size: 12px;
         color: #303133;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
     }
 
@@ -1692,9 +2032,9 @@ onMounted(async () => {
 
       .status-indicator {
         display: flex;
+        gap: 4px;
         align-items: center;
         justify-content: center;
-        gap: 4px;
       }
 
       .status-dot {
@@ -1705,17 +2045,17 @@ onMounted(async () => {
 
         &.success {
           background-color: #52c41a;
-          box-shadow: 0 0 3px rgba(82, 196, 26, 0.5);
+          box-shadow: 0 0 3px rgb(82 196 26 / 50%);
         }
 
         &.warning {
           background-color: #faad14;
-          box-shadow: 0 0 3px rgba(250, 173, 20, 0.5);
+          box-shadow: 0 0 3px rgb(250 173 20 / 50%);
         }
 
         &.info {
           background-color: #999;
-          box-shadow: 0 0 3px rgba(153, 153, 153, 0.5);
+          box-shadow: 0 0 3px rgb(153 153 153 / 50%);
         }
       }
 
@@ -1727,52 +2067,46 @@ onMounted(async () => {
   }
 
   .api-info {
-    padding: 12px 16px;
-    background-color: #f8f9fb;
-    border-top: 1px solid #ebeef5;
     display: flex;
     justify-content: space-between;
-    color: #606266;
+    padding: 12px 16px;
     font-size: 13px;
+    color: #606266;
+    background-color: #f8f9fb;
+    border-top: 1px solid #ebeef5;
 
     strong {
-      color: #409EFF;
       font-weight: 600;
+      color: #409eff;
     }
   }
 }
 
-.tree-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
 .el-table .el-tag.el-tag--primary {
-  background-color: #ecf5ff;
-  color: #409EFF;
   font-weight: bold;
+  color: #409eff;
+  background-color: #ecf5ff;
 }
 
 .el-table {
-  border-radius: 4px;
   overflow: hidden;
+  border-radius: 4px;
 
   .cell-with-icon {
     display: flex;
-    align-items: center;
     gap: 8px;
+    align-items: center;
 
     .el-icon {
-      color: #409EFF;
+      color: #409eff;
     }
   }
 
   // 分类行特殊样式
   .el-table__row {
     &.el-table__row--level-0 {
-      background-color: #f5f7fa;
       font-weight: bold;
+      background-color: #f5f7fa;
 
       .cell-with-icon .el-icon {
         font-size: 16px;
@@ -1785,32 +2119,15 @@ onMounted(async () => {
   }
 
   // 悬停效果
-  &.el-table--enable-row-hover .el-table__body tr:hover>td {
+  &.el-table--enable-row-hover .el-table__body tr:hover > td {
     background-color: #f0f7ff;
   }
 
   // 表头样式
   th.el-table__cell {
-    background-color: #f5f7fa !important;
+    font-weight: bold;
     color: #606266;
-    font-weight: bold;
-  }
-}
-
-.tree-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  .header-title {
-    font-size: 16px;
-    font-weight: bold;
-    color: #303133;
-  }
-
-  .right-tools {
-    display: flex;
-    gap: 8px;
+    background-color: #f5f7fa !important;
   }
 }
 </style>

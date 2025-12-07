@@ -104,8 +104,8 @@
           <el-button
             size="small"
             plain
-            @click="fetchApiList"
             class="refresh-btn"
+            @click="fetchApiList"
           >
             <el-icon>
               <Refresh />
@@ -119,8 +119,8 @@
 
       <!-- 表格 -->
       <el-table
-        :data="apiList"
         v-loading="tableLoading"
+        :data="apiList"
         @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" align="center" fixed />
@@ -245,131 +245,134 @@
         />
       </div>
     </el-card>
-  </div>
 
-  <!-- 编辑对话框 -->
-  <el-dialog
-    v-model="editDialogVisible"
-    title="编辑接口"
-    width="500px"
-    :close-on-click-modal="false"
-  >
-    <el-form :model="editForm" label-width="70px" size="small">
-      <el-form-item label="路径">
-        <div class="info-display">
-          <el-icon class="info-icon">
-            <Link />
-          </el-icon>
-          <span>{{ editForm.full_path }}</span>
-        </div>
-      </el-form-item>
-
-      <el-form-item label="方法">
-        <el-tag :type="getMethodType(editForm.method)" size="small">
-          {{ editForm.method }}
-        </el-tag>
-      </el-form-item>
-
-      <el-form-item label="模块">
-        <el-input
-          v-model="editForm.module"
-          placeholder="如：user、role"
-          clearable
-        >
-          <template #prefix>
-            <el-icon>
-              <Box />
+    <!-- 编辑对话框 -->
+    <el-dialog
+      v-model="editDialogVisible"
+      title="编辑接口"
+      width="500px"
+      :close-on-click-modal="false"
+    >
+      <el-form :model="editForm" label-width="70px" size="small">
+        <el-form-item label="路径">
+          <div class="info-display">
+            <el-icon class="info-icon">
+              <Link />
             </el-icon>
-          </template>
-        </el-input>
-      </el-form-item>
+            <span>{{ editForm.full_path }}</span>
+          </div>
+        </el-form-item>
 
-      <el-form-item label="权限模式">
-        <el-select v-model="editForm.check_mode" style="width: 100%">
-          <el-option label="自动检查（RESTful）" value="auto" />
-          <el-option label="手动指定（推荐）" value="manual" />
-          <el-option label="不检查（公开）" value="none" />
-        </el-select>
-      </el-form-item>
+        <el-form-item label="方法">
+          <el-tag :type="getMethodType(editForm.method)" size="small">
+            {{ editForm.method }}
+          </el-tag>
+        </el-form-item>
 
-      <div v-if="editForm.check_mode === 'auto'" style="margin: 0 0 18px 70px">
-        <el-alert type="info" :closable="false" style="font-size: 12px">
-          自动映射为：
-          <code class="permission-code">
-            {{ editForm.module || "module" }}:{{
-              getAutoPermissionAction(editForm.method)
-            }}
-          </code>
-        </el-alert>
-      </div>
-
-      <el-form-item label="指定权限" v-if="editForm.check_mode === 'manual'">
-        <el-select
-          v-model="editForm.required_permission"
-          placeholder="请选择权限"
-          filterable
-          clearable
-          style="width: 100%"
-          :loading="permissionLoading"
-        >
-          <template #prefix>
-            <el-icon>
-              <Key />
-            </el-icon>
-          </template>
-          <el-option
-            v-for="perm in permissionList"
-            :key="perm.id"
-            :label="`${perm.name} (${perm.iden})`"
-            :value="perm.iden"
+        <el-form-item label="模块">
+          <el-input
+            v-model="editForm.module"
+            placeholder="如：user、role"
+            clearable
           >
-            <div class="permission-option">
-              <div class="permission-option-header">
-                <span class="permission-name">{{ perm.name }}</span>
-                <span class="permission-iden">{{ perm.iden }}</span>
+            <template #prefix>
+              <el-icon>
+                <Box />
+              </el-icon>
+            </template>
+          </el-input>
+        </el-form-item>
+
+        <el-form-item label="权限模式">
+          <el-select v-model="editForm.check_mode" style="width: 100%">
+            <el-option label="自动检查（RESTful）" value="auto" />
+            <el-option label="手动指定（推荐）" value="manual" />
+            <el-option label="不检查（公开）" value="none" />
+          </el-select>
+        </el-form-item>
+
+        <div
+          v-if="editForm.check_mode === 'auto'"
+          style="margin: 0 0 18px 70px"
+        >
+          <el-alert type="info" :closable="false" style="font-size: 12px">
+            自动映射为：
+            <code class="permission-code">
+              {{ editForm.module || "module" }}:{{
+                getAutoPermissionAction(editForm.method)
+              }}
+            </code>
+          </el-alert>
+        </div>
+
+        <el-form-item v-if="editForm.check_mode === 'manual'" label="指定权限">
+          <el-select
+            v-model="editForm.required_permission"
+            placeholder="请选择权限"
+            filterable
+            clearable
+            style="width: 100%"
+            :loading="permissionLoading"
+          >
+            <template #prefix>
+              <el-icon>
+                <Key />
+              </el-icon>
+            </template>
+            <el-option
+              v-for="perm in permissionList"
+              :key="perm.id"
+              :label="`${perm.name} (${perm.iden})`"
+              :value="perm.iden"
+            >
+              <div class="permission-option">
+                <div class="permission-option-header">
+                  <span class="permission-name">{{ perm.name }}</span>
+                  <span class="permission-iden">{{ perm.iden }}</span>
+                </div>
+                <div v-if="perm.description" class="permission-desc">
+                  {{ perm.description }}
+                </div>
               </div>
-              <div v-if="perm.description" class="permission-desc">
-                {{ perm.description }}
-              </div>
-            </div>
-          </el-option>
-        </el-select>
-      </el-form-item>
+            </el-option>
+          </el-select>
+        </el-form-item>
 
-      <el-form-item label="状态">
-        <el-radio-group v-model="editForm.status" size="small">
-          <el-radio :label="1">开放</el-radio>
-          <el-radio :label="0">维护</el-radio>
-          <el-radio :label="3">关闭</el-radio>
-        </el-radio-group>
-      </el-form-item>
+        <el-form-item label="状态">
+          <el-radio-group v-model="editForm.status" size="small">
+            <el-radio :label="1">开放</el-radio>
+            <el-radio :label="0">维护</el-radio>
+            <el-radio :label="3">关闭</el-radio>
+          </el-radio-group>
+        </el-form-item>
 
-      <el-form-item label="描述">
-        <el-input
-          v-model="editForm.description"
-          type="textarea"
-          :rows="3"
-          placeholder="请输入接口描述"
-          maxlength="200"
-          show-word-limit
-        />
-      </el-form-item>
-    </el-form>
+        <el-form-item label="描述">
+          <el-input
+            v-model="editForm.description"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入接口描述"
+            maxlength="200"
+            show-word-limit
+          />
+        </el-form-item>
+      </el-form>
 
-    <template #footer>
-      <el-button @click="editDialogVisible = false" size="small">
-        取消
-      </el-button>
-      <el-button
-        type="primary"
-        @click="confirmEdit"
-        :loading="editLoading"
-        size="small"
-      >
-        保存
-      </el-button>
-    </template>
-  </el-dialog>
+      <template #footer>
+        <el-button size="small" @click="editDialogVisible = false">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="editLoading"
+          size="small"
+          @click="confirmEdit"
+        >
+          保存
+        </el-button>
+      </template>
+    </el-dialog>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -580,13 +583,13 @@ onMounted(() => {
     // 顶部操作区
     .header-section {
       display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
       gap: 20px;
+      align-items: flex-start;
+      justify-content: space-between;
       padding: 16px;
+      margin-bottom: 0;
       background: #fafbfc;
       border-radius: 4px;
-      margin-bottom: 0;
 
       .search-area {
         flex: 1;
@@ -595,17 +598,17 @@ onMounted(() => {
           margin-bottom: 0;
 
           :deep(.el-form-item) {
-            margin-bottom: 0;
             margin-right: 12px;
+            margin-bottom: 0;
 
             &:last-child {
               margin-right: 0;
             }
 
             .el-form-item__label {
+              font-size: 13px;
               font-weight: 500;
               color: #606266;
-              font-size: 13px;
             }
           }
         }
@@ -613,15 +616,15 @@ onMounted(() => {
 
       .action-area {
         display: flex;
-        align-items: center;
-        gap: 8px;
         flex-shrink: 0;
+        gap: 8px;
+        align-items: center;
 
         .refresh-btn {
           &:hover {
             color: #409eff;
-            border-color: #c6e2ff;
             background-color: #ecf5ff;
+            border-color: #c6e2ff;
           }
         }
       }
@@ -631,10 +634,10 @@ onMounted(() => {
       font-size: 13px;
 
       .el-table__header th {
-        background: #fafafa;
-        color: #606266;
-        font-weight: 600;
         font-size: 13px;
+        font-weight: 600;
+        color: #606266;
+        background: #fafafa;
       }
 
       .el-table__body tr:hover > td {
@@ -643,17 +646,17 @@ onMounted(() => {
     }
 
     .pagination-wrap {
-      margin-top: 16px;
       display: flex;
       justify-content: flex-end;
       padding: 12px 0 0;
+      margin-top: 16px;
       border-top: 1px solid #ebeef5;
     }
   }
 
   // ID 文本
   .id-text {
-    font-family: "Consolas", monospace;
+    font-family: Consolas, monospace;
     font-size: 12px;
     color: #909399;
   }
@@ -661,17 +664,17 @@ onMounted(() => {
   // 路径单元格 - 唯一保留图标的地方
   .path-cell {
     display: flex;
-    align-items: center;
     gap: 6px;
+    align-items: center;
 
     .path-icon {
-      color: #409eff;
-      font-size: 14px;
       flex-shrink: 0;
+      font-size: 14px;
+      color: #409eff;
     }
 
     .path-text {
-      font-family: "Consolas", "Monaco", "Courier New", monospace;
+      font-family: Consolas, Monaco, "Courier New", monospace;
       font-size: 12px;
       color: #303133;
     }
@@ -679,7 +682,7 @@ onMounted(() => {
 
   // 权限文本
   .permission-text {
-    font-family: "Consolas", "Monaco", monospace;
+    font-family: Consolas, Monaco, monospace;
     font-size: 12px;
     color: #606266;
   }
@@ -691,8 +694,8 @@ onMounted(() => {
   }
 
   .text-muted {
-    color: #c0c4cc;
     font-size: 12px;
+    color: #c0c4cc;
   }
 
   // 对话框样式
@@ -706,8 +709,8 @@ onMounted(() => {
 
       .el-form-item__label {
         font-size: 13px;
-        color: #606266;
         font-weight: 500;
+        color: #606266;
       }
     }
   }
@@ -717,29 +720,29 @@ onMounted(() => {
     display: flex;
     align-items: center;
     padding: 6px 10px;
-    background: #f5f7fa;
-    border-radius: 4px;
-    font-family: "Consolas", "Monaco", monospace;
+    font-family: Consolas, Monaco, monospace;
     font-size: 12px;
     color: #606266;
+    background: #f5f7fa;
+    border-radius: 4px;
 
     .info-icon {
-      color: #409eff;
       margin-right: 6px;
       font-size: 13px;
+      color: #409eff;
     }
   }
 
   // 权限代码
   .permission-code {
-    background: #ecf5ff;
-    color: #409eff;
     padding: 2px 6px;
-    border-radius: 3px;
-    font-family: "Consolas", monospace;
+    margin-left: 4px;
+    font-family: Consolas, monospace;
     font-size: 12px;
     font-weight: 500;
-    margin-left: 4px;
+    color: #409eff;
+    background: #ecf5ff;
+    border-radius: 3px;
   }
 
   // 权限下拉选项
@@ -750,31 +753,31 @@ onMounted(() => {
     .permission-option {
       .permission-option-header {
         display: flex;
-        justify-content: space-between;
         align-items: center;
+        justify-content: space-between;
         margin-bottom: 4px;
 
         .permission-name {
           font-size: 13px;
-          color: #303133;
           font-weight: 500;
+          color: #303133;
         }
 
         .permission-iden {
+          padding: 2px 8px;
+          font-family: Consolas, monospace;
           font-size: 12px;
           color: #909399;
-          font-family: "Consolas", monospace;
           background: #f5f7fa;
-          padding: 2px 8px;
           border-radius: 3px;
         }
       }
 
       .permission-desc {
-        font-size: 12px;
-        color: #909399;
-        line-height: 1.5;
         margin-top: 4px;
+        font-size: 12px;
+        line-height: 1.5;
+        color: #909399;
       }
     }
   }

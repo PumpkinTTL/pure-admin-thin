@@ -31,38 +31,55 @@ export interface ApiListParams {
 
 // 获取接口列表
 export const getApiList = (params?: ApiListParams) => {
-  return http.request<ApiResponse<{
-    list: Array<ApiInfo>;
-    total: number;
-    page: number;
-    page_size: number;
-  }>>("get", "/api/v1/api/list", { params });
+  return http.request<
+    ApiResponse<{
+      list: Array<ApiInfo>;
+      total: number;
+      page: number;
+      page_size: number;
+    }>
+  >("get", "/api/v1/api/list", { params });
 };
 
 // 获取接口详情
 export const getApiDetail = (id: number) => {
-  return http.request<ApiResponse<ApiInfo>>("get", "/api/v1/api/detail", { params: { id } });
+  return http.request<ApiResponse<ApiInfo>>("get", "/api/v1/api/detail", {
+    params: { id }
+  });
 };
 
 // 更新接口信息
-export const updateApi = (data: { id: number; description?: string; status?: number }) => {
+export const updateApi = (data: {
+  id: number;
+  module?: string;
+  check_mode?: string;
+  required_permission?: string;
+  description?: string;
+  status?: number;
+}) => {
   return http.request<ApiResponse<any>>("post", "/api/v1/api/update", { data });
 };
 
 // 重置接口数据
 export const resetApiData = (clear_existing: boolean = false) => {
-  return http.request<ApiResponse<{
-    imported_count: number;
-    clear_existing: boolean;
-  }>>("post", "/api/v1/api/reset", { data: { clear_existing } });
+  return http.request<
+    ApiResponse<{
+      imported_count: number;
+      clear_existing: boolean;
+    }>
+  >("post", "/api/v1/api/reset", { data: { clear_existing } });
 };
 
 // 更新接口状态
 export const updateApiStatus = (id: number, status: number) => {
-  return http.request<ApiResponse<any>>("post", "/api/v1/api/status", { data: { id, status } });
+  return http.request<ApiResponse<any>>("post", "/api/v1/api/status", {
+    data: { id, status }
+  });
 };
 
 // 批量更新接口状态
 export const batchUpdateApiStatus = (ids: number[], status: number) => {
-  return http.request<ApiResponse<any>>("post", "/api/v1/api/batchStatus", { data: { ids, status } });
-}; 
+  return http.request<ApiResponse<any>>("post", "/api/v1/api/batchStatus", {
+    data: { ids, status }
+  });
+};

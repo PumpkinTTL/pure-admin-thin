@@ -1,35 +1,68 @@
 <template>
   <div class="roles-container">
-    <el-dialog v-model="showAddOrEditModal" :title="currentRole.id ? '编辑角色' : '新增角色'" width="500"
-      :before-close="handleClose">
-      <el-form :model="currentRole" ref="roleFormRef" :rules="roleRules" label-width="100px">
+    <el-dialog
+      v-model="showAddOrEditModal"
+      :title="currentRole.id ? '编辑角色' : '新增角色'"
+      width="500"
+      :before-close="handleClose"
+    >
+      <el-form
+        ref="roleFormRef"
+        :model="currentRole"
+        :rules="roleRules"
+        label-width="100px"
+      >
         <el-form-item label="角色名称" prop="name">
           <el-input v-model="currentRole.name" placeholder="请输入角色名称" />
         </el-form-item>
         <el-form-item label="角色标识" prop="iden">
-          <el-input v-model="currentRole.iden" placeholder="请输入角色标识，如admin" />
+          <el-input
+            v-model="currentRole.iden"
+            placeholder="请输入角色标识，如admin"
+          />
         </el-form-item>
         <el-form-item label="显示顺序" prop="show_weight">
-          <el-input-number v-model="currentRole.show_weight" :min="0" :max="999" />
+          <el-input-number
+            v-model="currentRole.show_weight"
+            :min="0"
+            :max="999"
+          />
         </el-form-item>
         <el-form-item label="状态">
-          <el-switch v-model="currentRole.status" :active-value="1" :inactive-value="0" />
+          <el-switch
+            v-model="currentRole.status"
+            :active-value="1"
+            :inactive-value="0"
+          />
         </el-form-item>
         <el-form-item label="角色描述" prop="description">
-          <el-input v-model="currentRole.description" type="textarea" placeholder="请输入角色描述" />
+          <el-input
+            v-model="currentRole.description"
+            type="textarea"
+            placeholder="请输入角色描述"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="showAddOrEditModal = false">取消</el-button>
-          <el-button type="primary" @click="submitRole" :loading="submitting">确认</el-button>
+          <el-button type="primary" :loading="submitting" @click="submitRole">
+            确认
+          </el-button>
         </div>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="showPermissionModal" title="分配权限" width="850" :before-close="handleClose"
-      class="permission-dialog" center align-center>
-      <el-form label-width="100px" v-if="currentRole.id">
+    <el-dialog
+      v-model="showPermissionModal"
+      title="分配权限"
+      width="850"
+      :before-close="handleClose"
+      class="permission-dialog"
+      center
+      align-center
+    >
+      <el-form v-if="currentRole.id" label-width="100px">
         <div class="role-info-box">
           <div class="role-info-header">
             <div class="header-left">
@@ -38,16 +71,23 @@
               </el-icon>
               <span>角色信息</span>
             </div>
-            <div class="header-right" v-if="currentRole.status !== undefined">
-              <el-tag size="small" :type="currentRole.status === 1 ? 'success' : 'info'">
-                {{ currentRole.status === 1 ? '活跃' : '禁用' }}
+            <div v-if="currentRole.status !== undefined" class="header-right">
+              <el-tag
+                size="small"
+                :type="currentRole.status === 1 ? 'success' : 'info'"
+              >
+                {{ currentRole.status === 1 ? "活跃" : "禁用" }}
               </el-tag>
             </div>
           </div>
           <div class="role-info-content">
             <div class="info-item">
               <span class="label">角色名称：</span>
-              <el-tag size="default" :type="currentRole.iden === 'admin' ? 'danger' : 'primary'" class="role-tag">
+              <el-tag
+                size="default"
+                :type="currentRole.iden === 'admin' ? 'danger' : 'primary'"
+                class="role-tag"
+              >
                 <el-icon>
                   <User />
                 </el-icon>
@@ -56,81 +96,150 @@
             </div>
             <div class="info-item">
               <span class="label">角色标识：</span>
-              <el-tag size="default" effect="light" :type="currentRole.iden === 'admin' ? 'danger' : 'success'"
-                class="role-tag">
+              <el-tag
+                size="default"
+                effect="light"
+                :type="currentRole.iden === 'admin' ? 'danger' : 'success'"
+                class="role-tag"
+              >
                 <el-icon>
                   <Key />
                 </el-icon>
                 <span>{{ currentRole.iden }}</span>
               </el-tag>
             </div>
-            <div class="info-item" v-if="currentRole.description">
+            <div v-if="currentRole.description" class="info-item">
               <span class="label">角色描述：</span>
               <span class="description">{{ currentRole.description }}</span>
             </div>
           </div>
         </div>
 
-        <div class="permission-box" v-loading="permissionsLoading">
+        <div v-loading="permissionsLoading" class="permission-box">
           <div class="permission-header">
             <div class="left">
               <el-icon>
                 <Setting />
               </el-icon>
               <span>权限分配</span>
-              <span class="subtitle">- 当前拥有权限：{{ totalSelectedPermissions }} 项</span>
+              <span class="subtitle">
+                - 当前拥有权限：{{ totalSelectedPermissions }} 项
+              </span>
             </div>
             <div class="right">
               <div class="search-box">
-                <el-input v-model="searchQuery" placeholder="搜索权限（支持权限标识、说明搜索）..." :prefix-icon="Search" clearable size="default" />
+                <el-input
+                  v-model="searchQuery"
+                  placeholder="搜索权限（支持权限标识、说明搜索）..."
+                  :prefix-icon="Search"
+                  clearable
+                  size="default"
+                />
               </div>
             </div>
           </div>
 
           <div class="permission-content">
             <div class="tabs-wrapper">
-              <el-tabs v-model="activePermissionTab" type="border-card" class="permission-tabs"
-                @tab-click="handleTabClick">
-                <el-tab-pane v-for="(permissions, category) in permissionsData" :key="category"
-                  :label="categoryLabels[category] || category.toUpperCase()" :name="category">
+              <el-tabs
+                v-model="activePermissionTab"
+                type="border-card"
+                class="permission-tabs"
+                @tab-click="handleTabClick"
+              >
+                <el-tab-pane
+                  v-for="(permissions, category) in permissionsData"
+                  :key="category"
+                  :label="categoryLabels[category] || category.toUpperCase()"
+                  :name="category"
+                >
                   <template #label>
                     <div class="tab-label">
                       <el-icon>
-                        <component :is="getCategoryIcon(category)"></component>
+                        <component :is="getCategoryIcon(category)" />
                       </el-icon>
-                      <span>{{ categoryLabels[category] || category.toUpperCase() }}</span>
-                      <el-badge v-if="getSelectedCountByCategory(category) > 0"
-                        :value="getSelectedCountByCategory(category)" class="tab-badge" type="info" />
+                      <span>
+                        {{ categoryLabels[category] || category.toUpperCase() }}
+                      </span>
+                      <el-badge
+                        v-if="getSelectedCountByCategory(category) > 0"
+                        :value="getSelectedCountByCategory(category)"
+                        class="tab-badge"
+                        type="info"
+                      />
                     </div>
                   </template>
                   <div class="permission-list">
                     <div class="category-actions">
-                      <div class="category-info">{{ categoryLabels[category] || category.toUpperCase() }} 分组共 {{
-                        permissions.length }} 个权限项</div>
+                      <div class="category-info">
+                        {{ categoryLabels[category] || category.toUpperCase() }}
+                        分组共 {{ permissions.length }} 个权限项
+                      </div>
                       <div class="actions">
-                        <el-button type="primary" size="small" link
-                          @click.stop="selectCategoryAll(category)">全选当前组</el-button>
-                        <el-button type="warning" size="small" link
-                          @click.stop="unselectCategoryAll(category)">取消当前组</el-button>
+                        <el-button
+                          type="primary"
+                          size="small"
+                          link
+                          @click.stop="selectCategoryAll(category)"
+                        >
+                          全选当前组
+                        </el-button>
+                        <el-button
+                          type="warning"
+                          size="small"
+                          link
+                          @click.stop="unselectCategoryAll(category)"
+                        >
+                          取消当前组
+                        </el-button>
                       </div>
                     </div>
                     <div class="tree-container">
-                      <el-tree :data="permissions" :props="{
-                        label: 'name',
-                        children: 'children'
-                      }" show-checkbox node-key="id" default-expand-all
-                        :default-checked-keys="selectedPermissionsByCategory[category] || []" highlight-current
-                        check-strictly class="permission-tree" :filter-node-method="filterNode"
-                        :ref="el => { if (el) setTreeRef(category, el) }">
+                      <el-tree
+                        :ref="
+                          el => {
+                            if (el) setTreeRef(category, el);
+                          }
+                        "
+                        :data="permissions"
+                        :props="{
+                          label: 'name',
+                          children: 'children'
+                        }"
+                        show-checkbox
+                        node-key="id"
+                        default-expand-all
+                        :default-checked-keys="
+                          selectedPermissionsByCategory[category] || []
+                        "
+                        highlight-current
+                        check-strictly
+                        class="permission-tree"
+                        :filter-node-method="filterNode"
+                      >
                         <template #default="{ data }">
-                          <div class="tree-node" :class="{ 'node-selected': isNodeSelected(category, data.id) }">
+                          <div
+                            class="tree-node"
+                            :class="{
+                              'node-selected': isNodeSelected(category, data.id)
+                            }"
+                          >
                             <div class="node-content">
                               <div class="node-main">
-                                <el-tag v-if="data.iden" size="small" type="info" class="node-iden">{{ data.iden }}</el-tag>
+                                <el-tag
+                                  v-if="data.iden"
+                                  size="small"
+                                  type="info"
+                                  class="node-iden"
+                                >
+                                  {{ data.iden }}
+                                </el-tag>
                                 <span class="node-label">{{ data.name }}</span>
                               </div>
                               <div class="node-meta">
-                                <span v-if="data.id" class="node-id">ID: {{ data.id }}</span>
+                                <span v-if="data.id" class="node-id">
+                                  ID: {{ data.id }}
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -154,8 +263,17 @@
             <span>已选择 {{ totalSelectedPermissions }} 项权限</span>
           </div>
           <div class="footer-buttons">
-            <el-button @click="showPermissionModal = false" :icon="Close" plain>取消</el-button>
-            <el-button type="primary" @click="submitPermissions" :loading="submitting" :icon="Check">保存权限配置</el-button>
+            <el-button :icon="Close" plain @click="showPermissionModal = false">
+              取消
+            </el-button>
+            <el-button
+              type="primary"
+              :loading="submitting"
+              :icon="Check"
+              @click="submitPermissions"
+            >
+              保存权限配置
+            </el-button>
           </div>
         </div>
       </template>
@@ -168,32 +286,58 @@
             <span class="header-title">角色管理</span>
           </el-col>
           <el-col :xs="24" :sm="12" :md="8" :lg="6" :xl="4">
-            <el-input v-model="searchForm.name" placeholder="角色名称" clearable />
+            <el-input
+              v-model="searchForm.name"
+              placeholder="角色名称"
+              clearable
+            />
           </el-col>
           <el-col :xs="24" :sm="12" :md="8" :lg="6" :xl="4">
-            <el-input v-model="searchForm.iden" placeholder="角色标识" clearable />
+            <el-input
+              v-model="searchForm.iden"
+              placeholder="角色标识"
+              clearable
+            />
           </el-col>
           <el-col :xs="24" :sm="12" :md="8" :lg="6" :xl="4">
-            <el-select v-model="searchForm.query_deleted" placeholder="删除状态" style="width: 100%">
+            <el-select
+              v-model="searchForm.query_deleted"
+              placeholder="删除状态"
+              style="width: 100%"
+            >
               <el-option label="全部" value="" />
               <el-option label="未删除" value="not_deleted" />
               <el-option label="已删除" value="only_deleted" />
             </el-select>
           </el-col>
           <el-col :xs="24" :sm="12" :md="8" :lg="6" :xl="4">
-            <el-select v-model="searchForm.status" placeholder="角色状态" style="width: 100%">
-              <el-option label="全部" :value="undefined" />
+            <el-select
+              v-model="searchForm.status"
+              placeholder="角色状态"
+              style="width: 100%"
+            >
+              <el-option label="全部" value="" />
               <el-option label="启用" :value="1" />
               <el-option label="禁用" :value="0" />
             </el-select>
           </el-col>
           <el-col :xs="12" :sm="6" :md="4" :lg="3" :xl="2">
-            <el-button type="primary" :icon="Search" style="width: 100%" @click="handleSearch">
+            <el-button
+              type="primary"
+              :icon="Search"
+              style="width: 100%"
+              @click="handleSearch"
+            >
               搜索
             </el-button>
           </el-col>
           <el-col :xs="12" :sm="6" :md="4" :lg="3" :xl="2">
-            <el-button type="default" :icon="RefreshLeft" style="width: 100%" @click="resetSearchForm">
+            <el-button
+              type="default"
+              :icon="RefreshLeft"
+              style="width: 100%"
+              @click="resetSearchForm"
+            >
               重置
             </el-button>
           </el-col>
@@ -202,9 +346,23 @@
 
       <div class="table-toolbar">
         <div class="left-tools">
-          <el-button type="primary" :icon="CirclePlus" @click="handleAdd" size="small">新增角色</el-button>
-          <el-button type="danger" :icon="Delete" :disabled="selectedRoles.length === 0" @click="handleBatchDelete"
-            size="small">批量删除</el-button>
+          <el-button
+            type="primary"
+            :icon="CirclePlus"
+            size="small"
+            @click="handleAdd"
+          >
+            新增角色
+          </el-button>
+          <el-button
+            type="danger"
+            :icon="Delete"
+            :disabled="selectedRoles.length === 0"
+            size="small"
+            @click="handleBatchDelete"
+          >
+            批量删除
+          </el-button>
         </div>
         <div class="right-tools">
           <el-button :icon="Printer" circle title="打印" size="small" />
@@ -214,17 +372,45 @@
 
       <el-divider content-position="left">角色列表</el-divider>
 
-      <el-table v-loading="tableLoading" border :data="rolesList" style="width: 100%"
-        :header-cell-style="headerCellStyle" size="small" @selection-change="handleSelectionChange"
-        @sort-change="handleSortChange" class="roles-table">
+      <el-table
+        v-loading="tableLoading"
+        border
+        :data="rolesList"
+        style="width: 100%"
+        :header-cell-style="headerCellStyle"
+        size="small"
+        class="roles-table"
+        @selection-change="handleSelectionChange"
+        @sort-change="handleSortChange"
+      >
         <el-table-column type="selection" width="50" align="center" />
-        <el-table-column show-overflow-tooltip prop="id" label="ID" sortable="custom" min-width="80"
-          :sort-orders="['ascending', 'descending', null]">
+        <el-table-column
+          show-overflow-tooltip
+          prop="id"
+          label="ID"
+          sortable="custom"
+          min-width="80"
+          :sort-orders="['ascending', 'descending', null]"
+        >
           <template #default="{ row }">
-            <el-tag size="small" type="info" effect="plain" round class="id-tag">{{ row.id }}</el-tag>
+            <el-tag
+              size="small"
+              type="info"
+              effect="plain"
+              round
+              class="id-tag"
+            >
+              {{ row.id }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column show-overflow-tooltip label="角色名称" prop="name" sortable="custom" min-width="150">
+        <el-table-column
+          show-overflow-tooltip
+          label="角色名称"
+          prop="name"
+          sortable="custom"
+          min-width="150"
+        >
           <template #default="{ row }">
             <div class="cell-with-icon">
               <el-icon>
@@ -234,43 +420,105 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column show-overflow-tooltip label="角色标识" prop="iden" min-width="120">
+        <el-table-column
+          show-overflow-tooltip
+          label="角色标识"
+          prop="iden"
+          min-width="120"
+        >
           <template #default="{ row }">
-            <el-tag :type="row.iden === 'admin' ? 'danger' : 'success'" size="small" effect="plain">
+            <el-tag
+              :type="row.iden === 'admin' ? 'danger' : 'success'"
+              size="small"
+              effect="plain"
+            >
               {{ row.iden }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column show-overflow-tooltip label="显示顺序" prop="show_weight" sortable="custom" min-width="100">
+        <el-table-column
+          show-overflow-tooltip
+          label="显示顺序"
+          prop="show_weight"
+          sortable="custom"
+          min-width="100"
+        >
           <template #default="{ row }">
-            <el-tag size="small" type="warning" effect="plain">{{ row.show_weight }}</el-tag>
+            <el-tag size="small" type="warning" effect="plain">
+              {{ row.show_weight }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column show-overflow-tooltip label="状态" prop="status" sortable="custom" min-width="90">
+        <el-table-column
+          show-overflow-tooltip
+          label="状态"
+          prop="status"
+          sortable="custom"
+          min-width="90"
+        >
           <template #default="{ row }">
-            <el-switch v-model="row.status" :active-value="1" :inactive-value="0" inline-prompt active-text="启"
-              inactive-text="禁" @change="handleStatusChange(row)" />
+            <el-switch
+              v-model="row.status"
+              :active-value="1"
+              :inactive-value="0"
+              inline-prompt
+              active-text="启"
+              inactive-text="禁"
+              @change="handleStatusChange(row)"
+            />
           </template>
         </el-table-column>
-        <el-table-column show-overflow-tooltip label="创建时间" prop="create_time" sortable="custom" min-width="160" />
-        <el-table-column show-overflow-tooltip label="描述" prop="description" min-width="200" />
-        <el-table-column fixed="right" align="center" header-align="center" label="操作" width="200">
+        <el-table-column
+          show-overflow-tooltip
+          label="创建时间"
+          prop="create_time"
+          sortable="custom"
+          min-width="160"
+        />
+        <el-table-column
+          show-overflow-tooltip
+          label="描述"
+          prop="description"
+          min-width="200"
+        />
+        <el-table-column
+          fixed="right"
+          align="center"
+          header-align="center"
+          label="操作"
+          width="200"
+        >
           <template #default="{ row }">
             <div class="action-buttons">
               <template v-if="!row.delete_time">
-                <el-button type="primary" link size="small" @click="handleEdit(row)">
+                <el-button
+                  type="primary"
+                  link
+                  size="small"
+                  @click="handleEdit(row)"
+                >
                   <el-icon>
                     <Edit />
                   </el-icon>
                   <span>编辑</span>
                 </el-button>
-                <el-button type="success" link size="small" @click="handleAssignPermission(row)">
+                <el-button
+                  type="success"
+                  link
+                  size="small"
+                  @click="handleAssignPermission(row)"
+                >
                   <el-icon>
                     <SetUp />
                   </el-icon>
                   <span>权限</span>
                 </el-button>
-                <el-button type="danger" link size="small" @click="handleDelete(row)">
+                <el-button
+                  type="danger"
+                  link
+                  size="small"
+                  @click="handleDelete(row)"
+                >
                   <el-icon>
                     <Delete />
                   </el-icon>
@@ -278,13 +526,23 @@
                 </el-button>
               </template>
               <template v-else>
-                <el-button type="warning" link size="small" @click="handleRestore(row)">
+                <el-button
+                  type="warning"
+                  link
+                  size="small"
+                  @click="handleRestore(row)"
+                >
                   <el-icon>
                     <RefreshRight />
                   </el-icon>
                   <span>恢复</span>
                 </el-button>
-                <el-button type="danger" link size="small" @click="handleDelete(row)">
+                <el-button
+                  type="danger"
+                  link
+                  size="small"
+                  @click="handleDelete(row)"
+                >
                   <el-icon>
                     <Delete />
                   </el-icon>
@@ -296,10 +554,17 @@
         </el-table-column>
       </el-table>
 
-      <el-pagination v-model:current-page="pageConfig.currentPage" v-model:page-size="pageConfig.pageSize"
-        style="margin-top: 20px; justify-content: flex-end;" :page-sizes="[5, 10, 20, 30]" :background="true"
-        layout="total, sizes, prev, pager, next, jumper" :total="pageConfig.total" @size-change="handleSizeChange"
-        @current-change="handleCurrentChange" />
+      <el-pagination
+        v-model:current-page="pageConfig.currentPage"
+        v-model:page-size="pageConfig.pageSize"
+        style=" justify-content: flex-end;margin-top: 20px"
+        :page-sizes="[5, 10, 20, 30]"
+        :background="true"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="pageConfig.total"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+      />
     </el-card>
   </div>
 </template>
@@ -374,7 +639,7 @@ const roleFormRef = ref<any>(null);
 const permissionTreeRef = ref<any>(null);
 
 // 权限相关
-const activePermissionTab = ref('user');
+const activePermissionTab = ref("user");
 const permissionsData = ref<Record<string, any[]>>({});
 const permissionsLoading = ref(false);
 const selectedPermissions = ref<number[]>([]);
@@ -382,12 +647,12 @@ const searchQuery = ref("");
 
 // 表格样式
 const headerCellStyle = {
-  backgroundColor: '#f5f7fa',
-  color: '#606266',
-  fontWeight: '600',
-  textAlign: 'center' as const,
-  height: '40px',
-  padding: '6px 0'
+  backgroundColor: "#f5f7fa",
+  color: "#606266",
+  fontWeight: "600",
+  textAlign: "center" as const,
+  height: "40px",
+  padding: "6px 0"
 };
 
 // 使用Map存储每个分类的树引用
@@ -398,7 +663,10 @@ const selectedPermissionsByCategory = ref<Record<string, number[]>>({});
 
 // 计算总共选择的权限数量
 const totalSelectedPermissions = computed(() => {
-  return Object.values(selectedPermissionsByCategory.value).reduce((total, arr) => total + arr.length, 0);
+  return Object.values(selectedPermissionsByCategory.value).reduce(
+    (total, arr) => total + arr.length,
+    0
+  );
 });
 
 // 获取指定分类的已选择权限数量
@@ -418,7 +686,7 @@ const getCurrentTreeRef = () => {
 };
 
 // 监听搜索输入，过滤树节点
-watch(searchQuery, (val) => {
+watch(searchQuery, val => {
   const currentTree = getCurrentTreeRef();
   if (currentTree) {
     currentTree.filter(val);
@@ -450,17 +718,17 @@ const saveCurrentTabSelections = () => {
 
 // 分类中文标签
 const categoryLabels: Record<string, string> = {
-  user: '用户权限',
-  open: '开放接口',
-  product: '商品管理',
-  article: '文章管理',
-  system: '系统管理',
-  menu: '菜单权限'
+  user: "用户权限",
+  open: "开放接口",
+  product: "商品管理",
+  article: "文章管理",
+  system: "系统管理",
+  menu: "菜单权限"
 };
 
 const pageConfig = ref({
   currentPage: 1,
-  pageSize: 5,  // 默认每页显示5条数据
+  pageSize: 5, // 默认每页显示5条数据
   total: 0
 });
 
@@ -474,7 +742,11 @@ const roleRules = {
   ],
   iden: [
     { required: true, message: "请输入角色标识", trigger: "blur" },
-    { pattern: /^[a-zA-Z0-9_]+$/, message: "角色标识只能包含字母、数字和下划线", trigger: "blur" }
+    {
+      pattern: /^[a-zA-Z0-9_]+$/,
+      message: "角色标识只能包含字母、数字和下划线",
+      trigger: "blur"
+    }
   ]
 };
 
@@ -492,7 +764,8 @@ const fetchRoleList = async () => {
     const res = await getRoleList(params);
     if (res.code === 200) {
       rolesList.value = res.data.list || [];
-      pageConfig.value.total = res.data.pagination?.total || rolesList.value.length;
+      pageConfig.value.total =
+        res.data.pagination?.total || rolesList.value.length;
     } else {
       message(res.msg || "获取角色列表失败", { type: "error" });
     }
@@ -516,12 +789,16 @@ const loadPermissionsTree = async () => {
       // 动态添加新的权限分类标签
       Object.keys(permissionsData.value).forEach(category => {
         if (!categoryLabels[category]) {
-          categoryLabels[category] = category.charAt(0).toUpperCase() + category.slice(1);
+          categoryLabels[category] =
+            category.charAt(0).toUpperCase() + category.slice(1);
         }
       });
 
       // 如果没有选中的标签或标签不在返回的数据中，设置默认标签
-      if (!activePermissionTab.value || !permissionsData.value[activePermissionTab.value]) {
+      if (
+        !activePermissionTab.value ||
+        !permissionsData.value[activePermissionTab.value]
+      ) {
         const firstCategory = Object.keys(permissionsData.value)[0];
         if (firstCategory) {
           activePermissionTab.value = firstCategory;
@@ -561,8 +838,10 @@ const fetchRoleDetail = async (id: number) => {
         // 分配权限到各个分类
         role.permissions.forEach(permission => {
           // 找到权限所属的分类
-          for (const [category, permissions] of Object.entries(permissionsData.value)) {
-            const findPermissionInCategory = (items) => {
+          for (const [category, permissions] of Object.entries(
+            permissionsData.value
+          )) {
+            const findPermissionInCategory = items => {
               for (const item of items) {
                 if (item.id === permission.id) {
                   return true;
@@ -657,7 +936,7 @@ const handleEdit = (row: RoleInfo) => {
 const handleAssignPermission = async (row: RoleInfo) => {
   // 清空之前的缓存数据
   clearPermissionCache();
-  
+
   currentRole.value = { ...row };
   showPermissionModal.value = true;
 
@@ -690,7 +969,10 @@ const submitPermissions = async () => {
     });
 
     // 创建权限关联数据
-    const currentTime = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    const currentTime = new Date()
+      .toISOString()
+      .replace("T", " ")
+      .substring(0, 19);
     const rolePermissions = allCheckedPermissions.map(permissionId => {
       return {
         id: Number(generateSerialNumbers(1, 5)),
@@ -702,11 +984,14 @@ const submitPermissions = async () => {
     });
 
     // 打印创建的关联数据
-    console.log('创建的角色-权限关联数据:', rolePermissions);
-    console.log('选中的权限ID:', allCheckedPermissions);
+    console.log("创建的角色-权限关联数据:", rolePermissions);
+    console.log("选中的权限ID:", allCheckedPermissions);
 
     // 调用API保存权限
-    const res = await assignRolePermissions(currentRole.value.id, allCheckedPermissions);
+    const res = await assignRolePermissions(
+      currentRole.value.id,
+      allCheckedPermissions
+    );
     if (res.code === 200) {
       message("权限分配成功", { type: "success" });
       // 清空缓存并关闭对话框
@@ -745,15 +1030,28 @@ const submitRole = async () => {
       }
 
       if (res.code === 200) {
-        message(currentRole.value.id ? "更新角色成功" : "创建角色成功", { type: "success" });
+        message(currentRole.value.id ? "更新角色成功" : "创建角色成功", {
+          type: "success"
+        });
         showAddOrEditModal.value = false;
         fetchRoleList();
       } else {
-        message(res.msg || (currentRole.value.id ? "更新角色失败" : "创建角色失败"), { type: "error" });
+        message(
+          res.msg || (currentRole.value.id ? "更新角色失败" : "创建角色失败"),
+          { type: "error" }
+        );
       }
     } catch (error) {
-      console.error(currentRole.value.id ? "更新角色错误:" : "创建角色错误:", error);
-      message(currentRole.value.id ? "更新角色失败，请稍后重试" : "创建角色失败，请稍后重试", { type: "error" });
+      console.error(
+        currentRole.value.id ? "更新角色错误:" : "创建角色错误:",
+        error
+      );
+      message(
+        currentRole.value.id
+          ? "更新角色失败，请稍后重试"
+          : "创建角色失败，请稍后重试",
+        { type: "error" }
+      );
     } finally {
       submitting.value = false;
     }
@@ -767,43 +1065,51 @@ const handleDelete = (row: RoleInfo) => {
 
   // 使用render函数创建自定义内容
   const renderContent = () => {
-    return h('div', null, [
-      h('p', null, `确定要删除角色 "${row.name}" 吗？`),
-      h('div', { style: 'margin-top: 16px; display: flex; align-items: center;' }, [
-        h('input', {
-          type: 'checkbox',
-          style: 'width: 16px; height: 16px; margin-right: 8px; cursor: pointer;',
-          checked: isRealDelete.value,
-          onInput: (event) => {
-            isRealDelete.value = (event.target as HTMLInputElement).checked;
-          }
-        }),
-        h('span', null, '永久删除（否则为软删除，可在回收站恢复）')
-      ])
+    return h("div", null, [
+      h("p", null, `确定要删除角色 "${row.name}" 吗？`),
+      h(
+        "div",
+        { style: "margin-top: 16px; display: flex; align-items: center;" },
+        [
+          h("input", {
+            type: "checkbox",
+            style:
+              "width: 16px; height: 16px; margin-right: 8px; cursor: pointer;",
+            checked: isRealDelete.value,
+            onInput: event => {
+              isRealDelete.value = (event.target as HTMLInputElement).checked;
+            }
+          }),
+          h("span", null, "永久删除（否则为软删除，可在回收站恢复）")
+        ]
+      )
     ]);
   };
 
   ElMessageBox({
-    title: '删除确认',
+    title: "删除确认",
     message: renderContent(),
     showCancelButton: true,
-    confirmButtonText: '确定删除',
-    cancelButtonText: '取消',
-    type: 'warning',
+    confirmButtonText: "确定删除",
+    cancelButtonText: "取消",
+    type: "warning",
     beforeClose: (action, instance, done) => {
-      if (action === 'confirm') {
+      if (action === "confirm") {
         instance.confirmButtonLoading = true;
         deleteRole(row.id, isRealDelete.value)
           .then(res => {
             if (res.code === 200) {
-              message(isRealDelete.value ? '永久删除角色成功' : '删除角色成功', { type: 'success' });
+              message(
+                isRealDelete.value ? "永久删除角色成功" : "删除角色成功",
+                { type: "success" }
+              );
               fetchRoleList();
             } else {
-              message(res.msg || '删除角色失败', { type: 'error' });
+              message(res.msg || "删除角色失败", { type: "error" });
             }
           })
           .catch(() => {
-            message('删除角色失败，请稍后重试', { type: 'error' });
+            message("删除角色失败，请稍后重试", { type: "error" });
           })
           .finally(() => {
             instance.confirmButtonLoading = false;
@@ -827,7 +1133,7 @@ const handleClose = (done: () => void) => {
       clearPermissionCache();
       done();
     })
-    .catch(() => { });
+    .catch(() => {});
 };
 
 // 清空权限缓存
@@ -835,7 +1141,7 @@ const clearPermissionCache = () => {
   selectedPermissionsByCategory.value = {};
   selectedPermissions.value = [];
   searchQuery.value = "";
-  activePermissionTab.value = 'user';
+  activePermissionTab.value = "user";
 };
 
 // 状态切换处理
@@ -906,45 +1212,53 @@ const handleBatchDelete = () => {
 
   // 使用render函数创建自定义内容
   const renderContent = () => {
-    return h('div', null, [
-      h('p', null, `确定要删除选中的 ${selectedRoles.value.length} 个角色吗？`),
-      h('div', { style: 'margin-top: 16px; display: flex; align-items: center;' }, [
-        h('input', {
-          type: 'checkbox',
-          style: 'width: 16px; height: 16px; margin-right: 8px; cursor: pointer;',
-          checked: isRealDelete.value,
-          onInput: (event) => {
-            isRealDelete.value = (event.target as HTMLInputElement).checked;
-          }
-        }),
-        h('span', null, '永久删除（否则为软删除，可在回收站恢复）')
-      ])
+    return h("div", null, [
+      h("p", null, `确定要删除选中的 ${selectedRoles.value.length} 个角色吗？`),
+      h(
+        "div",
+        { style: "margin-top: 16px; display: flex; align-items: center;" },
+        [
+          h("input", {
+            type: "checkbox",
+            style:
+              "width: 16px; height: 16px; margin-right: 8px; cursor: pointer;",
+            checked: isRealDelete.value,
+            onInput: event => {
+              isRealDelete.value = (event.target as HTMLInputElement).checked;
+            }
+          }),
+          h("span", null, "永久删除（否则为软删除，可在回收站恢复）")
+        ]
+      )
     ]);
   };
 
   ElMessageBox({
-    title: '批量删除确认',
+    title: "批量删除确认",
     message: renderContent(),
     showCancelButton: true,
-    confirmButtonText: '确定删除',
-    cancelButtonText: '取消',
-    type: 'warning',
+    confirmButtonText: "确定删除",
+    cancelButtonText: "取消",
+    type: "warning",
     beforeClose: (action, instance, done) => {
-      if (action === 'confirm') {
+      if (action === "confirm") {
         instance.confirmButtonLoading = true;
         const ids = selectedRoles.value.map(item => item.id);
         batchDeleteRoles(ids, isRealDelete.value)
           .then(res => {
             if (res.code === 200) {
-              message(isRealDelete.value ? '永久删除角色成功' : '批量删除角色成功', { type: 'success' });
+              message(
+                isRealDelete.value ? "永久删除角色成功" : "批量删除角色成功",
+                { type: "success" }
+              );
               fetchRoleList();
               selectedRoles.value = [];
             } else {
-              message(res.msg || '批量删除角色失败', { type: 'error' });
+              message(res.msg || "批量删除角色失败", { type: "error" });
             }
           })
           .catch(() => {
-            message('批量删除角色失败，请稍后重试', { type: 'error' });
+            message("批量删除角色失败，请稍后重试", { type: "error" });
           })
           .finally(() => {
             instance.confirmButtonLoading = false;
@@ -991,7 +1305,8 @@ const checkAllPermissions = () => {
     if (!treeInstance) return;
 
     // 获取当前标签页的权限数据
-    const currentTabPermissions = permissionsData.value[activePermissionTab.value] || [];
+    const currentTabPermissions =
+      permissionsData.value[activePermissionTab.value] || [];
 
     // 收集所有节点的ID
     const allNodeIds: number[] = [];
@@ -1032,14 +1347,14 @@ const uncheckAllPermissions = () => {
 };
 
 // 新增的权限分配相关状态
-const activeCollapse = ref<string[]>(['user']);
+const activeCollapse = ref<string[]>(["user"]);
 const showOnlySelected = ref(false);
 
 // 获取所有权限总数
 const getTotalPermissionsCount = () => {
   let total = 0;
   for (const category in permissionsData.value) {
-    const countPermissions = (items) => {
+    const countPermissions = items => {
       let count = items.length;
       for (const item of items) {
         if (item.children && item.children.length) {
@@ -1063,9 +1378,9 @@ const getPermissionPercentage = () => {
 // 获取进度条颜色
 const getProgressColor = () => {
   const percentage = getPermissionPercentage();
-  if (percentage < 30) return '#F56C6C';
-  if (percentage < 70) return '#E6A23C';
-  return '#67C23A';
+  if (percentage < 30) return "#F56C6C";
+  if (percentage < 70) return "#E6A23C";
+  return "#67C23A";
 };
 
 // 判断节点是否被选中
@@ -1074,14 +1389,16 @@ const isNodeSelected = (category: string, id: number) => {
 };
 
 // 过滤权限树，根据是否仅显示已选项
-const filterPermissions = (permissions) => {
+const filterPermissions = permissions => {
   if (!showOnlySelected.value) return permissions;
 
   // 过滤只显示已选择的权限
   const filterSelectedPermissions = (items, category) => {
     return items.filter(item => {
       // 检查当前节点是否选中
-      const isSelected = selectedPermissionsByCategory.value[category]?.includes(item.id);
+      const isSelected = selectedPermissionsByCategory.value[
+        category
+      ]?.includes(item.id);
 
       // 如果有子节点，递归过滤
       let filteredChildren = [];
@@ -1105,7 +1422,7 @@ const filterPermissions = (permissions) => {
 };
 
 // 全选某个分类
-const selectCategoryAll = (category) => {
+const selectCategoryAll = category => {
   const treeInstance = treeRefs.value.get(category);
   if (!treeInstance) return;
 
@@ -1132,7 +1449,7 @@ const selectCategoryAll = (category) => {
 };
 
 // 取消选择某个分类
-const unselectCategoryAll = (category) => {
+const unselectCategoryAll = category => {
   const treeInstance = treeRefs.value.get(category);
   if (!treeInstance) return;
 
@@ -1155,6 +1472,18 @@ onMounted(() => {
 .roles-container {
   padding: 20px;
 
+  @media (width >= 1920px) {
+    .el-col {
+      margin-bottom: 0;
+    }
+  }
+
+  @media (width <= 767px) {
+    .el-col {
+      margin-bottom: 8px;
+    }
+  }
+
   .header-title {
     font-size: 16px;
     font-weight: bold;
@@ -1168,8 +1497,8 @@ onMounted(() => {
 
   .table-toolbar {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
     margin-bottom: 16px;
 
     .left-tools,
@@ -1223,29 +1552,29 @@ onMounted(() => {
 
   .roles-table {
     .id-tag {
-      font-size: 11px;
       padding: 0 6px;
+      font-size: 11px;
     }
 
     .cell-with-icon {
       display: flex;
+      gap: 6px;
       align-items: center;
       justify-content: flex-start;
-      gap: 6px;
 
       .el-icon {
         font-size: 14px;
-        color: #409EFF;
+        color: #409eff;
       }
     }
 
     :deep(.el-tag) {
       &.el-tag--danger {
-        border: 1px solid rgba(245, 108, 108, 0.2);
+        border: 1px solid rgb(245 108 108 / 20%);
       }
 
       &.el-tag--success {
-        border: 1px solid rgba(103, 194, 58, 0.2);
+        border: 1px solid rgb(103 194 58 / 20%);
       }
     }
   }
@@ -1253,60 +1582,48 @@ onMounted(() => {
   .el-col {
     margin-bottom: 12px;
   }
-
-  @media (min-width: 1920px) {
-    .el-col {
-      margin-bottom: 0;
-    }
-  }
-
-  @media (max-width: 767px) {
-    .el-col {
-      margin-bottom: 8px;
-    }
-  }
 }
 
 .permission-dialog {
   :deep(.el-dialog__header) {
-    background: linear-gradient(135deg, #1989fa, #5ab1ef);
-    color: #fff;
     padding: 16px 20px;
+    color: #fff;
+    background: linear-gradient(135deg, #1989fa, #5ab1ef);
 
     .el-dialog__title {
-      color: #fff;
       font-size: 18px;
       font-weight: bold;
+      color: #fff;
     }
 
     .el-dialog__close {
       color: #fff;
 
       &:hover {
-        color: rgba(255, 255, 255, 0.8);
-        background: rgba(255, 255, 255, 0.2);
+        color: rgb(255 255 255 / 80%);
+        background: rgb(255 255 255 / 20%);
       }
     }
   }
 
   :deep(.el-dialog__body) {
-    padding: 20px;
     max-height: 75vh;
+    padding: 20px;
     overflow: auto;
   }
 
   :deep(.el-dialog__footer) {
     padding: 12px 20px;
-    border-top: 1px solid #f0f0f0;
     background-color: #f8f9fa;
+    border-top: 1px solid #f0f0f0;
   }
 
   .role-info-box {
     margin-bottom: 16px;
-    border-radius: 6px;
     overflow: hidden;
     border: 1px solid #ebeef5;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgb(0 0 0 / 5%);
 
     .role-info-header {
       display: flex;
@@ -1320,9 +1637,9 @@ onMounted(() => {
         align-items: center;
 
         .el-icon {
-          font-size: 16px;
           margin-right: 6px;
-          color: #409EFF;
+          font-size: 16px;
+          color: #409eff;
         }
 
         span {
@@ -1333,10 +1650,10 @@ onMounted(() => {
     }
 
     .role-info-content {
-      padding: 12px 16px;
       display: flex;
       flex-wrap: wrap;
       gap: 16px;
+      padding: 12px 16px;
       background-color: #fff;
 
       .info-item {
@@ -1344,16 +1661,16 @@ onMounted(() => {
         align-items: center;
 
         .label {
+          margin-right: 10px;
           font-size: 13px;
           color: #606266;
-          margin-right: 10px;
         }
 
         .description {
-          font-size: 13px;
-          color: #909399;
           max-width: 500px;
           overflow: hidden;
+          font-size: 13px;
+          color: #909399;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
@@ -1364,38 +1681,38 @@ onMounted(() => {
     :deep(.el-tag) {
       display: inline-flex !important;
       align-items: center !important;
-      
+
       .el-tag__content {
         display: inline-flex;
-        align-items: center;
         gap: 4px;
+        align-items: center;
       }
     }
   }
 
   .permission-box {
-    border-radius: 6px;
     overflow: hidden;
     border: 1px solid #ebeef5;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgb(0 0 0 / 5%);
 
     .permission-header {
       display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
       align-items: center;
       justify-content: space-between;
       padding: 12px 16px;
       background-color: #f5f7fa;
-      flex-wrap: wrap;
-      gap: 10px;
 
       .left {
         display: flex;
         align-items: center;
 
         .el-icon {
-          font-size: 16px;
           margin-right: 6px;
-          color: #409EFF;
+          font-size: 16px;
+          color: #409eff;
         }
 
         span {
@@ -1404,20 +1721,20 @@ onMounted(() => {
         }
 
         .subtitle {
-          margin-left: 8px;
-          font-weight: normal;
-          font-size: 12px;
-          color: #606266;
           padding: 2px 8px;
-          border-radius: 12px;
+          margin-left: 8px;
+          font-size: 12px;
+          font-weight: normal;
+          color: #606266;
           background-color: #f1f7fe;
+          border-radius: 12px;
         }
       }
 
       .right {
         display: flex;
-        align-items: center;
         gap: 8px;
+        align-items: center;
 
         .search-box {
           width: 380px;
@@ -1435,9 +1752,9 @@ onMounted(() => {
   }
 
   .tabs-wrapper {
+    overflow: hidden;
     background-color: #fff;
     border-radius: 4px;
-    overflow: hidden;
   }
 
   .permission-tabs {
@@ -1455,24 +1772,24 @@ onMounted(() => {
 
       .el-tabs__item {
         height: 36px;
-        line-height: 36px;
-        font-size: 13px;
         padding: 0 16px;
-        border: none;
         margin-right: 4px;
+        font-size: 13px;
+        line-height: 36px;
+        border: none;
         border-radius: 4px 4px 0 0;
         transition: all 0.3s;
 
         &.is-active {
-          color: #409EFF;
           font-weight: 500;
+          color: #409eff;
           background: #fff;
-          box-shadow: 0 -2px 0 #409EFF inset;
+          box-shadow: 0 -2px 0 #409eff inset;
         }
 
         &:not(.is-active):hover {
-          color: #409EFF;
-          background: rgba(64, 158, 255, 0.08);
+          color: #409eff;
+          background: rgb(64 158 255 / 8%);
         }
       }
     }
@@ -1484,8 +1801,8 @@ onMounted(() => {
 
   .tab-label {
     display: inline-flex;
-    align-items: center;
     gap: 5px;
+    align-items: center;
 
     .el-icon {
       font-size: 15px;
@@ -1495,11 +1812,11 @@ onMounted(() => {
       margin-left: 4px;
 
       :deep(.el-badge__content) {
-        transform: scale(0.8);
-        height: 16px;
         min-width: 16px;
+        height: 16px;
         padding: 0 4px;
         line-height: 16px;
+        transform: scale(0.8);
       }
     }
   }
@@ -1514,11 +1831,11 @@ onMounted(() => {
       margin-bottom: 12px;
 
       .category-info {
+        padding: 6px 10px;
         font-size: 13px;
         color: #606266;
         background-color: #f5f7fa;
         border-radius: 4px;
-        padding: 6px 10px;
       }
 
       .actions {
@@ -1526,8 +1843,8 @@ onMounted(() => {
         gap: 8px;
 
         .el-button {
-          font-size: 12px;
           padding: 4px 12px;
+          font-size: 12px;
         }
       }
     }
@@ -1543,8 +1860,8 @@ onMounted(() => {
 
     :deep(.el-tree-node__content) {
       height: 36px;
-      border-radius: 4px;
       margin: 2px 0;
+      border-radius: 4px;
       transition: all 0.2s;
 
       &:hover {
@@ -1553,8 +1870,8 @@ onMounted(() => {
     }
 
     :deep(.is-checked) .tree-node .node-label {
-      color: #409EFF;
       font-weight: 500;
+      color: #409eff;
     }
 
     .tree-node {
@@ -1565,54 +1882,54 @@ onMounted(() => {
 
       &.node-selected {
         .node-label {
-          color: #409EFF;
           font-weight: 500;
+          color: #409eff;
         }
       }
 
       .node-content {
         display: flex;
-        align-items: center;
-        justify-content: space-between;
         flex: 1;
         gap: 12px;
+        align-items: center;
+        justify-content: space-between;
 
         .node-main {
           display: flex;
-          align-items: center;
-          gap: 10px;
           flex: 1;
+          gap: 10px;
+          align-items: center;
 
           .node-iden {
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
             min-width: 140px;
+            font-family: "Courier New", monospace;
+            font-size: 12px;
+            color: #409eff;
             text-align: center;
             background-color: #ecf5ff;
             border-color: #d9ecff;
-            color: #409eff;
           }
 
           .node-label {
             font-size: 13px;
-            color: #606266;
             line-height: 1.5;
+            color: #606266;
           }
         }
 
         .node-meta {
           display: flex;
-          align-items: center;
-          gap: 8px;
           flex-shrink: 0;
+          gap: 8px;
+          align-items: center;
 
           .node-id {
+            padding: 2px 8px;
             font-size: 11px;
             color: #909399;
-            background-color: #f5f7fa;
-            padding: 2px 8px;
-            border-radius: 10px;
             white-space: nowrap;
+            background-color: #f5f7fa;
+            border-radius: 10px;
           }
         }
       }
@@ -1621,18 +1938,18 @@ onMounted(() => {
 
   .dialog-footer {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
 
     .footer-info {
       display: flex;
-      align-items: center;
       gap: 4px;
-      color: #606266;
+      align-items: center;
       font-size: 13px;
+      color: #606266;
 
       .el-icon {
-        color: #409EFF;
+        color: #409eff;
       }
     }
 
@@ -1651,7 +1968,7 @@ onMounted(() => {
   }
 }
 
-@media screen and (max-width: 768px) {
+@media screen and (width <= 768px) {
   .permission-dialog {
     .permission-box {
       .permission-header {
@@ -1667,8 +1984,8 @@ onMounted(() => {
 
           .search-box {
             width: 100%;
-            margin-right: 0;
             padding-right: 8px;
+            margin-right: 0;
           }
         }
       }
@@ -1679,8 +1996,8 @@ onMounted(() => {
       align-items: flex-start;
 
       .category-info {
-        margin-bottom: 8px;
         width: 100%;
+        margin-bottom: 8px;
       }
     }
   }
