@@ -111,7 +111,7 @@ class ApiManager extends BaseController
             }
             
             // 可更新字段
-            $allowFields = ['description', 'status'];
+            $allowFields = ['description', 'status', 'check_mode', 'module', 'required_permission'];
             $updateData = [];
             
             foreach ($allowFields as $field) {
@@ -127,6 +127,21 @@ class ApiManager extends BaseController
                 Api::STATUS_CLOSED
             ])) {
                 return json(['code' => 400, 'msg' => '无效的状态值']);
+            }
+            
+            // 验证 check_mode 值
+            if (isset($updateData['check_mode']) && !in_array($updateData['check_mode'], ['none', 'manual', 'auto'])) {
+                return json(['code' => 400, 'msg' => '无效的权限检查模式，必须是 none、manual 或 auto']);
+            }
+            
+            // 如果是 manual 模式，检查是否设置了 required_permission
+            if (isset($updateData['check_mode']) && $updateData['check_mode'] === 'manual') {
+                if (!isset($updateData['required_permission']) || empty(trim($updateData['required_permission']))) {
+                    // 检查数据库中是否已有 required_permission
+                    if (empty($apiInfo->required_permission)) {
+                        return json(['code' => 400, 'msg' => 'manual 模式必须设置 required_permission']);
+                    }
+                }
             }
             
             if (empty($updateData)) {
@@ -251,7 +266,10 @@ class ApiManager extends BaseController
                         'create_time' => date('Y-m-d H:i:s'),
                         'update_time' => date('Y-m-d H:i:s'),
                         'description' => '',
-                        'status' => Api::STATUS_OPEN
+                        'status' => Api::STATUS_OPEN,
+                        'check_mode' => 'manual',  // 默认手动模式
+                        'module' => $model,  // 模块名
+                        'required_permission' => ''  // 需要手动配置
                     ];
                 }
             }

@@ -557,7 +557,7 @@
       <el-pagination
         v-model:current-page="pageConfig.currentPage"
         v-model:page-size="pageConfig.pageSize"
-        style=" justify-content: flex-end;margin-top: 20px"
+        style="justify-content: flex-end; margin-top: 20px"
         :page-sizes="[5, 10, 20, 30]"
         :background="true"
         layout="total, sizes, prev, pager, next, jumper"
@@ -716,15 +716,8 @@ const saveCurrentTabSelections = () => {
   }
 };
 
-// 分类中文标签
-const categoryLabels: Record<string, string> = {
-  user: "用户权限",
-  open: "开放接口",
-  product: "商品管理",
-  article: "文章管理",
-  system: "系统管理",
-  menu: "菜单权限"
-};
+// 分类中文标签（从后端动态获取，不再硬编码）
+const categoryLabels: Record<string, string> = reactive({});
 
 const pageConfig = ref({
   currentPage: 1,
@@ -784,15 +777,25 @@ const loadPermissionsTree = async () => {
     // 从API获取权限树
     const res = await getPermissionTree();
     if (res.code === 200) {
-      permissionsData.value = res.data || {};
+      // 后端返回的数据结构：{ permissions: {...}, categoryLabels: {...} }
+      const data = res.data || {};
 
-      // 动态添加新的权限分类标签
-      Object.keys(permissionsData.value).forEach(category => {
-        if (!categoryLabels[category]) {
-          categoryLabels[category] =
-            category.charAt(0).toUpperCase() + category.slice(1);
-        }
-      });
+      // 如果后端返回了新的数据结构
+      if (data.permissions && data.categoryLabels) {
+        permissionsData.value = data.permissions;
+        // 使用后端返回的分类标签，不再硬编码
+        Object.assign(categoryLabels, data.categoryLabels);
+      } else {
+        // 兼容旧的数据结构
+        permissionsData.value = data;
+        // 动态生成分类标签（兜底方案）
+        Object.keys(permissionsData.value).forEach(category => {
+          if (!categoryLabels[category]) {
+            categoryLabels[category] =
+              category.charAt(0).toUpperCase() + category.slice(1);
+          }
+        });
+      }
 
       // 如果没有选中的标签或标签不在返回的数据中，设置默认标签
       if (
@@ -1472,13 +1475,13 @@ onMounted(() => {
 .roles-container {
   padding: 20px;
 
-  @media (width >= 1920px) {
+  @media (width >=1920px) {
     .el-col {
       margin-bottom: 0;
     }
   }
 
-  @media (width <= 767px) {
+  @media (width <=767px) {
     .el-col {
       margin-bottom: 8px;
     }
@@ -1968,7 +1971,7 @@ onMounted(() => {
   }
 }
 
-@media screen and (width <= 768px) {
+@media screen and (width <=768px) {
   .permission-dialog {
     .permission-box {
       .permission-header {

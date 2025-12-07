@@ -408,7 +408,8 @@
                     </el-icon>
                     删除
                   </el-button>
-                  <el-button
+                  <!-- 分配API功能已废弃，改用 check_mode + required_permission 方式 -->
+                  <!-- <el-button
                     type="success"
                     link
                     size="small"
@@ -418,7 +419,7 @@
                       <Link />
                     </el-icon>
                     分配API
-                  </el-button>
+                  </el-button> -->
                 </template>
                 <template v-else>
                   <el-button
@@ -708,8 +709,9 @@ const permissionRules = {
     { required: true, message: "请输入权限标识", trigger: "blur" },
     {
       pattern:
-        /^[a-zA-Z][a-zA-Z0-9_]*:[a-zA-Z][a-zA-Z0-9_]*(?::[a-zA-Z][a-zA-Z0-9_]*)?$/,
-      message: "格式错误，必须是 module:action 格式（如：user:view）",
+        /^(\*|[a-zA-Z][a-zA-Z0-9_]*)(?::(\*|[a-zA-Z][a-zA-Z0-9_]*))?(?::(\*|[a-zA-Z][a-zA-Z0-9_]*))?$/,
+      message:
+        "格式错误，支持格式：module:action、module:action:scope 或使用 * 通配符（如：*、*:*、user:*）",
       trigger: "blur"
     }
   ]
@@ -1450,13 +1452,13 @@ onMounted(async () => {
 .permission-container {
   padding: 20px;
 
-  @media (width >= 1920px) {
+  @media (width >=1920px) {
     .el-col {
       margin-bottom: 0;
     }
   }
 
-  @media (width <= 767px) {
+  @media (width <=767px) {
     .el-col {
       margin-bottom: 8px;
     }

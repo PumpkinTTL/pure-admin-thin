@@ -126,9 +126,14 @@ class PermissionService
                 return ['code' => 400, 'msg' => '模块名称和权限标识不能为空'];
             }
             
-            // 验证权限标识格式：必须是 module:action 或 module:action:scope 格式
-            if (!preg_match('/^[a-zA-Z][a-zA-Z0-9_]*:[a-zA-Z][a-zA-Z0-9_]*(?::[a-zA-Z][a-zA-Z0-9_]*)?$/', $data['iden'])) {
-                return ['code' => 400, 'msg' => '权限标识格式错误，必须是 module:action 格式（如：user:view）'];
+            // 验证权限标识格式：支持通配符和标准格式
+            // 允许的格式：
+            // 1. 通配符：*、*:*、*:*:*
+            // 2. 标准格式：module:action、module:action:scope
+            // 3. 混合格式：module:*、*:action、module:*:scope 等
+            $idenPattern = '/^(\*|[a-zA-Z][a-zA-Z0-9_]*)(?::(\*|[a-zA-Z][a-zA-Z0-9_]*))?(?::(\*|[a-zA-Z][a-zA-Z0-9_]*))?$/';
+            if (!preg_match($idenPattern, $data['iden'])) {
+                return ['code' => 400, 'msg' => '权限标识格式错误，支持格式：module:action、module:action:scope 或使用 * 通配符（如：*、*:*、user:*）'];
             }
             
             // 检查权限标识是否已存在（iden字段应该是唯一的）
@@ -173,9 +178,10 @@ class PermissionService
             
             // 如果更新权限标识，验证格式和唯一性
             if (isset($data['iden']) && $data['iden'] !== $permission->iden) {
-                // 验证权限标识格式
-                if (!preg_match('/^[a-zA-Z][a-zA-Z0-9_]*:[a-zA-Z][a-zA-Z0-9_]*(?::[a-zA-Z][a-zA-Z0-9_]*)?$/', $data['iden'])) {
-                    return ['code' => 400, 'msg' => '权限标识格式错误，必须是 module:action 格式（如：user:view）'];
+                // 验证权限标识格式：支持通配符和标准格式
+                $idenPattern = '/^(\*|[a-zA-Z][a-zA-Z0-9_]*)(?::(\*|[a-zA-Z][a-zA-Z0-9_]*))?(?::(\*|[a-zA-Z][a-zA-Z0-9_]*))?$/';
+                if (!preg_match($idenPattern, $data['iden'])) {
+                    return ['code' => 400, 'msg' => '权限标识格式错误，支持格式：module:action、module:action:scope 或使用 * 通配符（如：*、*:*、user:*）'];
                 }
                 
                 // 检查权限标识是否已存在
@@ -283,6 +289,7 @@ class PermissionService
         
         // 按模块（name字段）分组
         $groupedPermissions = [];
+        $categoryLabels = [];  // 存储分类的label
         
         foreach ($permissions as $permission) {
             // 兼容数组和对象两种格式
@@ -290,10 +297,13 @@ class PermissionService
             $name = is_array($permission) ? $permission['name'] : $permission->name;
             $iden = is_array($permission) ? $permission['iden'] : $permission->iden;
             $description = is_array($permission) ? $permission['description'] : $permission->description;
+            $label = is_array($permission) ? ($permission['label'] ?? $name) : ($permission->label ?? $name);
             
             // 按name字段（模块）分组，如 'user', 'article', 'comment'
             if (!isset($groupedPermissions[$name])) {
                 $groupedPermissions[$name] = [];
+                // 记录该分类的label（使用第一个权限的label）
+                $categoryLabels[$name] = $label;
             }
             
             // 添加到对应模块分组
@@ -301,11 +311,16 @@ class PermissionService
                 'id' => $id,
                 'name' => $description,  // 显示权限说明作为名称
                 'iden' => $iden,
-                'description' => $description
+                'description' => $description,
+                'label' => $label  // 添加label字段
             ];
         }
         
-        return $groupedPermissions;
+        // 返回包含分类标签的数据结构
+        return [
+            'permissions' => $groupedPermissions,
+            'categoryLabels' => $categoryLabels
+        ];
     }
 
     /**

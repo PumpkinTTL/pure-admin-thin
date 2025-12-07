@@ -21,7 +21,13 @@ class Api extends Model
     protected $updateTime = 'update_time';
     
     // 允许批量赋值的字段
-    protected $allowField = ['id', 'version', 'method', 'model', 'path', 'full_path', 'description', 'status', 'file_hash'];
+    protected $allowField = ['id', 'version', 'method', 'model', 'path', 'full_path', 'description', 'status', 'file_hash', 'check_mode', 'module', 'required_permission'];
+    
+    // 字段默认值
+    protected $insert = [
+        'check_mode' => 'manual',  // 默认使用手动模式
+        'status' => self::STATUS_OPEN  // 默认开放状态
+    ];
     
     // 状态常量
     const STATUS_MAINTENANCE = 0;  // 维护中
