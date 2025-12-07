@@ -41,4 +41,5 @@
   ],
   "vscodeCustomCodeColor.highlightValueColor": "#b392f0",
   "editor.fontFamily": "OPPO Sans,Fira Code,Consolas, 'Courier New', monospace",
+  "Codegeex.RepoIndex": true,
 }
