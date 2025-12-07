@@ -8,18 +8,14 @@ import type { FormInstance } from "element-plus";
 import { useLayout } from "@/layout/hooks/useLayout";
 import { initRouter, getTopMenu } from "@/router/utils";
 
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { ref, reactive, onMounted, onBeforeUnmount } from "vue";
 import { useDataThemeChange } from "@/layout/hooks/useDataThemeChange";
 
 import dayIcon from "@/assets/svg/day.svg?component";
 import darkIcon from "@/assets/svg/dark.svg?component";
-import Lock from "@iconify-icons/ri/lock-fill";
-import User from "@iconify-icons/ri/user-3-fill";
 import { loginR } from "@/api/user";
 import { setToken } from "@/utils/auth";
 
-// --- 逻辑保持不变 ---
 const pageLoaded = ref(false);
 defineOptions({
   name: "Login"
@@ -111,349 +107,1119 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div
-    class="min-h-screen w-full flex items-center justify-center bg-[#eaeff5] dark:bg-[#0f172a] transition-colors duration-500 relative overflow-hidden"
-  >
-    <!-- 背景装饰：极淡的背景图形 -->
-    <div
-      class="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none"
-    >
-      <div
-        class="absolute -top-[300px] -left-[150px] w-[600px] h-[600px] bg-indigo-100 dark:bg-indigo-900/20 rounded-full blur-[100px] opacity-60"
-      />
-      <div
-        class="absolute bottom-[0] right-[0] w-[500px] h-[500px] bg-blue-50 dark:bg-blue-900/10 rounded-full blur-[80px] opacity-60"
-      />
+  <div class="login-layout">
+    <!-- 背景装饰 -->
+    <div class="bg-decoration">
+      <div class="bg-shapes">
+        <div class="shape shape-1" />
+        <div class="shape shape-2" />
+        <div class="shape shape-3" />
+      </div>
     </div>
 
     <!-- 主题切换 -->
-    <div class="absolute top-6 right-8 z-50">
+    <div class="theme-switch">
       <el-switch
         v-model="dataTheme"
         inline-prompt
         :active-icon="dayIcon"
         :inactive-icon="darkIcon"
-        style="
-
---el-switch-on-color: #334155; --el-switch-off-color: #94a3b8"
         @change="dataThemeChange"
       />
     </div>
 
-    <!-- 登录主卡片 -->
-    <Motion :delay="100">
-      <div
-        class="relative z-10 w-full max-w-[900px] h-auto min-h-[580px] bg-white dark:bg-slate-800 rounded-[24px] shadow-2xl flex overflow-hidden"
-      >
-        <!-- 左侧：装饰区域 (40%宽度) -->
-        <div
-          class="hidden md:flex w-[40%] bg-slate-900 relative overflow-hidden flex-col justify-between p-10 text-white"
-        >
-          <!-- 抽象几何背景 (纯 CSS 绘制) -->
-          <div class="absolute inset-0 z-0">
-            <!-- 渐变底色 -->
-            <div
-              class="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-950"
-            />
-            <!-- 装饰线条 -->
-            <div
-              class="absolute top-0 right-0 w-[300px] h-[300px] border-[40px] border-slate-700/30 rounded-full transform translate-x-1/2 -translate-y-1/2"
-            />
-            <div
-              class="absolute bottom-0 left-0 w-[200px] h-[200px] border-[20px] border-indigo-500/10 rounded-full transform -translate-x-1/3 translate-y-1/3"
-            />
-            <!-- 玻璃质感悬浮块 -->
-            <div
-              class="absolute top-1/3 right-[-20px] w-24 h-24 bg-indigo-500/20 backdrop-blur-md rounded-2xl transform rotate-12 border border-white/10"
-            />
-            <div
-              class="absolute bottom-1/4 left-[10%] w-16 h-16 bg-blue-400/20 backdrop-blur-md rounded-xl transform -rotate-12 border border-white/10"
-            />
-          </div>
-
-          <!-- 左侧内容 -->
-          <div class="relative z-10">
-            <div class="flex items-center gap-3 mb-8">
-              <div
-                class="w-10 h-10 rounded-lg bg-indigo-500 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/40"
-              >
-                S
+    <!-- 主容器 -->
+    <div class="login-container">
+      <Motion :delay="100">
+        <div class="login-wrapper">
+          <!-- 左侧装饰区 -->
+          <div class="decorative-side">
+            <div class="side-content">
+              <div class="brand-header">
+                <div class="brand-icon">
+                  <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                    <defs>
+                      <linearGradient
+                        id="iconGradient"
+                        x1="0%"
+                        y1="0%"
+                        x2="100%"
+                        y2="100%"
+                      >
+                        <stop
+                          offset="0%"
+                          style="stop-color: #3b82f6; stop-opacity: 1"
+                        />
+                        <stop
+                          offset="100%"
+                          style="stop-color: #2563eb; stop-opacity: 1"
+                        />
+                      </linearGradient>
+                    </defs>
+                    <rect
+                      x="4"
+                      y="4"
+                      width="40"
+                      height="40"
+                      rx="10"
+                      fill="url(#iconGradient)"
+                      opacity="0.12"
+                    />
+                    <path
+                      d="M24 10L34 13V27L24 32L14 27V13L24 10Z"
+                      stroke="url(#iconGradient)"
+                      stroke-width="2"
+                      fill="none"
+                      stroke-linejoin="round"
+                    />
+                    <circle cx="24" cy="19" r="3.5" fill="url(#iconGradient)" />
+                    <path
+                      d="M17 29L24 26L31 29"
+                      stroke="url(#iconGradient)"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <circle
+                      cx="24"
+                      cy="24"
+                      r="1.5"
+                      fill="url(#iconGradient)"
+                      opacity="0.6"
+                    />
+                  </svg>
+                </div>
+                <div class="brand-text">
+                  <h1 class="brand-title">{{ title }}</h1>
+                  <p class="brand-subtitle">智能化管理平台</p>
+                </div>
               </div>
-              <span class="text-lg font-semibold tracking-wide">
-                System Admin
-              </span>
+
+              <div class="stats-section">
+                <div class="stat-item">
+                  <div class="stat-icon">
+                    <i class="fas fa-chart-line" />
+                  </div>
+                  <div class="stat-number">99.9%</div>
+                  <div class="stat-label">系统稳定性</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-icon">
+                    <i class="fas fa-users" />
+                  </div>
+                  <div class="stat-number">1000+</div>
+                  <div class="stat-label">企业用户</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-icon">
+                    <i class="fas fa-headset" />
+                  </div>
+                  <div class="stat-number">24/7</div>
+                  <div class="stat-label">在线服务</div>
+                </div>
+              </div>
+
+              <div class="feature-showcase">
+                <div class="feature-card">
+                  <div class="card-icon">
+                    <i class="fas fa-bolt" />
+                  </div>
+                  <div class="card-content">
+                    <h3>高效协同</h3>
+                    <p>实时协作，无缝沟通</p>
+                  </div>
+                </div>
+                <div class="feature-card">
+                  <div class="card-icon">
+                    <i class="fas fa-shield-alt" />
+                  </div>
+                  <div class="card-content">
+                    <h3>安全可靠</h3>
+                    <p>企业级安全防护</p>
+                  </div>
+                </div>
+                <div class="feature-card">
+                  <div class="card-icon">
+                    <i class="fas fa-chart-line" />
+                  </div>
+                  <div class="card-content">
+                    <h3>数据洞察</h3>
+                    <p>智能分析，精准决策</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tech-stack">
+                <h3 class="tech-title">技术栈</h3>
+                <div class="tech-list">
+                  <div class="tech-item">
+                    <i class="fab fa-vuejs" />
+                    <span>Vue 3</span>
+                  </div>
+                  <div class="tech-item">
+                    <i class="fas fa-code" />
+                    <span>TypeScript</span>
+                  </div>
+                  <div class="tech-item">
+                    <i class="fas fa-layer-group" />
+                    <span>Element Plus</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="relative z-10 mb-6">
-            <h2 class="text-3xl font-bold leading-tight mb-4">
-              Building the
-              <br />
-              <span class="text-indigo-400">Future</span>
-              of Data.
-            </h2>
-            <p class="text-slate-400 text-sm leading-relaxed">
-              体验全新的管理系统，高效、安全、智能。我们致力于为您提供最极致的操作体验。
-            </p>
-          </div>
+          <!-- 右侧登录区 -->
+          <div class="login-side">
+            <div class="login-panel">
+              <!-- 登录头部 -->
+              <div class="panel-header">
+                <div class="header-badge">
+                  <i class="fas fa-shield-alt" />
+                  <span>安全登录</span>
+                </div>
+                <h2 class="login-title">欢迎回来</h2>
+                <p class="login-subtitle">请使用您的账户凭据登录</p>
+              </div>
 
-          <div class="relative z-10 text-xs text-slate-500 font-medium">
-            Version 3.0.1 PRO
+              <!-- 登录表单 -->
+              <el-form
+                ref="ruleFormRef"
+                :model="ruleForm"
+                :rules="loginRules"
+                class="login-form"
+              >
+                <Motion :delay="200">
+                  <el-form-item prop="account" class="form-item">
+                    <label class="input-label">
+                      <i class="fas fa-user" />
+                      用户名或邮箱
+                    </label>
+                    <el-input
+                      v-model="ruleForm.account"
+                      placeholder="请输入用户名或邮箱地址"
+                      class="form-input"
+                    >
+                      <template #prefix>
+                        <i class="fas fa-at" />
+                      </template>
+                    </el-input>
+                  </el-form-item>
+                </Motion>
+
+                <Motion :delay="300">
+                  <el-form-item prop="password" class="form-item">
+                    <label class="input-label">
+                      <i class="fas fa-lock" />
+                      密码
+                    </label>
+                    <el-input
+                      v-model="ruleForm.password"
+                      type="password"
+                      placeholder="请输入您的密码"
+                      show-password
+                      class="form-input"
+                    >
+                      <template #prefix>
+                        <i class="fas fa-key" />
+                      </template>
+                    </el-input>
+                  </el-form-item>
+                </Motion>
+
+                <Motion :delay="400">
+                  <div class="form-actions">
+                    <el-checkbox v-model="rememberMe" class="checkbox">
+                      记住我
+                    </el-checkbox>
+                    <a class="link">忘记密码？</a>
+                  </div>
+                </Motion>
+
+                <Motion :delay="500">
+                  <el-button
+                    class="submit-btn"
+                    :loading="loading"
+                    @click="onLogin(ruleFormRef)"
+                  >
+                    <template #default>
+                      <i v-if="!loading" class="fas fa-sign-in-alt" />
+                      <i v-else class="fas fa-circle-notch fa-spin" />
+                      <span>{{ loading ? "登录中..." : "立即登录" }}</span>
+                    </template>
+                  </el-button>
+                </Motion>
+              </el-form>
+
+              <!-- 登录底部 -->
+              <div class="panel-footer">
+                <div class="footer-divider">
+                  <span>安全提示</span>
+                </div>
+                <div class="security-tips">
+                  <div class="tip-item">
+                    <i class="fas fa-user-shield" />
+                    <span>256位SSL加密传输</span>
+                  </div>
+                  <div class="tip-item">
+                    <i class="fas fa-clock" />
+                    <span>登录状态实时监控</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-
-        <!-- 右侧：登录表单 (60%宽度) -->
-        <div
-          class="w-full md:w-[60%] p-10 lg:p-14 flex flex-col justify-center bg-white dark:bg-slate-800 transition-colors duration-300"
-        >
-          <Motion :delay="200">
-            <div class="mb-10">
-              <h1
-                class="text-2xl font-bold text-slate-900 dark:text-white mb-2"
-              >
-                {{ title }}
-              </h1>
-              <div class="h-1 w-10 bg-indigo-500 rounded-full mb-4" />
-              <p class="text-slate-500 dark:text-slate-400 text-sm">
-                请输入您的账户信息进行登录
-              </p>
-            </div>
-          </Motion>
-
-          <el-form
-            ref="ruleFormRef"
-            :model="ruleForm"
-            :rules="loginRules"
-            class="elegant-form"
-            size="large"
-          >
-            <Motion :delay="300">
-              <el-form-item prop="account" class="mb-6">
-                <label
-                  class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 ml-1"
-                >
-                  Account
-                </label>
-                <el-input
-                  v-model="ruleForm.account"
-                  placeholder="Username"
-                  :prefix-icon="useRenderIcon(User)"
-                  class="custom-input"
-                />
-              </el-form-item>
-            </Motion>
-
-            <Motion :delay="400">
-              <el-form-item prop="password" class="mb-2">
-                <label
-                  class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 ml-1"
-                >
-                  Password
-                </label>
-                <el-input
-                  v-model="ruleForm.password"
-                  type="password"
-                  placeholder="Password"
-                  :prefix-icon="useRenderIcon(Lock)"
-                  show-password
-                  class="custom-input"
-                />
-              </el-form-item>
-            </Motion>
-
-            <Motion :delay="500">
-              <div class="flex items-center justify-between mb-8 mt-2">
-                <el-checkbox
-                  v-model="rememberMe"
-                  label="记住我"
-                  class="custom-checkbox"
-                />
-                <a
-                  class="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 cursor-pointer transition-colors"
-                >
-                  忘记密码?
-                </a>
-              </div>
-            </Motion>
-
-            <Motion :delay="600">
-              <el-button
-                class="w-full !h-[50px] !rounded-lg !text-base !font-semibold !bg-slate-900 dark:!bg-indigo-600 hover:!bg-slate-800 dark:hover:!bg-indigo-500 !text-white !border-0 transition-all duration-300 shadow-xl shadow-slate-200 dark:shadow-none hover:shadow-2xl hover:-translate-y-0.5"
-                :loading="loading"
-                @click="onLogin(ruleFormRef)"
-              >
-                {{ loading ? "登录中..." : "立即登录" }}
-                <i v-if="!loading" class="ml-2 fa fa-arrow-right" />
-              </el-button>
-            </Motion>
-          </el-form>
-
-          <Motion :delay="700">
-            <div class="mt-auto pt-10 text-center">
-              <p class="text-sm text-slate-400">
-                没有账号？
-                <span
-                  class="text-indigo-600 dark:text-indigo-400 font-semibold cursor-pointer hover:underline"
-                >
-                  联系管理员注册
-                </span>
-              </p>
-            </div>
-          </Motion>
-        </div>
-      </div>
-    </Motion>
-
-    <div
-      class="absolute bottom-4 w-full text-center text-xs text-slate-400/60 font-light"
-    >
-      &copy; {{ new Date().getFullYear() }} {{ title }}. All rights reserved.
+      </Motion>
     </div>
   </div>
 </template>
 
 <style lang="scss" scoped>
-/* 
-  优雅表单样式重构 (Elegant Form Style)
-*/
 
-:deep(.elegant-form) {
-  // 移除默认间距
-  .el-form-item {
-    margin-bottom: 0;
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
   }
 
-  // 1. 输入框容器
-  .el-input__wrapper {
-    height: 48px;
-
-    /* 标准圆角 */
-    padding: 1px 15px;
-    background-color: #f8fafc;
-
-    /* 移除默认边框 */
-    border: 1px solid #e2e8f0;
-
-    /* slate-200 - 极细的边框 */
-    border-radius: 8px;
-
-    /* slate-50 - 极淡的灰背景 */
-    box-shadow: none !important;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-    // 图标
-    .el-input__prefix-inner {
-      /* slate-400 */
-      font-size: 1.1rem;
-      color: #94a3b8;
-      transition: color 0.3s;
-    }
-
-    // 输入文字
-    .el-input__inner {
-      /* slate-700 */
-      font-weight: 500;
-      color: #334155;
-
-      &::placeholder {
-        color: #cbd5e1;
-
-        /* slate-300 */
-      }
-    }
-
-    // 悬停
-    &:hover {
-      background-color: #fff;
-      border-color: #cbd5e1;
-    }
-
-    // 聚焦 (Focus) - 关键的微交互
-    &.is-focus {
-      background-color: #fff;
-      border-color: #6366f1;
-
-      /* indigo-500 */
-      // 模拟 Ring 效果：扩散的蓝色光晕
-      box-shadow: 0 0 0 4px rgb(99 102 241 / 10%) !important;
-
-      .el-input__prefix-inner {
-        color: #6366f1;
-      }
-    }
-  }
-
-  // 错误状态
-  .is-error .el-input__wrapper {
-    background-color: #fef2f2;
-    border-color: #ef4444;
-    box-shadow: none !important;
-
-    &.is-focus {
-      box-shadow: 0 0 0 4px rgb(239 68 68 / 10%) !important;
-    }
+  50% {
+    transform: translateY(-40px) rotate(180deg);
   }
 }
 
-// 2. 复选框样式
-:deep(.custom-checkbox) {
-  .el-checkbox__label {
-    color: #64748b;
+@keyframes wrapper-enter {
+  from {
+    opacity: 0;
+    transform: translateY(60px) scale(0.9);
   }
 
-  .el-checkbox__inner {
-    border-color: #cbd5e1;
-    border-radius: 4px;
-  }
-
-  &.is-checked .el-checkbox__inner {
-    background-color: #0f172a;
-
-    /* 选中时变黑，显高级 */
-    border-color: #0f172a;
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
-/* 
-  暗黑模式适配
-*/
-.dark {
-  :deep(.elegant-form) {
-    .el-input__wrapper {
-      background-color: #1e293b;
+/* 响应式 */
+@media (width <= 968px) {
+  .login-wrapper {
+    grid-template-columns: 1fr;
+    max-width: 420px;
+    margin: 0 auto;
+  }
 
-      /* slate-800 */
-      border-color: #334155;
+  .decorative-side {
+    padding: 24px 20px;
 
-      /* slate-700 */
+    .side-content {
+      .brand-header {
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 14px;
+        text-align: center;
 
-      .el-input__inner {
-        color: #f1f5f9;
+        .brand-icon {
+          width: 36px;
+          height: 36px;
+        }
+
+        .brand-text {
+          .brand-title {
+            font-size: 16px;
+          }
+
+          .brand-subtitle {
+            font-size: 10px;
+          }
+        }
       }
 
-      &:hover {
-        border-color: #475569;
+      .stats-section {
+        padding: 8px;
+        margin-bottom: 12px;
+
+        .stat-item {
+          gap: 3px;
+
+          .stat-icon {
+            width: 18px;
+            height: 18px;
+
+            i {
+              font-size: 8px;
+            }
+          }
+
+          .stat-number {
+            font-size: 10px;
+          }
+
+          .stat-label {
+            font-size: 7px;
+          }
+        }
       }
 
-      &.is-focus {
-        background-color: #1e293b;
-        border-color: #818cf8;
+      .feature-showcase {
+        gap: 8px;
 
-        /* indigo-400 */
-        box-shadow: 0 0 0 4px rgb(129 140 248 / 15%) !important;
+        .feature-card {
+          padding: 10px 12px;
 
-        .el-input__prefix-inner {
-          color: #818cf8;
+          .card-icon {
+            width: 30px;
+            height: 30px;
+
+            i {
+              font-size: 13px;
+            }
+          }
+
+          .card-content {
+            h3 {
+              font-size: 11px;
+            }
+
+            p {
+              font-size: 8px;
+            }
+          }
+        }
+      }
+
+      .tech-stack {
+        padding-top: 12px;
+
+        .tech-title {
+          margin-bottom: 8px;
+          font-size: 9px;
+        }
+
+        .tech-list {
+          gap: 5px;
+
+          .tech-item {
+            padding: 5px 8px;
+
+            i {
+              font-size: 10px;
+            }
+
+            span {
+              font-size: 8px;
+            }
+          }
         }
       }
     }
   }
 
-  :deep(.custom-checkbox) {
-    &.is-checked .el-checkbox__inner {
-      background-color: #6366f1;
-      border-color: #6366f1;
+  .login-side {
+    padding: 28px 24px;
+  }
+
+  .security-tips {
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+  }
+}
+
+.login-layout {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+}
+
+/* 背景装饰 */
+.bg-decoration {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+
+  .bg-shapes {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+
+    .shape {
+      position: absolute;
+      filter: blur(80px);
+      border-radius: 50%;
+      opacity: 0.3;
+
+      &.shape-1 {
+        top: -200px;
+        right: -200px;
+        width: 500px;
+        height: 500px;
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        animation: float 20s infinite ease-in-out;
+      }
+
+      &.shape-2 {
+        bottom: -150px;
+        left: -150px;
+        width: 400px;
+        height: 400px;
+        background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+        animation: float 15s infinite ease-in-out reverse;
+      }
+
+      &.shape-3 {
+        top: 50%;
+        left: 50%;
+        width: 350px;
+        height: 350px;
+        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+        transform: translate(-50%, -50%);
+        animation: float 18s infinite ease-in-out;
+      }
     }
   }
 }
+
+/* 主题切换 */
+.theme-switch {
+  position: absolute;
+  top: 30px;
+  right: 30px;
+  z-index: 100;
+}
+
+/* 主容器 */
+.login-container {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 900px;
+}
+
+/* 登录包装器 */
+.login-wrapper {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  overflow: hidden;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 20px 60px rgb(59 130 246 / 15%);
+  animation: wrapper-enter 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 左侧装饰区 */
+.decorative-side {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  padding: 32px 28px;
+  overflow: hidden;
+  color: #1e293b;
+
+  .side-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 100%;
+
+    .brand-header {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      margin-bottom: 16px;
+
+      .brand-icon {
+        display: flex;
+        flex-shrink: 0;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+      }
+
+      .brand-text {
+        .brand-title {
+          margin: 0 0 4px;
+          font-size: 18px;
+          font-weight: 700;
+          color: #1e293b;
+          letter-spacing: -0.5px;
+        }
+
+        .brand-subtitle {
+          margin: 0;
+          font-size: 11px;
+          font-weight: 400;
+          color: #64748b;
+        }
+      }
+    }
+
+    .stats-section {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 10px;
+      margin-bottom: 16px;
+      background: rgb(255 255 255 / 60%);
+      border: 1px solid rgb(59 130 246 / 10%);
+      border-radius: 8px;
+
+      .stat-item {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        gap: 4px;
+        align-items: center;
+        text-align: center;
+
+        .stat-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 22px;
+          height: 22px;
+          margin-bottom: 2px;
+          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+          border-radius: 5px;
+
+          i {
+            font-size: 10px;
+            color: white;
+          }
+        }
+
+        .stat-number {
+          margin-bottom: 2px;
+          font-size: 12px;
+          font-weight: 600;
+          color: #3b82f6;
+        }
+
+        .stat-label {
+          font-size: 8px;
+          font-weight: 500;
+          color: #64748b;
+        }
+      }
+    }
+
+    .feature-showcase {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      gap: 10px;
+
+      .feature-card {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        padding: 12px 14px;
+        background: rgb(255 255 255 / 75%);
+        border: 1px solid rgb(59 130 246 / 12%);
+        border-radius: 10px;
+
+        .card-icon {
+          display: flex;
+          flex-shrink: 0;
+          align-items: center;
+          justify-content: center;
+          width: 36px;
+          height: 36px;
+          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+          border-radius: 9px;
+          box-shadow: 0 2px 8px rgb(59 130 246 / 20%);
+
+          i {
+            font-size: 15px;
+            color: white;
+          }
+        }
+
+        .card-content {
+          flex: 1;
+
+          h3 {
+            margin: 0 0 4px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #1e293b;
+            letter-spacing: 0.1px;
+          }
+
+          p {
+            margin: 0;
+            font-size: 9px;
+            line-height: 1.5;
+            color: #64748b;
+          }
+        }
+      }
+    }
+
+    .tech-stack {
+      padding-top: 16px;
+      margin-top: auto;
+
+      .tech-title {
+        margin: 0 0 10px;
+        font-size: 10px;
+        font-weight: 600;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .tech-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+
+        .tech-item {
+          display: flex;
+          gap: 5px;
+          align-items: center;
+          padding: 6px 10px;
+          white-space: nowrap;
+          background: rgb(255 255 255 / 50%);
+          border: 1px solid rgb(59 130 246 / 8%);
+          border-radius: 5px;
+          transition: all 0.3s;
+
+          &:hover {
+            background: rgb(255 255 255 / 80%);
+            border-color: rgb(59 130 246 / 20%);
+            transform: translateX(2px);
+          }
+
+          i {
+            width: 12px;
+            font-size: 11px;
+            color: #3b82f6;
+            text-align: center;
+          }
+
+          span {
+            font-size: 9px;
+            font-weight: 500;
+            color: #475569;
+          }
+        }
+      }
+    }
+  }
+}
+
+/* 右侧登录区 */
+.login-side {
+  padding: 32px 28px;
+  background: white;
+}
+
+/* 登录面板 */
+.login-panel {
+  max-width: 340px;
+  margin: 0 auto;
+}
+
+.panel-header {
+  margin-bottom: 24px;
+
+  .header-badge {
+    display: inline-flex;
+    gap: 5px;
+    align-items: center;
+    padding: 5px 10px;
+    margin-bottom: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #3b82f6;
+    background: rgb(59 130 246 / 8%);
+    border-radius: 12px;
+
+    i {
+      font-size: 11px;
+    }
+  }
+
+  .login-title {
+    margin: 0 0 5px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e293b;
+    letter-spacing: -0.5px;
+  }
+
+  .login-subtitle {
+    margin: 0;
+    font-size: 12px;
+    color: #64748b;
+  }
+}
+
+/* 表单 */
+.login-form {
+  .form-item {
+    margin-bottom: 16px;
+  }
+
+  .input-label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #475569;
+    letter-spacing: 0.3px;
+
+    i {
+      margin-right: 5px;
+      font-size: 10px;
+      color: #3b82f6;
+    }
+  }
+
+  .form-input {
+    :deep(.el-input__wrapper) {
+      height: 36px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      box-shadow: none;
+      transition: all 0.3s;
+
+      &:hover {
+        background: white;
+        border-color: #cbd5e0;
+      }
+
+      &.is-focus {
+        background: white;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 2px rgb(59 130 246 / 10%);
+
+        .el-input__prefix-inner {
+          color: #3b82f6;
+        }
+      }
+
+      .el-input__inner {
+        font-size: 12px;
+        font-weight: 400;
+        color: #1e293b;
+
+        &::placeholder {
+          color: #94a3b8;
+        }
+      }
+
+      .el-input__prefix-inner {
+        margin-right: 6px;
+        font-size: 12px;
+        color: #94a3b8;
+        transition: color 0.3s;
+      }
+    }
+
+    &.is-error :deep(.el-input__wrapper) {
+      border-color: #ef4444;
+
+      &.is-focus {
+        box-shadow: 0 0 0 2px rgb(239 68 68 / 10%);
+      }
+    }
+  }
+
+  .form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 16px 0 20px;
+  }
+
+  .checkbox {
+    :deep(.el-checkbox__inner) {
+      width: 14px;
+      height: 14px;
+      border: 2px solid #cbd5e0;
+      border-radius: 3px;
+
+      &::after {
+        border-color: white;
+      }
+    }
+
+    &.is-checked :deep(.el-checkbox__inner) {
+      background-color: #3b82f6;
+      border-color: #3b82f6;
+    }
+
+    :deep(.el-checkbox__label) {
+      font-size: 12px;
+      font-weight: 500;
+      color: #64748b;
+    }
+  }
+
+  .link {
+    font-size: 12px;
+    font-weight: 600;
+    color: #3b82f6;
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.2s;
+
+    &:hover {
+      color: #2563eb;
+    }
+  }
+
+  .submit-btn {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 38px;
+    font-size: 13px;
+    font-weight: 600;
+    color: white;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    border: none;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgb(59 130 246 / 25%);
+    transition: all 0.3s;
+
+    &:hover {
+      box-shadow: 0 3px 12px rgb(59 130 246 / 35%);
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+
+    i {
+      font-size: 12px;
+    }
+  }
+}
+
+/* 面板底部 */
+.panel-footer {
+  padding-top: 16px;
+  margin-top: 24px;
+  border-top: 1px solid #f1f5f9;
+
+  .footer-divider {
+    position: relative;
+    margin-bottom: 12px;
+    text-align: center;
+
+    &::before {
+      position: absolute;
+      top: 50%;
+      right: 0;
+      left: 0;
+      height: 1px;
+      content: "";
+      background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+    }
+
+    span {
+      position: relative;
+      padding: 0 10px;
+      font-size: 10px;
+      color: #94a3b8;
+      background: white;
+    }
+  }
+
+  .security-tips {
+    display: flex;
+    gap: 12px;
+    justify-content: space-around;
+  }
+
+  .tip-item {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    font-size: 10px;
+    font-weight: 500;
+    color: #64748b;
+
+    i {
+      font-size: 11px;
+      color: #10b981;
+    }
+  }
+}
+
+/* 暗黑模式 */
+.dark {
+  .login-layout {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  }
+
+  .bg-decoration .shape {
+    opacity: 0.2;
+  }
+
+  .login-wrapper {
+    background: #1e293b;
+    box-shadow: 0 25px 80px rgb(0 0 0 / 50%);
+  }
+
+  .decorative-side {
+    color: #e0e0e0;
+
+    .side-content {
+      .brand-header {
+        .brand-title {
+          color: #f1f5f9;
+        }
+
+        .brand-subtitle {
+          color: #94a3b8;
+        }
+      }
+
+      .stats-section {
+        background: rgb(30 41 59 / 60%);
+        border-color: rgb(59 130 246 / 20%);
+
+        .stat-item {
+          .stat-icon {
+            background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+          }
+
+          .stat-number {
+            color: #60a5fa;
+          }
+
+          .stat-label {
+            color: #94a3b8;
+          }
+        }
+      }
+
+      .feature-showcase {
+        .feature-card {
+          background: rgb(30 41 59 / 60%);
+          border-color: rgb(59 130 246 / 20%);
+
+          .card-content {
+            h3 {
+              color: #f1f5f9;
+            }
+
+            p {
+              color: #94a3b8;
+            }
+          }
+        }
+      }
+
+      .tech-stack {
+        .tech-title {
+          color: #94a3b8;
+        }
+
+        .tech-list {
+          .tech-item {
+            background: rgb(30 41 59 / 50%);
+            border-color: rgb(59 130 246 / 15%);
+
+            i {
+              color: #60a5fa;
+            }
+
+            span {
+              color: #cbd5e0;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .login-side {
+    background: #1e293b;
+  }
+
+  .panel-header {
+    .header-badge {
+      color: #60a5fa;
+      background: rgb(59 130 246 / 15%);
+    }
+
+    .login-title {
+      color: #f1f5f9;
+    }
+
+    .login-subtitle {
+      color: #94a3b8;
+    }
+  }
+
+  .input-label {
+    color: #cbd5e0;
+  }
+
+  .form-input :deep(.el-input__wrapper) {
+    background: #334155;
+    border-color: #475569;
+
+    .el-input__inner {
+      color: #f1f5f9;
+
+      &::placeholder {
+        color: #64748b;
+      }
+    }
+
+    &:hover {
+      background: #3b4758;
+      border-color: #5b6b7d;
+    }
+
+    &.is-focus {
+      background: #3b4758;
+      border-color: #60a5fa;
+      box-shadow: 0 0 0 4px rgb(96 165 250 / 15%);
+
+      .el-input__prefix-inner {
+        color: #60a5fa;
+      }
+    }
+  }
+
+  .checkbox :deep(.el-checkbox__label) {
+    color: #cbd5e0;
+  }
+
+  .panel-footer {
+    border-top-color: #334155;
+
+    .footer-divider span {
+      color: #64748b;
+      background: #1e293b;
+    }
+
+    .tip-item {
+      color: #94a3b8;
+    }
+  }
+}
+
+/* 主布局 */
 </style>
