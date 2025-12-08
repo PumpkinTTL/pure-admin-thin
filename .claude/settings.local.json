@@ -13,7 +13,8 @@
       "Bash(env:*)",
       "Bash(curl:*)",
       "Bash(php think route:list:*)",
-      "Bash(mysql:*)"
+      "Bash(mysql:*)",
+      "Bash(git checkout HEAD~1:*)"
     ],
     "deny": [],
     "ask": []

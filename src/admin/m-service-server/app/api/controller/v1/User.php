@@ -264,20 +264,24 @@ class User extends BaseController
 
         unset($params['premium']);
 
-        // 如果需要取消会员
-        if ($cancelPremium) {
+        // 开始事务
+        Db::startTrans();
+        
+        try {
             // 查询用户
             $user = userModel::find($userId);
             if (!$user) {
+                Db::rollback();
                 return json(['code' => 0, 'msg' => '用户不存在']);
             }
 
-            // 获取会员信息
-            $premium = $user->premium;
+            // 如果需要取消会员
+            if ($cancelPremium) {
+                // 获取会员信息
+                $premium = $user->premium;
 
-            // 如果用户有会员记录，直接删除
-            if ($premium) {
-                try {
+                // 如果用户有会员记录，直接删除
+                if ($premium) {
                     // 记录日志
                     LogService::log("删除用户会员信息 - 用户ID: {$userId}, 会员ID: {$premium->id}");
 
@@ -287,25 +291,64 @@ class User extends BaseController
                     if (!$deleteResult) {
                         LogService::error(new \Exception("会员记录删除失败 - 用户ID: {$userId}"));
                     }
-                } catch (\Exception $e) {
-                    LogService::error($e, "删除会员记录出错");
+                }
+            } else if (!empty($premiumData)) {
+                // 更新或创建会员信息
+                $premiumResult = userModel::createOrUpdatePremium($userId, $premiumData);
+                if (!$premiumResult) {
+                    throw new \Exception('会员信息更新失败');
                 }
             }
 
-            // 处理用户基本信息更新
-            $updateResult = UserService::updateUser($params, $roles, []);
+            // 更新用户基本信息
+            $allowedFields = ['username', 'email', 'phone', 'nickname', 'avatar', 'gender', 'status', 'signature'];
+            $updateData = [];
+            
+            foreach ($allowedFields as $field) {
+                if (isset($params[$field])) {
+                    $updateData[$field] = $params[$field];
+                }
+            }
+
+            if (!empty($updateData)) {
+                $user->save($updateData);
+            }
+
+            // 更新用户角色
+            if (!empty($roles)) {
+                // 删除旧角色
+                userRoles::where('user_id', $userId)->delete();
+                
+                // 添加新角色
+                foreach ($roles as $roleId) {
+                    userRoles::create([
+                        'user_id' => $userId,
+                        'role_id' => $roleId
+                    ]);
+                }
+            }
+
+            // 提交事务
+            Db::commit();
+
+            // 获取更新后的用户信息
+            $updatedUser = userModel::with(['roles', 'premium'])->find($userId);
 
             return json([
                 'code' => 200,
-                'msg' => '用户信息更新成功，会员已取消',
-                'data' => $updateResult['data'] ?? null
+                'msg' => '用户信息更新成功',
+                'data' => $updatedUser
+            ]);
+
+        } catch (\Exception $e) {
+            // 回滚事务
+            Db::rollback();
+            LogService::error($e, "更新用户信息失败");
+            return json([
+                'code' => 500,
+                'msg' => '更新失败：' . $e->getMessage()
             ]);
         }
-
-        // 常规更新用户
-        $result = UserService::updateUser($params, $roles, $premiumData);
-
-        return json($result);
     }
 
     /**
