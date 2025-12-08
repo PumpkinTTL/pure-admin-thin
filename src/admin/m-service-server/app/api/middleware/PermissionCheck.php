@@ -11,6 +11,43 @@ use think\Response;
 class PermissionCheck
 {
     /**
+     * 白名单路径（无需权限检查的公开接口）
+     */
+    private $whitelist = [
+        // 登录注册相关
+        '/v1/user/login',
+        '/v2/user/login',
+        '/v1/user/register',
+        '/v2/user/register',
+        
+        // Token刷新
+        '/v1/user/refreshToken',
+        '/v2/user/refreshToken',
+        '/v1/auth/refresh',
+        '/v2/auth/refresh',
+        
+        // 密码重置流程
+        '/v1/user/requestPasswordReset',
+        '/v2/user/requestPasswordReset',
+        '/v1/user/verifyResetToken',
+        '/v2/user/verifyResetToken',
+        '/v1/user/resetPassword',
+        '/v2/user/resetPassword',
+        
+        // 邮箱验证
+        '/v1/user/sendEmailCode',
+        '/v2/user/sendEmailCode',
+        '/v1/user/testEmail',
+        '/v2/user/testEmail',
+        
+        // 用户名/邮箱检查
+        '/v1/user/checkUsername',
+        '/v2/user/checkUsername',
+        '/v1/user/checkEmail',
+        '/v2/user/checkEmail',
+    ];
+    
+    /**
      * 处理请求
      */
     public function handle($request, \Closure $next): Response
@@ -18,14 +55,21 @@ class PermissionCheck
         // 1. 获取请求信息
         $fullPath = $request->pathinfo();
         $method = $request->method();
-        $userId = $request->userId ?? null;
         
-        // 如果没有用户ID，说明没有通过 Auth 中间件，直接拒绝
+        // 2. 检查是否在白名单中
+        if ($this->isWhitelisted($fullPath)) {
+            return $next($request);
+        }
+        
+        // 3. 获取用户ID
+        $userId = $request->userId ?? $request->JWTUid ?? null;
+        
+        // 4. 如果没有用户ID，说明没有通过 Auth 中间件，直接拒绝
         if (!$userId) {
             return json(['code' => 401, 'msg' => '未登录或登录已过期']);
         }
         
-        // 2. 查询 API 配置
+        // 5. 查询 API 配置
         $api = Db::table('bl_api')
             ->where('full_path', $fullPath)
             ->where(function($query) use ($method) {
@@ -34,12 +78,12 @@ class PermissionCheck
             })
             ->find();
         
-        // 如果 API 不存在
+        // 如果 API 不存在，放行（由业务逻辑处理）
         if (!$api) {
-            return json(['code' => 404, 'msg' => 'API不存在']);
+            return $next($request);
         }
         
-        // 3. 检查 API 状态
+        // 6. 检查 API 状态
         if ($api['status'] == 0) {
             return json(['code' => 503, 'msg' => 'API维护中，暂时无法访问']);
         }
@@ -48,7 +92,7 @@ class PermissionCheck
             return json(['code' => 403, 'msg' => 'API已关闭']);
         }
         
-        // 4. 根据 check_mode 执行不同的权限检查
+        // 7. 根据 check_mode 执行不同的权限检查
         switch ($api['check_mode']) {
             case 'none':
                 // 公开接口，不检查权限，直接放行
@@ -336,6 +380,34 @@ class PermissionCheck
         
         // 如果不是标准范围，默认返回 own（最保守）
         return 'own';
+    }
+    
+    /**
+     * 检查路径是否在白名单中
+     * @param string $path 请求路径
+     * @return bool
+     */
+    private function isWhitelisted(string $path): bool
+    {
+        // 标准化路径（移除开头的斜杠）
+        $path = '/' . ltrim($path, '/');
+        
+        // 精确匹配
+        if (in_array($path, $this->whitelist)) {
+            return true;
+        }
+        
+        // 支持通配符匹配（可选）
+        foreach ($this->whitelist as $pattern) {
+            if (strpos($pattern, '*') !== false) {
+                $regex = str_replace('*', '.*', $pattern);
+                if (preg_match('#^' . $regex . '$#', $path)) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
     }
     
     /**
