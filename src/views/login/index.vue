@@ -135,7 +135,7 @@ onBeforeUnmount(() => {
     </div>
 
     <!-- 登录主卡片 -->
-    <div class="login-wrapper animate__animated animate__fadeInUp">
+    <div class="login-wrapper">
       <div
         class="relative z-10 w-full max-w-[900px] h-auto min-h-[520px] bg-white dark:bg-slate-800 rounded-[6px] shadow-2xl flex overflow-hidden"
       >
@@ -166,7 +166,7 @@ onBeforeUnmount(() => {
           </div>
 
           <!-- 左侧内容 -->
-          <div class="relative z-10">
+          <div class="relative z-10 animate__animated animate__zoomIn">
             <div class="flex items-center gap-2 mb-6">
               <div
                 class="w-8 h-8 rounded-md bg-blue-500 flex items-center justify-center text-white font-bold shadow-md"
@@ -180,8 +180,8 @@ onBeforeUnmount(() => {
           </div>
 
           <div
-            class="relative z-10 mb-4 animate__animated animate__fadeInLeft"
-            :style="{ animationDelay: '0.1s' }"
+            class="relative z-10 mb-4 animate__animated animate__fadeInUp"
+            :style="{ animationDelay: '0.15s' }"
           >
             <h2 class="text-2xl font-bold leading-tight mb-3 text-slate-800">
               Building the
@@ -196,8 +196,8 @@ onBeforeUnmount(() => {
 
           <!-- 统计数据区域 -->
           <div
-            class="relative z-10 mb-4 animate__animated animate__fadeInLeft"
-            :style="{ animationDelay: '0.2s' }"
+            class="relative z-10 mb-4 animate__animated animate__slideInUp"
+            :style="{ animationDelay: '0.3s' }"
           >
             <div class="flex gap-4 text-slate-600">
               <div class="flex items-center gap-1">
@@ -216,8 +216,8 @@ onBeforeUnmount(() => {
           </div>
 
           <div
-            class="relative z-10 text-xs text-slate-500 font-medium animate__animated animate__fadeInLeft"
-            :style="{ animationDelay: '0.3s' }"
+            class="relative z-10 text-xs text-slate-500 font-medium animate__animated animate__fadeIn"
+            :style="{ animationDelay: '0.45s' }"
           >
             Version 3.0.1 PRO
           </div>
@@ -227,7 +227,7 @@ onBeforeUnmount(() => {
         <div
           class="w-full md:w-[60%] p-10 lg:p-14 flex flex-col justify-center bg-white dark:bg-slate-800 transition-colors duration-300"
         >
-          <div class="brand-header animate__animated animate__fadeInLeft mb-10">
+          <div class="brand-header animate__animated animate__zoomIn mb-10">
             <h1 class="text-2xl font-bold text-slate-900 dark:text-white mb-2">
               {{ title }}
             </h1>
@@ -245,7 +245,7 @@ onBeforeUnmount(() => {
             size="large"
           >
             <div
-              class="animate__animated animate__fadeInLeft mb-6"
+              class="animate__animated animate__slideInRight mb-6"
               :style="{ animationDelay: '0.1s' }"
             >
               <el-form-item prop="account">
@@ -267,7 +267,7 @@ onBeforeUnmount(() => {
             </div>
 
             <div
-              class="animate__animated animate__fadeInLeft mb-2"
+              class="animate__animated animate__slideInRight mb-2"
               :style="{ animationDelay: '0.2s' }"
             >
               <el-form-item prop="password">
@@ -291,7 +291,7 @@ onBeforeUnmount(() => {
             </div>
 
             <div
-              class="animate__animated animate__fadeInLeft mb-8 mt-2"
+              class="animate__animated animate__fadeIn mb-8 mt-2"
               :style="{ animationDelay: '0.3s' }"
             >
               <div class="flex items-center justify-between">
@@ -309,7 +309,7 @@ onBeforeUnmount(() => {
             </div>
 
             <div
-              class="animate__animated animate__fadeInLeft"
+              class="animate__animated animate__bounceIn"
               :style="{ animationDelay: '0.4s' }"
             >
               <el-button
@@ -324,7 +324,7 @@ onBeforeUnmount(() => {
           </el-form>
 
           <div
-            class="animate__animated animate__fadeInLeft mt-auto pt-10 text-center"
+            class="animate__animated animate__fadeInUp mt-auto pt-10 text-center"
             :style="{ animationDelay: '0.5s' }"
           >
             <p class="text-sm text-slate-400">
@@ -349,7 +349,7 @@ onBeforeUnmount(() => {
 </template>
 
 <style lang="scss" scoped>
-/* 
+/*
   优雅表单样式重构 (Elegant Form Style)
 */
 
