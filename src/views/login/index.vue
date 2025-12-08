@@ -141,85 +141,107 @@ onBeforeUnmount(() => {
       >
         <!-- 左侧：装饰区域 (40%宽度) -->
         <div
-          class="hidden md:flex w-[40%] relative overflow-hidden flex-col justify-between p-8 text-white"
+          class="hidden md:flex w-[40%] relative flex-col justify-between p-8"
         >
-          <!-- 抽象几何背景 (无纯色背景) -->
-          <div class="absolute inset-0 z-0">
-            <!-- 极淡的蓝色渐变 -->
-            <div
-              class="absolute inset-0 bg-gradient-to-br from-blue-50/30 to-indigo-50/20"
-            />
-            <!-- 装饰线条 - 淡化处理 -->
-            <div
-              class="absolute top-0 right-0 w-[300px] h-[300px] border-[40px] border-blue-200/20 rounded-full transform translate-x-1/2 -translate-y-1/2"
-            />
-            <div
-              class="absolute bottom-0 left-0 w-[200px] h-[200px] border-[20px] border-indigo-200/15 rounded-full transform -translate-x-1/3 translate-y-1/3"
-            />
-            <!-- 极淡的悬浮块 -->
-            <div
-              class="absolute top-1/3 right-[-20px] w-20 h-20 bg-blue-100/30 backdrop-blur-sm rounded-xl transform rotate-12"
-            />
-            <div
-              class="absolute bottom-1/4 left-[10%] w-14 h-14 bg-indigo-100/30 backdrop-blur-sm rounded-lg transform -rotate-12"
-            />
-          </div>
-
           <!-- 左侧内容 -->
           <div class="relative z-10 animate__animated animate__zoomIn">
-            <div class="flex items-center gap-2 mb-6">
+            <div class="flex items-center gap-3 mb-8">
               <div
-                class="w-8 h-8 rounded-md bg-blue-500 flex items-center justify-center text-white font-bold shadow-md"
+                class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/30"
               >
-                <i class="fas fa-cube text-sm" />
+                <i class="fas fa-cube text-base" />
               </div>
-              <span class="text-sm font-semibold tracking-wide text-slate-700">
-                System Admin
-              </span>
+              <div>
+                <span
+                  class="text-base font-bold tracking-wide text-slate-800 block"
+                >
+                  System Admin
+                </span>
+                <span class="text-xs text-slate-500 font-medium">
+                  Professional Edition
+                </span>
+              </div>
             </div>
           </div>
 
           <div
-            class="relative z-10 mb-4 animate__animated animate__fadeInUp"
+            class="relative z-10 mb-6 animate__animated animate__fadeInUp"
             :style="{ animationDelay: '0.15s' }"
           >
-            <h2 class="text-2xl font-bold leading-tight mb-3 text-slate-800">
-              Building the
-              <br />
-              <span class="text-blue-600">Future</span>
-              of Data.
+            <h2 class="text-2xl font-bold leading-tight mb-3 text-slate-700">
+              Building the Future
+              <span class="text-blue-600">of Data</span>
             </h2>
-            <p class="text-slate-500 text-xs leading-relaxed">
+            <p class="text-slate-600 text-sm leading-relaxed">
               体验全新的管理系统，高效、安全、智能。我们致力于为您提供最极致的操作体验。
             </p>
           </div>
 
           <!-- 统计数据区域 -->
           <div
-            class="relative z-10 mb-4 animate__animated animate__slideInUp"
-            :style="{ animationDelay: '0.3s' }"
+            class="relative z-10 mb-6 animate__animated animate__fadeInUp"
+            :style="{ animationDelay: '0.2s' }"
           >
-            <div class="flex gap-4 text-slate-600">
-              <div class="flex items-center gap-1">
-                <i class="fas fa-shield-alt text-blue-500 text-xs" />
-                <span class="text-xs font-medium">99.9% 系统稳定性</span>
+            <div class="grid grid-cols-1 gap-2">
+              <div
+                class="flex items-center gap-3 p-2.5 bg-white/40 backdrop-blur-sm rounded-lg border border-white/20 shadow-sm"
+              >
+                <div
+                  class="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center"
+                >
+                  <i class="fas fa-shield-alt text-blue-600 text-xs" />
+                </div>
+                <div>
+                  <div class="text-xs font-bold text-slate-700">99.9%</div>
+                  <div class="text-xs text-slate-500">系统稳定性</div>
+                </div>
               </div>
-              <div class="flex items-center gap-1">
-                <i class="fas fa-users text-blue-500 text-xs" />
-                <span class="text-xs font-medium">1000+ 企业用户</span>
+
+              <div
+                class="flex items-center gap-3 p-2.5 bg-white/40 backdrop-blur-sm rounded-lg border border-white/20 shadow-sm"
+              >
+                <div
+                  class="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center"
+                >
+                  <i class="fas fa-users text-indigo-600 text-xs" />
+                </div>
+                <div>
+                  <div class="text-xs font-bold text-slate-700">1000+</div>
+                  <div class="text-xs text-slate-500">企业用户</div>
+                </div>
               </div>
-              <div class="flex items-center gap-1">
-                <i class="fas fa-clock text-blue-500 text-xs" />
-                <span class="text-xs font-medium">24/7 在线服务</span>
+
+              <div
+                class="flex items-center gap-3 p-2.5 bg-white/40 backdrop-blur-sm rounded-lg border border-white/20 shadow-sm"
+              >
+                <div
+                  class="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center"
+                >
+                  <i class="fas fa-clock text-emerald-600 text-xs" />
+                </div>
+                <div>
+                  <div class="text-xs font-bold text-slate-700">24/7</div>
+                  <div class="text-xs text-slate-500">在线服务</div>
+                </div>
               </div>
             </div>
           </div>
 
           <div
-            class="relative z-10 text-xs text-slate-500 font-medium animate__animated animate__fadeIn"
-            :style="{ animationDelay: '0.45s' }"
+            class="relative z-10 animate__animated animate__fadeIn"
+            :style="{ animationDelay: '0.3s' }"
           >
-            Version 3.0.1 PRO
+            <div class="flex items-center justify-between">
+              <div class="text-xs text-slate-500 font-medium">
+                Version 3.0.1 PRO
+              </div>
+              <div class="flex items-center gap-1">
+                <i
+                  class="fas fa-circle text-green-400 text-[8px] animate-pulse"
+                />
+                <span class="text-xs text-slate-500 font-medium">系统正常</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -245,8 +267,8 @@ onBeforeUnmount(() => {
             size="large"
           >
             <div
-              class="animate__animated animate__slideInRight mb-6"
-              :style="{ animationDelay: '0.1s' }"
+              class="animate__animated animate__fadeInUp mb-6"
+              :style="{ animationDelay: '0.05s' }"
             >
               <el-form-item prop="account">
                 <label
@@ -267,8 +289,8 @@ onBeforeUnmount(() => {
             </div>
 
             <div
-              class="animate__animated animate__slideInRight mb-2"
-              :style="{ animationDelay: '0.2s' }"
+              class="animate__animated animate__fadeInUp mb-2"
+              :style="{ animationDelay: '0.1s' }"
             >
               <el-form-item prop="password">
                 <label
@@ -292,7 +314,7 @@ onBeforeUnmount(() => {
 
             <div
               class="animate__animated animate__fadeIn mb-8 mt-2"
-              :style="{ animationDelay: '0.3s' }"
+              :style="{ animationDelay: '0.15s' }"
             >
               <div class="flex items-center justify-between">
                 <el-checkbox
@@ -309,8 +331,8 @@ onBeforeUnmount(() => {
             </div>
 
             <div
-              class="animate__animated animate__bounceIn"
-              :style="{ animationDelay: '0.4s' }"
+              class="animate__animated animate__fadeInUp"
+              :style="{ animationDelay: '0.2s' }"
             >
               <el-button
                 class="w-full !h-[46px] !rounded-md !text-base !font-semibold !bg-blue-500 hover:!bg-blue-600 !text-white !border-0 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
@@ -324,8 +346,8 @@ onBeforeUnmount(() => {
           </el-form>
 
           <div
-            class="animate__animated animate__fadeInUp mt-auto pt-10 text-center"
-            :style="{ animationDelay: '0.5s' }"
+            class="animate__animated animate__fadeIn mt-auto pt-10 text-center"
+            :style="{ animationDelay: '0.25s' }"
           >
             <p class="text-sm text-slate-400">
               没有账号？
