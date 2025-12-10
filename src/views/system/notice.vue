@@ -605,7 +605,7 @@
               layout="total, sizes, prev, pager, next"
               :total="total"
               background
-              small
+              size="small"
               @size-change="handleSizeChange"
               @current-change="handleCurrentChange"
             />
@@ -1111,7 +1111,7 @@
                       ID: {{ item.id }}
                     </el-tag>
                   </div>
-                  <div style=" margin-top: 2px;font-size: 12px; color: #67c23a">
+                  <div style="margin-top: 2px; font-size: 12px; color: #67c23a">
                     {{ item.email }}
                   </div>
                 </div>
@@ -1292,7 +1292,7 @@
                   label=""
                   value=""
                   disabled
-                  style=" font-size: 12px; color: #909399;text-align: center"
+                  style="font-size: 12px; color: #909399; text-align: center"
                 >
                   <div
                     style="
@@ -1337,7 +1337,7 @@
                 type="primary"
                 size="default"
                 :loading="templatesLoading"
-                style=" padding: 8px 16px;border-radius: 6px"
+                style="padding: 8px 16px; border-radius: 6px"
                 @click="
                   resetTemplatePagination();
                   loadTemplatesByPage(1, '', false);
@@ -1848,6 +1848,7 @@ const templatePageSize = ref(10); // 每页数量
 const templateHasMore = ref(true); // 是否还有更多数据
 const templateSearchKeyword = ref(""); // 搜索关键词
 const backendPreviewContent = ref(""); // 模板预览的内容
+const templateLoadFailed = ref(false); // 标记加载是否失败，防止循环重试
 
 // 默认示例数据
 const defaultSampleVariables: Record<string, string> = {
@@ -3050,6 +3051,7 @@ const resetTemplatePagination = () => {
   allTemplates.value = [];
   activeTemplates.value = [];
   templateSearchKeyword.value = "";
+  templateLoadFailed.value = false; // 重置失败标志
 };
 
 // 加载模板列表（分页）
@@ -3102,6 +3104,7 @@ const loadTemplatesByPage = async (
     }
   } catch (error) {
     console.error("加载模板列表失败:", error);
+    templateLoadFailed.value = true; // 标记加载失败
     if (!append) {
       activeTemplates.value = [];
       allTemplates.value = [];
@@ -3127,11 +3130,12 @@ const handleTemplateSearch = (query: string) => {
 
 // 处理模板选择框获得焦点
 const handleTemplateFocus = async () => {
-  // 只有在没有数据且没有正在加载时才加载数据
+  // 只有在没有数据且没有正在加载且之前没有失败时才加载数据
   if (
     activeTemplates.value.length === 0 &&
     !templatesLoading.value &&
-    !templateSearchLoading.value
+    !templateSearchLoading.value &&
+    !templateLoadFailed.value
   ) {
     await loadTemplatesByPage(1, templateSearchKeyword.value || "", false);
   }
@@ -3139,12 +3143,13 @@ const handleTemplateFocus = async () => {
 
 // 处理模板选择框显示/隐藏
 const handleTemplateVisibleChange = async (visible: boolean) => {
-  // 只有在打开下拉框且没有数据时才加载
+  // 只有在打开下拉框且没有数据且之前没有失败时才加载
   if (
     visible &&
     activeTemplates.value.length === 0 &&
     !templatesLoading.value &&
-    !templateSearchLoading.value
+    !templateSearchLoading.value &&
+    !templateLoadFailed.value
   ) {
     await loadTemplatesByPage(1, templateSearchKeyword.value || "", false);
   }
@@ -3160,11 +3165,12 @@ const loadActiveTemplates = async () => {
 const handleSendModeChange = () => {
   // 切换模式时清空相关字段，但保留用户输入的标题
   if (emailForm.send_mode === "template") {
-    // 切换到模板模式，只有在没有数据且没有正在加载时才加载数据
+    // 切换到模板模式，只有在没有数据且没有正在加载且之前没有失败时才加载数据
     if (
       activeTemplates.value.length === 0 &&
       !templatesLoading.value &&
-      !templateSearchLoading.value
+      !templateSearchLoading.value &&
+      !templateLoadFailed.value
     ) {
       loadTemplatesByPage(1, templateSearchKeyword.value || "", false);
     }
@@ -3450,32 +3456,36 @@ const submitEmailForm = async () => {
 };
 
 // 监听模板搜索关键词变化
-watchEffect(async () => {
-  const keyword = templateSearchKeyword.value;
+watch(templateSearchKeyword, async (keyword, oldKeyword) => {
+  // 只有在确实有搜索变化时才处理
+  if (keyword === oldKeyword) return;
 
-  // 只有在确实有搜索变化时才处理，避免首次加载时清空数据
-  if (keyword !== undefined && keyword !== null) {
-    // 当用户输入搜索词时才进行搜索
-    if (keyword.trim()) {
-      templateSearchLoading.value = true;
+  // 当用户输入搜索词时才进行搜索
+  if (keyword && keyword.trim()) {
+    templateSearchLoading.value = true;
+    templateLoadFailed.value = false; // 重置失败标志
 
-      // 重新开始搜索
-      templatePage.value = 1;
-      templateHasMore.value = true;
+    // 重新开始搜索
+    templatePage.value = 1;
+    templateHasMore.value = true;
 
-      try {
-        // 直接搜索，loadTemplatesByPage 会处理数据替换
-        await loadTemplatesByPage(1, keyword.trim(), false);
-      } catch (error) {
-        console.error("搜索模板失败:", error);
-      } finally {
-        templateSearchLoading.value = false;
-      }
-    } else if (keyword === "" && activeTemplates.value.length === 0) {
-      // 如果搜索词被清空且没有数据，加载默认数据
-      if (!templatesLoading.value && !templateSearchLoading.value) {
-        await loadTemplatesByPage(1, "", false);
-      }
+    try {
+      // 直接搜索，loadTemplatesByPage 会处理数据替换
+      await loadTemplatesByPage(1, keyword.trim(), false);
+    } catch (error) {
+      console.error("搜索模板失败:", error);
+    } finally {
+      templateSearchLoading.value = false;
+    }
+  } else if (
+    keyword === "" &&
+    oldKeyword !== "" &&
+    activeTemplates.value.length === 0 &&
+    !templateLoadFailed.value
+  ) {
+    // 只有在搜索词从有值变为空值时，且没有数据，且之前没有加载失败，才加载默认数据
+    if (!templatesLoading.value && !templateSearchLoading.value) {
+      await loadTemplatesByPage(1, "", false);
     }
   }
 });
@@ -4367,7 +4377,9 @@ onMounted(() => {
 :deep(.el-tag) {
   margin: 2px 4px 2px 0;
   border-radius: 4px;
-} // 预览表单项占满宽度
+}
+
+// 预览表单项占满宽度
 </style>
 
 <style lang="scss">

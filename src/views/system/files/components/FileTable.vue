@@ -209,7 +209,7 @@
         background
         layout="total, sizes, prev, pager, next, jumper"
         :total="total"
-        small
+        size="small"
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
       />

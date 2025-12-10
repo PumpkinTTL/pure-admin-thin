@@ -142,7 +142,8 @@ import {
   faQuestion,
   faReceipt,
   faTicket,
-  faYenSign
+  faYenSign,
+  faLock
 } from "@fortawesome/free-solid-svg-icons";
 // far格式图标
 import {
@@ -312,6 +313,7 @@ library.add(
   faReceipt,
   faTicket,
   faYenSign,
+  faLock,
   farCheckCircle,
   farBell,
   faGithub,
