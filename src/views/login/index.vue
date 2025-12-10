@@ -18,6 +18,7 @@ const pageLoaded = ref(false);
 defineOptions({
   name: "Login"
 });
+
 const router = useRouter();
 const loading = ref(false);
 const ruleFormRef = ref<FormInstance>();
@@ -65,7 +66,9 @@ const onLogin = async (formEl: FormInstance | undefined) => {
       permissions: permissionsArr,
       expires: new Date(expireTime * 1000)
     };
+
     setToken(userInfo);
+
     return initRouter()
       .then(() => {
         const topMenu = getTopMenu(true);
@@ -106,7 +109,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div
-    class="min-h-screen w-full flex items-center justify-center bg-[#eaeff5] dark:bg-[#0f172a] transition-colors duration-500 relative overflow-hidden"
+    class="min-h-screen w-full flex items-center justify-center bg-[#eaeff5] dark:bg-[#0f172a] transition-colors duration-500 relative overflow-x-hidden"
   >
     <!-- 背景装饰：极淡的背景图形 -->
     <div
@@ -135,111 +138,183 @@ onBeforeUnmount(() => {
     </div>
 
     <!-- 登录主卡片 -->
-    <div class="login-wrapper">
+    <div class="login-wrapper w-full px-4 md:px-0">
       <div
-        class="relative z-10 w-full max-w-[900px] h-auto min-h-[520px] bg-white dark:bg-slate-800 rounded-[6px] shadow-2xl flex overflow-hidden"
+        class="relative z-10 w-full max-w-[900px] h-auto min-h-[520px] bg-white/90 backdrop-blur-sm dark:bg-slate-800/90 rounded-[6px] shadow-2xl flex overflow-hidden mx-auto my-4 md:my-0"
       >
-        <!-- 左侧：装饰区域 (40%宽度) -->
+        <!-- 左侧：装饰区域 (40%宽度) - 重新设计 -->
         <div
-          class="hidden md:flex w-[40%] relative flex-col justify-between p-8"
+          class="hidden md:flex w-[40%] border-r border-slate-200/60 relative overflow-hidden"
         >
-          <!-- 左侧内容 -->
-          <div class="relative z-10 animate__animated animate__zoomIn">
-            <div class="flex items-center gap-3 mb-8">
-              <div
-                class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/30"
-              >
-                <i class="fas fa-cube text-base" />
-              </div>
-              <div>
-                <span
-                  class="text-base font-bold tracking-wide text-slate-800 block"
+          <!-- 内容区域 -->
+          <div class="flex flex-col h-full px-6 py-6 w-full relative z-10">
+            <!-- 品牌区域 - 简洁设计 -->
+            <div
+              class="text-center mb-6 animate__animated animate__fadeInUp"
+              style="
+                animation-duration: 0.6s;
+                animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+              "
+            >
+              <div class="flex items-center justify-center mb-4">
+                <div
+                  class="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20 hover:shadow-blue-500/30 transition-shadow duration-300 animate__animated animate__pulse animate__infinite animate__slower"
+                  style="animation-duration: 3s"
                 >
-                  System Admin
-                </span>
-                <span class="text-xs text-slate-500 font-medium">
-                  Professional Edition
-                </span>
+                  <i class="fas fa-cube text-lg" />
+                </div>
+              </div>
+              <h1
+                class="text-lg font-bold mb-1 tracking-tight shine-text"
+                style="animation-delay: 0.15s"
+              >
+                System Admin
+              </h1>
+              <p
+                class="text-xs font-medium shine-text-subtitle"
+                style="animation-delay: 0.3s"
+              >
+                Enterprise Platform
+              </p>
+              <div
+                class="h-0.5 w-16 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto mt-3 rounded-full animate__animated animate__fadeIn"
+                style=" animation-duration: 0.5s;animation-delay: 0.5s"
+              />
+            </div>
+
+            <!-- 简洁功能展示 -->
+            <div class="flex-1">
+              <div class="space-y-4">
+                <!-- 核心优势 -->
+                <div
+                  class="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/50 shadow-sm animate__animated animate__fadeInUp"
+                  style="
+                    animation-duration: 0.5s;
+                    animation-timing-function: cubic-bezier(
+                      0.34,
+                      1.56,
+                      0.64,
+                      1
+                    );
+                    animation-delay: 0.2s;
+                  "
+                >
+                  <h3
+                    class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"
+                  >
+                    <i class="fas fa-star text-yellow-500 text-xs" />
+                    核心优势
+                  </h3>
+                  <div class="space-y-3">
+                    <div
+                      class="flex items-center gap-2 animate__animated animate__fadeInUp"
+                      style="
+                        animation-duration: 0.4s;
+                        animation-timing-function: ease-out;
+                        animation-delay: 0.35s;
+                      "
+                    >
+                      <div
+                        class="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-500 flex items-center justify-center text-white flex-shrink-0"
+                      >
+                        <i class="fas fa-shield-alt text-xs" />
+                      </div>
+                      <div>
+                        <h4 class="text-xs font-bold text-slate-700">
+                          安全可靠
+                        </h4>
+                        <p class="text-[10px] text-slate-500">企业级防护</p>
+                      </div>
+                    </div>
+                    <div
+                      class="flex items-center gap-2 animate__animated animate__fadeInUp"
+                      style="
+                        animation-duration: 0.4s;
+                        animation-timing-function: ease-out;
+                        animation-delay: 0.45s;
+                      "
+                    >
+                      <div
+                        class="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white flex-shrink-0"
+                      >
+                        <i class="fas fa-chart-line text-xs" />
+                      </div>
+                      <div>
+                        <h4 class="text-xs font-bold text-slate-700">
+                          数据驱动
+                        </h4>
+                        <p class="text-[10px] text-slate-500">智能分析</p>
+                      </div>
+                    </div>
+                    <div
+                      class="flex items-center gap-2 animate__animated animate__fadeInUp"
+                      style="
+                        animation-duration: 0.4s;
+                        animation-timing-function: ease-out;
+                        animation-delay: 0.55s;
+                      "
+                    >
+                      <div
+                        class="w-7 h-7 rounded-lg bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center text-white flex-shrink-0"
+                      >
+                        <i class="fas fa-cloud text-xs" />
+                      </div>
+                      <div>
+                        <h4 class="text-xs font-bold text-slate-700">
+                          云端协同
+                        </h4>
+                        <p class="text-[10px] text-slate-500">无缝协作</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 系统状态 -->
+                <div
+                  class="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/50 shadow-sm animate__animated animate__fadeInUp"
+                  style="
+                    animation-duration: 0.5s;
+                    animation-timing-function: cubic-bezier(
+                      0.34,
+                      1.56,
+                      0.64,
+                      1
+                    );
+                    animation-delay: 0.65s;
+                  "
+                >
+                  <h3
+                    class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"
+                  >
+                    <i class="fas fa-heartbeat text-red-500 text-xs" />
+                    系统状态
+                  </h3>
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <div
+                        class="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-sm shadow-green-400/30"
+                      />
+                      <span class="text-xs font-semibold text-slate-700">
+                        运行正常
+                      </span>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-[10px] text-slate-500">Version</div>
+                      <div class="text-xs font-bold text-slate-700">v3.0.1</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div
-            class="relative z-10 mb-6 animate__animated animate__fadeInUp"
-            :style="{ animationDelay: '0.15s' }"
-          >
-            <h2 class="text-2xl font-bold leading-tight mb-3 text-slate-700">
-              Building the Future
-              <span class="text-blue-600">of Data</span>
-            </h2>
-            <p class="text-slate-600 text-sm leading-relaxed">
-              体验全新的管理系统，高效、安全、智能。我们致力于为您提供最极致的操作体验。
-            </p>
-          </div>
-
-          <!-- 统计数据区域 -->
-          <div
-            class="relative z-10 mb-6 animate__animated animate__fadeInUp"
-            :style="{ animationDelay: '0.2s' }"
-          >
-            <div class="grid grid-cols-1 gap-2">
-              <div
-                class="flex items-center gap-3 p-2.5 bg-white/40 backdrop-blur-sm rounded-lg border border-white/20 shadow-sm"
-              >
-                <div
-                  class="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center"
-                >
-                  <i class="fas fa-shield-alt text-blue-600 text-xs" />
-                </div>
-                <div>
-                  <div class="text-xs font-bold text-slate-700">99.9%</div>
-                  <div class="text-xs text-slate-500">系统稳定性</div>
-                </div>
-              </div>
-
-              <div
-                class="flex items-center gap-3 p-2.5 bg-white/40 backdrop-blur-sm rounded-lg border border-white/20 shadow-sm"
-              >
-                <div
-                  class="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center"
-                >
-                  <i class="fas fa-users text-indigo-600 text-xs" />
-                </div>
-                <div>
-                  <div class="text-xs font-bold text-slate-700">1000+</div>
-                  <div class="text-xs text-slate-500">企业用户</div>
-                </div>
-              </div>
-
-              <div
-                class="flex items-center gap-3 p-2.5 bg-white/40 backdrop-blur-sm rounded-lg border border-white/20 shadow-sm"
-              >
-                <div
-                  class="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center"
-                >
-                  <i class="fas fa-clock text-emerald-600 text-xs" />
-                </div>
-                <div>
-                  <div class="text-xs font-bold text-slate-700">24/7</div>
-                  <div class="text-xs text-slate-500">在线服务</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div
-            class="relative z-10 animate__animated animate__fadeIn"
-            :style="{ animationDelay: '0.3s' }"
-          >
-            <div class="flex items-center justify-between">
-              <div class="text-xs text-slate-500 font-medium">
-                Version 3.0.1 PRO
-              </div>
-              <div class="flex items-center gap-1">
-                <i
-                  class="fas fa-circle text-green-400 text-[8px] animate-pulse"
-                />
-                <span class="text-xs text-slate-500 font-medium">系统正常</span>
+            <!-- 底部信息 -->
+            <div
+              class="pt-4 border-t border-slate-200/60 animate__animated animate__fadeIn"
+              style=" animation-duration: 0.4s;animation-delay: 0.8s"
+            >
+              <div class="text-center">
+                <p class="text-[10px] text-slate-500 mb-1">企业级管理平台</p>
+                <p class="text-[10px] text-slate-400">© 2024</p>
               </div>
             </div>
           </div>
@@ -247,16 +322,62 @@ onBeforeUnmount(() => {
 
         <!-- 右侧：登录表单 (60%宽度) -->
         <div
-          class="w-full md:w-[60%] p-10 lg:p-14 flex flex-col justify-center bg-white dark:bg-slate-800 transition-colors duration-300"
+          class="w-full md:w-[60%] p-3 sm:p-4 md:p-10 lg:p-14 flex flex-col justify-center transition-colors duration-300"
         >
-          <div class="brand-header animate__animated animate__zoomIn mb-10">
-            <h1 class="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+          <!-- 移动端品牌信息 -->
+          <div
+            class="md:hidden flex items-center gap-2 mb-3 animate__animated animate__fadeInDown"
+          >
+            <div
+              class="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white shadow-md"
+            >
+              <i class="fas fa-layer-group text-[10px]" />
+            </div>
+            <div>
+              <h1
+                class="text-xs font-bold shine-text"
+                style="animation-delay: 0.1s"
+              >
+                System Admin
+              </h1>
+              <p
+                class="text-[9px] shine-text-subtitle"
+                style="animation-delay: 1s"
+              >
+                Professional
+              </p>
+            </div>
+          </div>
+
+          <div
+            class="brand-header animate__animated animate__fadeInUp mb-8"
+            style="
+              animation-duration: 0.6s;
+              animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+            "
+          >
+            <h1
+              class="text-2xl font-bold shine-text mb-2"
+              style="animation-delay: 0.15s"
+            >
               {{ title }}
             </h1>
-            <div class="h-1 w-10 bg-blue-500 rounded-full mb-4" />
-            <p class="text-slate-500 dark:text-slate-400 text-sm">
-              请输入您的账户信息进行登录
-            </p>
+            <div
+              class="h-1 w-10 bg-blue-500 rounded-full mb-3 animate__animated animate__fadeIn"
+              style=" animation-duration: 0.4s;animation-delay: 0.3s"
+            />
+            <div
+              class="flex items-center gap-2 animate__animated animate__fadeIn"
+              style=" animation-duration: 0.5s;animation-delay: 0.4s"
+            >
+              <i class="fas fa-user-shield text-blue-500 text-sm" />
+              <p
+                class="text-slate-600 dark:text-slate-300 text-sm font-medium shine-text-subtitle"
+                style="animation-delay: 0.3s"
+              >
+                请输入账户信息登录
+              </p>
+            </div>
           </div>
 
           <el-form
@@ -267,8 +388,12 @@ onBeforeUnmount(() => {
             size="large"
           >
             <div
-              class="animate__animated animate__fadeInUp mb-6"
-              :style="{ animationDelay: '0.05s' }"
+              class="animate__animated animate__fadeInUp mb-4"
+              :style="{
+                animationDelay: '0.5s',
+                animationDuration: '0.4s',
+                animationTimingFunction: 'ease-out'
+              }"
             >
               <el-form-item prop="account">
                 <label
@@ -290,7 +415,11 @@ onBeforeUnmount(() => {
 
             <div
               class="animate__animated animate__fadeInUp mb-2"
-              :style="{ animationDelay: '0.1s' }"
+              :style="{
+                animationDelay: '0.6s',
+                animationDuration: '0.4s',
+                animationTimingFunction: 'ease-out'
+              }"
             >
               <el-form-item prop="password">
                 <label
@@ -313,8 +442,8 @@ onBeforeUnmount(() => {
             </div>
 
             <div
-              class="animate__animated animate__fadeIn mb-8 mt-2"
-              :style="{ animationDelay: '0.15s' }"
+              class="animate__animated animate__fadeIn mb-5 mt-1"
+              :style="{ animationDelay: '0.7s', animationDuration: '0.3s' }"
             >
               <div class="flex items-center justify-between">
                 <el-checkbox
@@ -323,7 +452,7 @@ onBeforeUnmount(() => {
                   class="custom-checkbox"
                 />
                 <a
-                  class="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 cursor-pointer transition-colors"
+                  class="text-[10px] md:text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 cursor-pointer transition-colors"
                 >
                   忘记密码?
                 </a>
@@ -332,29 +461,33 @@ onBeforeUnmount(() => {
 
             <div
               class="animate__animated animate__fadeInUp"
-              :style="{ animationDelay: '0.2s' }"
+              :style="{
+                animationDelay: '0.8s',
+                animationDuration: '0.5s',
+                animationTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)'
+              }"
             >
               <el-button
                 class="w-full !h-[46px] !rounded-md !text-base !font-semibold !bg-blue-500 hover:!bg-blue-600 !text-white !border-0 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
                 :loading="loading"
                 @click="onLogin(ruleFormRef)"
               >
-                {{ loading ? "登录中..." : "立即登录" }}
+                {{ loading ? "登录中..." : "登录" }}
                 <i v-if="!loading" class="ml-2 fas fa-arrow-right" />
               </el-button>
             </div>
           </el-form>
 
           <div
-            class="animate__animated animate__fadeIn mt-auto pt-10 text-center"
-            :style="{ animationDelay: '0.25s' }"
+            class="animate__animated animate__fadeIn mt-auto pt-3 md:pt-6 text-center"
+            :style="{ animationDelay: '0.9s', animationDuration: '0.4s' }"
           >
-            <p class="text-sm text-slate-400">
+            <p class="text-[10px] md:text-sm text-slate-400">
               没有账号？
               <span
                 class="text-blue-600 dark:text-blue-400 font-semibold cursor-pointer hover:underline"
               >
-                联系管理员注册
+                联系管理员
               </span>
             </p>
           </div>
@@ -363,7 +496,7 @@ onBeforeUnmount(() => {
     </div>
 
     <div
-      class="absolute bottom-4 w-full text-center text-xs text-slate-400/60 font-light"
+      class="absolute bottom-3 md:bottom-4 w-full text-center text-[9px] md:text-xs text-slate-400/60 font-light px-4"
     >
       &copy; {{ new Date().getFullYear() }} {{ title }}. All rights reserved.
     </div>
@@ -371,9 +504,17 @@ onBeforeUnmount(() => {
 </template>
 
 <style lang="scss" scoped>
-/*
-  优雅表单样式重构 (Elegant Form Style)
-*/
+
+
+@keyframes shine {
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
 
 :deep(.elegant-form) {
   // 移除默认间距
@@ -472,8 +613,7 @@ onBeforeUnmount(() => {
   }
 }
 
-/* 
-  暗黑模式适配
+/* 暗黑模式适配
 */
 .dark {
   :deep(.elegant-form) {
@@ -514,4 +654,94 @@ onBeforeUnmount(() => {
     }
   }
 }
+
+/* 镜面扫过文字效果 - 高级配色 */
+.shine-text {
+  position: relative;
+  background: linear-gradient(
+    120deg,
+    #0f172a 0%,
+    #1e293b 15%,
+    #0ea5e9 30%,
+    #6366f1 45%,
+    #8b5cf6 60%,
+    #a855f7 75%,
+    #0f172a 100%
+  );
+  filter: drop-shadow(0 0 10px rgb(99 102 241 / 30%));
+  background-position: 100% 0;
+  background-clip: text;
+  background-clip: text;
+  background-size: 300% 100%;
+  animation: shine 4s ease-in-out infinite;
+  -webkit-text-fill-color: transparent;
+}
+
+.shine-text-subtitle {
+  position: relative;
+  background: linear-gradient(
+    120deg,
+    #374151 0%,
+    #6b7280 20%,
+    #d1d5db 40%,
+    #f59e0b 55%,
+    #fbbf24 70%,
+    #f59e0b 85%,
+    #374151 100%
+  );
+  filter: drop-shadow(0 0 8px rgb(245 158 11 / 20%));
+  background-position: 100% 0;
+  background-clip: text;
+  background-clip: text;
+  background-size: 300% 100%;
+  animation: shine 5s ease-in-out infinite;
+  animation-delay: 0.5s;
+  -webkit-text-fill-color: transparent;
+}
+
+/* 暗黑模式下的镜面效果 - 更奢华的配色 */
+.dark .shine-text {
+  background: linear-gradient(
+    120deg,
+    #f8fafc 0%,
+    #e2e8f0 15%,
+    #60a5fa 30%,
+    #818cf8 45%,
+    #a78bfa 60%,
+    #c084fc 75%,
+    #f8fafc 100%
+  );
+  filter: drop-shadow(0 0 12px rgb(129 140 248 / 40%));
+  background-position: 100% 0;
+  background-clip: text;
+  background-clip: text;
+  background-size: 300% 100%;
+  animation: shine 4s ease-in-out infinite;
+  -webkit-text-fill-color: transparent;
+}
+
+.dark .shine-text-subtitle {
+  background: linear-gradient(
+    120deg,
+    #f1f5f9 0%,
+    #cbd5e1 20%,
+    #fde047 40%,
+    #facc15 55%,
+    #eab308 70%,
+    #ca8a04 85%,
+    #f1f5f9 100%
+  );
+  filter: drop-shadow(0 0 10px rgb(250 204 21 / 30%));
+  background-position: 100% 0;
+  background-clip: text;
+  background-clip: text;
+  background-size: 300% 100%;
+  animation: shine 5s ease-in-out infinite;
+  animation-delay: 0.5s;
+  -webkit-text-fill-color: transparent;
+}
+
+/*
+  优雅表单样式重构 (Elegant Form Style)
+*/
 </style>
