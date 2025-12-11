@@ -4,49 +4,13 @@ namespace app\api\middleware;
 
 use think\facade\Db;
 use think\Response;
+use utils\WhitelistManager;
 
 /**
  * 权限检查中间件
  */
 class PermissionCheck
 {
-    /**
-     * 白名单路径（无需权限检查的公开接口）
-     */
-    private $whitelist = [
-        // 登录注册相关
-        '/v1/user/login',
-        '/v2/user/login',
-        '/v1/user/register',
-        '/v2/user/register',
-        
-        // Token刷新
-        '/v1/user/refreshToken',
-        '/v2/user/refreshToken',
-        '/v1/auth/refresh',
-        '/v2/auth/refresh',
-        
-        // 密码重置流程
-        '/v1/user/requestPasswordReset',
-        '/v2/user/requestPasswordReset',
-        '/v1/user/verifyResetToken',
-        '/v2/user/verifyResetToken',
-        '/v1/user/resetPassword',
-        '/v2/user/resetPassword',
-        
-        // 邮箱验证
-        '/v1/user/sendEmailCode',
-        '/v2/user/sendEmailCode',
-        '/v1/user/testEmail',
-        '/v2/user/testEmail',
-        
-        // 用户名/邮箱检查
-        '/v1/user/checkUsername',
-        '/v2/user/checkUsername',
-        '/v1/user/checkEmail',
-        '/v2/user/checkEmail',
-    ];
-    
     /**
      * 处理请求
      */
@@ -56,20 +20,33 @@ class PermissionCheck
         $fullPath = $request->pathinfo();
         $method = $request->method();
         
-        // 2. 检查是否在白名单中
-        if ($this->isWhitelisted($fullPath)) {
+        // 确保路径以 / 开头
+        if ($fullPath[0] !== '/') {
+            $fullPath = '/' . $fullPath;
+        }
+        
+        // 🔍 调试：记录实际请求的路径
+        error_log("[PermissionCheck] 请求路径: {$fullPath}, 方法: {$method}");
+        
+        // 2. 检查是否为公开接口（无需权限检查）
+        if (WhitelistManager::isPublic($fullPath)) {
             return $next($request);
         }
         
-        // 3. 获取用户ID
+        // 3. 检查是否为只需登录的接口（不需要权限检查）
+        if (WhitelistManager::isAuthOnly($fullPath)) {
+            return $next($request);
+        }
+        
+        // 4. 获取用户ID（应该已经由 Auth 中间件设置）
         $userId = $request->userId ?? $request->JWTUid ?? null;
         
-        // 4. 如果没有用户ID，说明没有通过 Auth 中间件，直接拒绝
+        // 5. 如果没有用户ID，说明没有通过 Auth 中间件，直接拒绝
         if (!$userId) {
             return json(['code' => 401, 'msg' => '未登录或登录已过期']);
         }
         
-        // 5. 查询 API 配置
+        // 6. 查询 API 配置
         $api = Db::table('bl_api')
             ->where('full_path', $fullPath)
             ->where(function($query) use ($method) {
@@ -78,12 +55,38 @@ class PermissionCheck
             })
             ->find();
         
-        // 如果 API 不存在，放行（由业务逻辑处理）
+        // 🔍 调试：记录查询结果
         if (!$api) {
-            return $next($request);
+            error_log("[PermissionCheck] 未找到API配置: {$fullPath}");
+            
+            // 尝试查询所有相似的路径
+            $similarApis = Db::table('bl_api')
+                ->where('full_path', 'like', "%{$fullPath}%")
+                ->limit(5)
+                ->column('full_path');
+            
+            if (!empty($similarApis)) {
+                error_log("[PermissionCheck] 相似路径: " . json_encode($similarApis));
+            }
+        } else {
+            error_log("[PermissionCheck] 找到API配置: " . json_encode($api));
         }
         
-        // 6. 检查 API 状态
+        // ⚠️ 安全策略：如果 API 不存在于数据库中，默认拒绝访问
+        // 这样可以防止未配置的接口被随意访问
+        if (!$api) {
+            return json([
+                'code' => 403,
+                'msg' => 'API未配置权限，请联系管理员',
+                'data' => [
+                    'path' => $fullPath,
+                    'method' => $method,
+                    'hint' => '该接口尚未在系统中注册，请先同步接口配置'
+                ]
+            ]);
+        }
+        
+        // 7. 检查 API 状态
         if ($api['status'] == 0) {
             return json(['code' => 503, 'msg' => 'API维护中，暂时无法访问']);
         }
@@ -92,7 +95,7 @@ class PermissionCheck
             return json(['code' => 403, 'msg' => 'API已关闭']);
         }
         
-        // 7. 根据 check_mode 执行不同的权限检查
+        // 8. 根据 check_mode 执行不同的权限检查
         switch ($api['check_mode']) {
             case 'none':
                 // 公开接口，不检查权限，直接放行
@@ -383,34 +386,6 @@ class PermissionCheck
     }
     
     /**
-     * 检查路径是否在白名单中
-     * @param string $path 请求路径
-     * @return bool
-     */
-    private function isWhitelisted(string $path): bool
-    {
-        // 标准化路径（移除开头的斜杠）
-        $path = '/' . ltrim($path, '/');
-        
-        // 精确匹配
-        if (in_array($path, $this->whitelist)) {
-            return true;
-        }
-        
-        // 支持通配符匹配（可选）
-        foreach ($this->whitelist as $pattern) {
-            if (strpos($pattern, '*') !== false) {
-                $regex = str_replace('*', '.*', $pattern);
-                if (preg_match('#^' . $regex . '$#', $path)) {
-                    return true;
-                }
-            }
-        }
-        
-        return false;
-    }
-    
-    /**
      * 获取用户权限列表
      */
     private function getUserPermissions(int $userId): array
@@ -418,8 +393,8 @@ class PermissionCheck
         // 查询用户的所有权限标识
         $permissions = Db::table('bl_permissions')
             ->alias('p')
-            ->join('bl_roles_permissions rp', 'p.id = rp.permission_id')
-            ->join('bl_users_roles ur', 'rp.role_id = ur.role_id')
+            ->join('bl_role_permissions rp', 'p.id = rp.permission_id')
+            ->join('bl_user_roles ur', 'rp.role_id = ur.role_id')
             ->where('ur.user_id', $userId)
             ->where('p.delete_time', null)
             ->column('p.iden');

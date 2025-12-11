@@ -6,6 +6,7 @@ use think\facade\Log;
 use utils\AuthUtil;
 use utils\JWTUtil;
 use utils\RedisUtil;
+use utils\WhitelistManager;
 
 class Auth
 {
@@ -39,11 +40,35 @@ class Auth
      */
     public function handle($request, \Closure $next, string $permission = 'user'): mixed
     {
+        $uri = $request->url();
+        $fullPath = $request->pathinfo();
+        
+        // 确保路径以 / 开头
+        if ($fullPath[0] !== '/') {
+            $fullPath = '/' . $fullPath;
+        }
+        
         // ✅ 使用 AuthUtil 统一获取 Token（支持 Header 和 Cookie）
         $token = AuthUtil::getTokenFromRequest($request);
-        $uri = $request->url();
+        
+        // Step0: 检查是否为公开接口（白名单）
+        if (WhitelistManager::isPublic($fullPath)) {
+            // 公开接口：如果有token，尝试解析（可选），但不强制要求
+            if (!empty($token)) {
+                $verifyToken = JWTUtil::verifyToken($token);
+                if (is_array($verifyToken) && ($verifyToken['code'] ?? 0) === 200) {
+                    $JWTUid = $verifyToken['data']['data']['id'] ?? null;
+                    if (!empty($JWTUid)) {
+                        // 设置用户ID（供后续中间件使用）
+                        $request->JWTUid = $JWTUid;
+                        $request->userId = $JWTUid;
+                    }
+                }
+            }
+            return $next($request);
+        }
 
-        // Step1: 检查Token是否存在
+        // Step1: 检查Token是否存在（非公开接口必须有token）
         if (empty($token)) {
             return $this->errorResponse('请先登录再继续操作', 502);
         }
@@ -82,6 +107,7 @@ class Auth
 
         // Step6: 注入用户ID到请求对象中
         $request->JWTUid = $JWTUid;
+        $request->userId = $JWTUid;  // ✅ 同时设置 userId，供 PermissionCheck 使用
         // Step7: 放行
         return $next($request);
     }
@@ -117,7 +143,7 @@ class Auth
                     json_encode($authInfo['role_idens'] ?? []) .
                     ", 用户权限: " . json_encode($authInfo['permission_idens'] ?? []) .
                     ", URI: {$uri}");
-            }
+            } 
 
             return $hasPermission;
 

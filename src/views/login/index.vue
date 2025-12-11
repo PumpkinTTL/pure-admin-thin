@@ -178,7 +178,7 @@ onBeforeUnmount(() => {
               </p>
               <div
                 class="h-0.5 w-16 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto mt-3 rounded-full animate__animated animate__fadeIn"
-                style=" animation-duration: 0.5s;animation-delay: 0.5s"
+                style="animation-duration: 0.5s; animation-delay: 0.5s"
               />
             </div>
 
@@ -310,7 +310,7 @@ onBeforeUnmount(() => {
             <!-- 底部信息 -->
             <div
               class="pt-4 border-t border-slate-200/60 animate__animated animate__fadeIn"
-              style=" animation-duration: 0.4s;animation-delay: 0.8s"
+              style="animation-duration: 0.4s; animation-delay: 0.8s"
             >
               <div class="text-center">
                 <p class="text-[10px] text-slate-500 mb-1">企业级管理平台</p>
@@ -364,11 +364,11 @@ onBeforeUnmount(() => {
             </h1>
             <div
               class="h-1 w-10 bg-blue-500 rounded-full mb-3 animate__animated animate__fadeIn"
-              style=" animation-duration: 0.4s;animation-delay: 0.3s"
+              style="animation-duration: 0.4s; animation-delay: 0.3s"
             />
             <div
               class="flex items-center gap-2 animate__animated animate__fadeIn"
-              style=" animation-duration: 0.5s;animation-delay: 0.4s"
+              style="animation-duration: 0.5s; animation-delay: 0.4s"
             >
               <i class="fas fa-user-shield text-blue-500 text-sm" />
               <p
@@ -504,8 +504,6 @@ onBeforeUnmount(() => {
 </template>
 
 <style lang="scss" scoped>
-
-
 @keyframes shine {
   0% {
     background-position: 100% 0;
@@ -671,7 +669,6 @@ onBeforeUnmount(() => {
   filter: drop-shadow(0 0 10px rgb(99 102 241 / 30%));
   background-position: 100% 0;
   background-clip: text;
-  background-clip: text;
   background-size: 300% 100%;
   animation: shine 4s ease-in-out infinite;
   -webkit-text-fill-color: transparent;
@@ -691,7 +688,6 @@ onBeforeUnmount(() => {
   );
   filter: drop-shadow(0 0 8px rgb(245 158 11 / 20%));
   background-position: 100% 0;
-  background-clip: text;
   background-clip: text;
   background-size: 300% 100%;
   animation: shine 5s ease-in-out infinite;
@@ -714,7 +710,6 @@ onBeforeUnmount(() => {
   filter: drop-shadow(0 0 12px rgb(129 140 248 / 40%));
   background-position: 100% 0;
   background-clip: text;
-  background-clip: text;
   background-size: 300% 100%;
   animation: shine 4s ease-in-out infinite;
   -webkit-text-fill-color: transparent;
@@ -733,7 +728,6 @@ onBeforeUnmount(() => {
   );
   filter: drop-shadow(0 0 10px rgb(250 204 21 / 30%));
   background-position: 100% 0;
-  background-clip: text;
   background-clip: text;
   background-size: 300% 100%;
   animation: shine 5s ease-in-out infinite;

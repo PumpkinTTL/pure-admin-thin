@@ -183,6 +183,24 @@ class ApiManager extends BaseController
             // 解析路由文件
             $routes = $this->parseRouteFile();
             
+            // 按模块统计
+            $moduleStats = [];
+            foreach ($routes as $route) {
+                $module = $route['module'] ?? 'unknown';
+                if (!isset($moduleStats[$module])) {
+                    $moduleStats[$module] = 0;
+                }
+                $moduleStats[$module]++;
+            }
+            arsort($moduleStats);
+            
+            error_log("========================================");
+            error_log("[ApiManager] 按模块分组统计:");
+            foreach ($moduleStats as $module => $count) {
+                error_log("  {$module}: {$count} 条");
+            }
+            error_log("========================================");
+            
             // 导入到数据库
             $importCount = $this->importRoutes($routes);
             
@@ -193,8 +211,10 @@ class ApiManager extends BaseController
                 'code' => 200,
                 'msg' => '接口重置成功',
                 'data' => [
+                    'total_parsed' => count($routes),
                     'imported_count' => $importCount,
-                    'clear_existing' => $clearExisting
+                    'clear_existing' => $clearExisting,
+                    'module_stats' => $moduleStats
                 ]
             ]);
         } catch (\Exception $e) {
@@ -205,77 +225,228 @@ class ApiManager extends BaseController
     }
     
     /**
-     * 解析route.php文件获取所有接口
+     * 解析route.php文件获取所有接口（智能过滤版）
      * @return array
      */
     private function parseRouteFile(): array
     {
-        // 使用正确的路径格式，避免路径错误
-        $routePath = root_path() . 'app' . DIRECTORY_SEPARATOR . 'api' . DIRECTORY_SEPARATOR . 'route' . DIRECTORY_SEPARATOR . 'route.php';
-        $routeFile = file_get_contents($routePath);
-        
         $routes = [];
         
-        // 先匹配所有路由组
-        preg_match_all('/Route::group\([\'"]([^\'"]+)[\'"],\s*function\s*\(\)\s*\{((?:[^{}]|(?R))*)\}\);/s', $routeFile, $groupMatches, PREG_SET_ORDER);
+        // 统计信息
+        $stats = [
+            'total' => 0,
+            'skipped_empty' => 0,
+            'skipped_closure' => 0,
+            'skipped_invalid_type' => 0,
+            'skipped_parse_failed' => 0,
+            'skipped_framework' => 0,
+            'skipped_duplicate' => 0,
+            'final' => 0,
+        ];
         
-        foreach ($groupMatches as $groupMatch) {
-            $groupPath = $groupMatch[1];
-            $groupContent = $groupMatch[2];
+        $seenRoutes = []; // 用于检测重复
+        
+        try {
+            // 使用ThinkPHP的路由信息
+            $routeList = \think\facade\Route::getRuleList();
+            $stats['total'] = count($routeList);
             
-            // 替换版本占位符
-            $groupPath = str_replace('/:version', '/api/v1', $groupPath);
+            error_log("========================================");
+            error_log("[ApiSync] 开始解析路由，ThinkPHP注册总数: {$stats['total']}");
+            error_log("========================================");
             
-            // 匹配组内的路由规则
-            preg_match_all('/Route::rule\([\'"]([^\'"]+)[\'"],\s*[\'"]([^\'"]+)[\'"](?:,\s*[\'"]([^\'"]*)[\'"]\s*)?(?:,|(?:\)))/', $groupContent, $ruleMatches, PREG_SET_ORDER);
-            
-            foreach ($ruleMatches as $match) {
-                $path = $match[1];
-                $action = $match[2];
+            foreach ($routeList as $rule) {
+                // 获取路由规则
+                $route = $rule['route'] ?? '';
+                $method = $rule['method'] ?? 'ANY';
+                $rule_str = $rule['rule'] ?? '';
                 
-                // 获取HTTP方法（如果指定）
-                $httpMethod = isset($match[3]) && !empty($match[3]) ? strtoupper($match[3]) : 'ANY';
-                
-                // 解析版本和控制器
-                preg_match('/^:version\.([^\/]+)\/(.+)$/', $action, $actionMatches);
-                
-                if (isset($actionMatches[1]) && isset($actionMatches[2])) {
-                    $model = $actionMatches[1];
-                    $method = $actionMatches[2];
-                    
-                    // 构建完整路径
-                    $fullPath = $groupPath;
-                    
-                    // 确保路径以/开头
-                    if ($path[0] !== '/') {
-                        $fullPath .= '/';
-                    }
-                    
-                    $fullPath .= $path;
-                    
-                    // 规范化路径，确保格式正确
-                    $fullPath = preg_replace('#/+#', '/', $fullPath);
-                    
-                    // 添加到接口列表
-                    $routes[] = [
-                        'version' => 'v1',
-                        'method' => $httpMethod,
-                        'model' => $model,
-                        'path' => $path,
-                        'full_path' => $fullPath,
-                        'create_time' => date('Y-m-d H:i:s'),
-                        'update_time' => date('Y-m-d H:i:s'),
-                        'description' => '',
-                        'status' => Api::STATUS_OPEN,
-                        'check_mode' => 'manual',  // 默认手动模式
-                        'module' => $model,  // 模块名
-                        'required_permission' => ''  // 需要手动配置
-                    ];
+                // 1. 跳过空路由
+                if (empty($rule_str)) {
+                    $stats['skipped_empty']++;
+                    continue;
                 }
+                
+                // 2. 跳过闭包路由
+                if ($route instanceof \Closure || is_object($route)) {
+                    $stats['skipped_closure']++;
+                    continue;
+                }
+                
+                // 3. 确保route是字符串
+                if (!is_string($route)) {
+                    $stats['skipped_invalid_type']++;
+                    continue;
+                }
+                
+                // 4. 解析控制器和方法
+                $version = 'v1';
+                $controller = '';
+                $action = '';
+                
+                if (preg_match('/(?:app\\\\api\\\\controller\\\\)?(\w+)\\\\(\w+)@(\w+)/', $route, $matches)) {
+                    $version = strtolower($matches[1]);
+                    $controller = $matches[2];
+                    $action = $matches[3];
+                } elseif (preg_match('/(:?version|\w+)\.(\w+)\/(\w+)/', $route, $matches)) {
+                    $versionPart = $matches[1];
+                    if ($versionPart === ':version' || $versionPart === 'version') {
+                        $version = 'v1';
+                    } else {
+                        $version = strtolower($versionPart);
+                    }
+                    $controller = $matches[2];
+                    $action = $matches[3];
+                } else {
+                    $stats['skipped_parse_failed']++;
+                    error_log("[ApiSync] 无法解析路由: {$rule_str} -> {$route}");
+                    continue;
+                }
+                
+                // 确保version格式正确
+                if (!preg_match('/^v\d+$/', $version)) {
+                    $version = 'v1';
+                }
+                
+                // 5. 构建完整路径
+                $fullPath = '/' . $rule_str;
+                $fullPath = preg_replace('/:version|<version>/', 'v1', $fullPath);
+                $fullPath = preg_replace('/:(\w+)/', '{$1}', $fullPath);
+                $fullPath = preg_replace('/<(\w+)>/', '{$1}', $fullPath);
+                $fullPath = preg_replace('#/+#', '/', $fullPath);
+                
+                // 6. 过滤框架路由
+                if ($this->isFrameworkRoute($fullPath)) {
+                    $stats['skipped_framework']++;
+                    error_log("[ApiSync] 跳过框架路由: {$fullPath}");
+                    continue;
+                }
+                
+                // 7. 处理HTTP方法
+                if (is_array($method)) {
+                    $httpMethod = implode(',', $method);
+                } else {
+                    $httpMethod = strtoupper($method);
+                }
+                
+                if ($httpMethod === 'GET,POST,PUT,DELETE,PATCH,HEAD,OPTIONS' || 
+                    $httpMethod === '*' || 
+                    empty($httpMethod)) {
+                    $httpMethod = 'ANY';
+                }
+                
+                // 8. 检查重复（只保留唯一的完整路径）
+                // 使用 full_path + method 作为唯一键
+                $routeKey = $fullPath . '|' . $httpMethod;
+                if (isset($seenRoutes[$routeKey])) {
+                    $stats['skipped_duplicate']++;
+                    error_log("[ApiSync] 跳过重复路由: {$fullPath} ({$httpMethod})");
+                    continue;
+                }
+                $seenRoutes[$routeKey] = true;
+                
+                // 9. 额外检查：如果路径完全相同但版本不同，只保留v1版本
+                // 例如：/v1/user/login 和 /v2/user/login，只保留 /v1/user/login
+                $pathWithoutVersion = preg_replace('#^/v\d+/#', '/vX/', $fullPath);
+                $versionlessKey = $pathWithoutVersion . '|' . $httpMethod;
+                
+                if (isset($seenRoutes[$versionlessKey])) {
+                    // 如果已经有相同路径的其他版本，跳过
+                    $stats['skipped_duplicate']++;
+                    error_log("[ApiSync] 跳过版本重复: {$fullPath} (已有其他版本)");
+                    continue;
+                }
+                $seenRoutes[$versionlessKey] = true;
+                
+                // 10. 提取模块名
+                $moduleName = $this->extractModuleName($fullPath);
+                
+                // 11. 添加到结果
+                $routes[] = [
+                    'version' => $version,
+                    'method' => $httpMethod,
+                    'model' => $controller,
+                    'path' => $rule_str,
+                    'full_path' => $fullPath,
+                    'create_time' => date('Y-m-d H:i:s'),
+                    'update_time' => date('Y-m-d H:i:s'),
+                    'description' => '',
+                    'status' => Api::STATUS_OPEN,
+                    'check_mode' => 'manual',
+                    'module' => $moduleName,
+                    'required_permission' => ''
+                ];
             }
+            
+            $stats['final'] = count($routes);
+            
+            // 输出统计报告
+            error_log("========================================");
+            error_log("[ApiSync] 路由解析完成");
+            error_log("  ThinkPHP注册总数: {$stats['total']}");
+            error_log("  跳过空路由: {$stats['skipped_empty']}");
+            error_log("  跳过Closure: {$stats['skipped_closure']}");
+            error_log("  跳过无效类型: {$stats['skipped_invalid_type']}");
+            error_log("  跳过解析失败: {$stats['skipped_parse_failed']}");
+            error_log("  跳过框架路由: {$stats['skipped_framework']}");
+            error_log("  跳过重复路由: {$stats['skipped_duplicate']}");
+            error_log("  ✅ 最终同步: {$stats['final']} 条");
+            error_log("========================================");
+            
+        } catch (\Exception $e) {
+            error_log("[ApiSync] 解析失败: " . $e->getMessage());
+            error_log("[ApiSync] 堆栈: " . $e->getTraceAsString());
         }
         
         return $routes;
+    }
+    
+    /**
+     * 判断是否为框架路由
+     * @param string $path 路径
+     * @return bool
+     */
+    private function isFrameworkRoute(string $path): bool
+    {
+        $frameworkPatterns = [
+            '#^/$#',                    // 根路径
+            '#^/index$#',               // 默认首页
+            '#^/miss$#',                // 404路由
+            '#^/__#',                   // 双下划线开头（调试工具）
+            '#^/think/#',               // think路由
+            '#^/debug/#',               // debug路由
+            '#^/error/#',               // error路由
+        ];
+        
+        foreach ($frameworkPatterns as $pattern) {
+            if (preg_match($pattern, $path)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * 从完整路径中提取模块名
+     * @param string $fullPath 完整路径，如 /v1/user/login
+     * @return string 模块名，如 user
+     */
+    private function extractModuleName(string $fullPath): string
+    {
+        // 移除开头的斜杠
+        $path = ltrim($fullPath, '/');
+        
+        // 分割路径
+        $parts = explode('/', $path);
+        
+        // 跳过版本号（v1, v2等）
+        if (count($parts) >= 2 && preg_match('/^v\d+$/', $parts[0])) {
+            return $parts[1];
+        }
+        
+        // 如果没有版本号，返回第一个部分
+        return $parts[0] ?? 'unknown';
     }
     
     /**

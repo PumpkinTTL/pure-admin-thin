@@ -2178,7 +2178,9 @@ const generateEmailContent = async () => {
 3. 系统性能提升，响应速度提高约30%
 4. 修复了若干已知问题，系统更加稳定可靠
 
-更新已于${dayjs().format("YYYY年MM月DD日")}正式上线，您无需进行任何操作即可享受新功能。
+更新已于${dayjs().format(
+        "YYYY年MM月DD日"
+      )}正式上线，您无需进行任何操作即可享受新功能。
 
 如有任何问题或建议，欢迎随时与我们联系。
 
@@ -2197,7 +2199,10 @@ ${noticeForm.content || "（这里将显示公告内容）"}
 如有任何疑问，请随时联系我们的客户服务团队。
 
 此致
-${mockUsers.find(u => u.id === noticeForm.publisher_id)?.username || "系统管理员"}`;
+${
+  mockUsers.find(u => u.id === noticeForm.publisher_id)?.username ||
+  "系统管理员"
+}`;
     }
 
     message("AI内容生成成功", { type: "success" });
@@ -3338,7 +3343,9 @@ const generateEmailContentForDialog = async () => {
 3. 系统性能提升，响应速度提高约30%
 4. 修复了若干已知问题，系统更加稳定可靠
 
-更新已于${dayjs().format("YYYY年MM月DD日")}正式上线，您无需进行任何操作即可享受新功能。
+更新已于${dayjs().format(
+        "YYYY年MM月DD日"
+      )}正式上线，您无需进行任何操作即可享受新功能。
 
 如有任何问题或建议，欢迎随时与我们联系。
 
