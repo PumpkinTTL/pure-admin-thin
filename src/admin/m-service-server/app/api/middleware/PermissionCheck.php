@@ -17,24 +17,25 @@ class PermissionCheck
     public function handle($request, \Closure $next): Response
     {
         // 1. 获取请求信息
-        $fullPath = $request->pathinfo();
+        $pathinfo = $request->pathinfo();  // ThinkPHP多应用模式下，已去掉 /api 前缀
         $method = $request->method();
         
         // 确保路径以 / 开头
-        if ($fullPath[0] !== '/') {
-            $fullPath = '/' . $fullPath;
+        if ($pathinfo[0] !== '/') {
+            $pathinfo = '/' . $pathinfo;
         }
         
         // 🔍 调试：记录实际请求的路径
-        error_log("[PermissionCheck] 请求路径: {$fullPath}, 方法: {$method}");
+        error_log("[PermissionCheck] pathinfo: {$pathinfo}, 方法: {$method}");
         
         // 2. 检查是否为公开接口（无需权限检查）
-        if (WhitelistManager::isPublic($fullPath)) {
+        // 白名单使用 pathinfo（不含 /api）
+        if (WhitelistManager::isPublic($pathinfo)) {
             return $next($request);
         }
         
         // 3. 检查是否为只需登录的接口（不需要权限检查）
-        if (WhitelistManager::isAuthOnly($fullPath)) {
+        if (WhitelistManager::isAuthOnly($pathinfo)) {
             return $next($request);
         }
         
@@ -46,35 +47,14 @@ class PermissionCheck
             return json(['code' => 401, 'msg' => '未登录或登录已过期']);
         }
         
-        // 6. 查询 API 配置
-        $api = Db::table('bl_api')
-            ->where('full_path', $fullPath)
-            ->where(function($query) use ($method) {
-                $query->where('method', $method)
-                      ->whereOr('method', 'ANY');
-            })
-            ->find();
-        
-        // 🔍 调试：记录查询结果
-        if (!$api) {
-            error_log("[PermissionCheck] 未找到API配置: {$fullPath}");
-            
-            // 尝试查询所有相似的路径
-            $similarApis = Db::table('bl_api')
-                ->where('full_path', 'like', "%{$fullPath}%")
-                ->limit(5)
-                ->column('full_path');
-            
-            if (!empty($similarApis)) {
-                error_log("[PermissionCheck] 相似路径: " . json_encode($similarApis));
-            }
-        } else {
-            error_log("[PermissionCheck] 找到API配置: " . json_encode($api));
-        }
+        // 6. 查询 API 配置（支持路径参数匹配）
+        // 数据库中存储的是完整路径（含 /api），需要添加前缀
+        $fullPath = '/api' . $pathinfo;
+        $api = $this->findMatchingApi($fullPath, $method);
         
         // ⚠️ 安全策略：如果 API 不存在于数据库中，默认拒绝访问
-        // 这样可以防止未配置的接口被随意访问
         if (!$api) {
+            error_log("[PermissionCheck] 未找到API配置: {$fullPath}");
             return json([
                 'code' => 403,
                 'msg' => 'API未配置权限，请联系管理员',
@@ -85,6 +65,8 @@ class PermissionCheck
                 ]
             ]);
         }
+        
+        error_log("[PermissionCheck] 找到API配置: {$api['full_path']} (模块: {$api['module']})");
         
         // 7. 检查 API 状态
         if ($api['status'] == 0) {
@@ -383,6 +365,81 @@ class PermissionCheck
         
         // 如果不是标准范围，默认返回 own（最保守）
         return 'own';
+    }
+    
+    /**
+     * 查找匹配的API配置（支持路径参数）
+     * @param string $requestPath 请求路径，如 /v1/cardkey/delete/123
+     * @param string $method HTTP方法
+     * @return array|null API配置
+     */
+    private function findMatchingApi(string $requestPath, string $method): ?array
+    {
+        // 标准化路径（移除末尾斜杠）
+        $normalizedPath = rtrim($requestPath, '/');
+        
+        // 1. 先尝试精确匹配（性能最优）
+        // 尝试两种格式：带斜杠和不带斜杠
+        $api = Db::table('bl_api')
+            ->where(function($query) use ($normalizedPath) {
+                $query->where('full_path', $normalizedPath)
+                      ->whereOr('full_path', $normalizedPath . '/');
+            })
+            ->where(function($query) use ($method) {
+                $query->where('method', $method)
+                      ->whereOr('method', 'ANY');
+            })
+            ->find();
+        
+        if ($api) {
+            return $api;
+        }
+        
+        // 2. 精确匹配失败，尝试模式匹配（处理路径参数）
+        // 获取所有可能匹配的API（同一版本和模块）
+        $pathParts = explode('/', trim($requestPath, '/'));
+        if (count($pathParts) < 2) {
+            return null;
+        }
+        
+        // 提取版本和模块
+        $version = $pathParts[0]; // v1, v2...
+        $module = $pathParts[1] ?? '';
+        
+        // 查询同版本、同模块的所有API
+        $candidates = Db::table('bl_api')
+            ->where('full_path', 'like', "/{$version}/{$module}/%")
+            ->where(function($query) use ($method) {
+                $query->where('method', $method)
+                      ->whereOr('method', 'ANY');
+            })
+            ->select();
+        
+        // 3. 逐个匹配路径模式
+        foreach ($candidates as $candidate) {
+            if ($this->matchPathPattern($candidate['full_path'], $requestPath)) {
+                return $candidate;
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * 匹配路径模式
+     * @param string $pattern 模式路径，如 /v1/cardkey/delete/{id}
+     * @param string $path 实际路径，如 /v1/cardkey/delete/123
+     * @return bool
+     */
+    private function matchPathPattern(string $pattern, string $path): bool
+    {
+        // 将模式转换为正则表达式
+        // {id} -> [^/]+
+        // {user_id} -> [^/]+
+        $regex = preg_replace('/\{[^}]+\}/', '[^/]+', $pattern);
+        $regex = '#^' . $regex . '$#';
+        
+        return preg_match($regex, $path) === 1;
     }
     
     /**

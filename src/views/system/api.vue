@@ -23,14 +23,37 @@
               </el-input>
             </el-form-item>
             <el-form-item label="模块">
-              <el-input
+              <el-select
                 v-model="searchParams.module"
-                placeholder="模块名称"
+                placeholder="全部模块"
+                clearable
+                filterable
+                size="small"
+                style="width: 120px"
+              >
+                <el-option
+                  v-for="mod in moduleList"
+                  :key="mod"
+                  :label="mod"
+                  :value="mod"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="版本">
+              <el-select
+                v-model="searchParams.version"
+                placeholder="全部版本"
                 clearable
                 size="small"
-                style="width: 140px"
-                @keyup.enter="handleSearch"
-              />
+                style="width: 100px"
+              >
+                <el-option
+                  v-for="ver in versionList"
+                  :key="ver"
+                  :label="ver"
+                  :value="ver"
+                />
+              </el-select>
             </el-form-item>
             <el-form-item label="状态">
               <el-select
@@ -129,9 +152,9 @@
             <span class="id-text">#{{ row.id }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="版本" align="center">
+        <el-table-column label="版本" align="center" width="80">
           <template #default="{ row }">
-            <el-tag size="small" effect="plain">
+            <el-tag :type="getVersionType(row.version)" size="small">
               {{ row.version || "v1" }}
             </el-tag>
           </template>
@@ -143,7 +166,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="接口路径" show-overflow-tooltip>
+        <el-table-column label="接口路径" min-width="250" show-overflow-tooltip>
           <template #default="{ row }">
             <div class="path-cell">
               <el-icon class="path-icon">
@@ -190,12 +213,20 @@
             <el-tag v-else type="info" size="small" effect="plain">公开</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="指定权限" show-overflow-tooltip>
+        <el-table-column label="指定权限" min-width="150" show-overflow-tooltip>
           <template #default="{ row }">
             <span v-if="row.required_permission" class="permission-text">
               {{ row.required_permission }}
             </span>
             <span v-else class="text-muted">-</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="描述" min-width="180" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span v-if="row.description" class="desc-text">
+              {{ row.description }}
+            </span>
+            <span v-else class="text-muted">暂无描述</span>
           </template>
         </el-table-column>
         <el-table-column label="状态" align="center">
@@ -418,6 +449,7 @@ interface ApiInfo {
 const searchParams = reactive({
   keyword: "",
   module: "",
+  version: "",
   status: undefined as number | undefined,
   page: 1,
   page_size: 5
@@ -430,6 +462,8 @@ const editDialogVisible = ref(false);
 const editLoading = ref(false);
 const permissionList = ref<PermissionInfo[]>([]);
 const permissionLoading = ref(false);
+const moduleList = ref<string[]>([]);
+const versionList = ref<string[]>([]);
 const editForm = reactive<ApiInfo>({
   id: 0,
   full_path: "",
@@ -458,6 +492,22 @@ const getMethodType = (
   return map[method] || "info";
 };
 
+const getVersionType = (
+  version: string
+): "success" | "primary" | "warning" | "danger" | "info" => {
+  const map: Record<
+    string,
+    "success" | "primary" | "warning" | "danger" | "info"
+  > = {
+    v1: "primary",
+    v2: "success",
+    v3: "warning",
+    v4: "danger",
+    v5: "info"
+  };
+  return map[version] || "primary";
+};
+
 const getAutoPermissionAction = (method: string): string => {
   const map: Record<string, string> = {
     GET: "view",
@@ -477,9 +527,19 @@ const fetchApiList = async () => {
     if (res?.code === 200) {
       apiList.value = res.data.list || [];
       totalCount.value = res.data.total || 0;
+      // 更新模块列表
+      if (res.data.module_list) {
+        moduleList.value = res.data.module_list;
+      }
+      // 更新版本列表
+      if (res.data.version_list) {
+        versionList.value = res.data.version_list;
+      }
+    } else {
+      message(res?.msg || "获取列表失败", { type: "error" });
     }
-  } catch (error) {
-    message("获取列表失败", { type: "error" });
+  } catch (error: any) {
+    message(error?.message || "获取列表失败", { type: "error" });
   } finally {
     tableLoading.value = false;
   }
@@ -493,6 +553,7 @@ const handleSearch = () => {
 const resetSearch = () => {
   searchParams.keyword = "";
   searchParams.module = "";
+  searchParams.version = "";
   searchParams.status = undefined;
   searchParams.page = 1;
   fetchApiList();
@@ -504,9 +565,11 @@ const fetchPermissionList = async () => {
     const res: any = await getPermissionList({ page: 1, limit: 1000 });
     if (res?.code === 200) {
       permissionList.value = res.data.list || [];
+    } else {
+      message(res?.msg || "获取权限列表失败", { type: "error" });
     }
-  } catch (error) {
-    console.error("获取权限列表失败", error);
+  } catch (error: any) {
+    message(error?.message || "获取权限列表失败", { type: "error" });
   } finally {
     permissionLoading.value = false;
   }
@@ -536,9 +599,13 @@ const confirmEdit = async () => {
       message("更新成功", { type: "success" });
       editDialogVisible.value = false;
       fetchApiList();
+    } else {
+      // 处理后端返回的错误信息
+      message(res?.msg || "更新失败", { type: "error" });
     }
-  } catch (error) {
-    message("更新失败", { type: "error" });
+  } catch (error: any) {
+    // 处理网络错误或其他异常
+    message(error?.message || "更新失败", { type: "error" });
   } finally {
     editLoading.value = false;
   }
@@ -553,9 +620,11 @@ const handleReset = async (clearExisting: boolean) => {
         type: "success"
       });
       fetchApiList();
+    } else {
+      message(res?.msg || "同步失败", { type: "error" });
     }
-  } catch (error) {
-    message("同步失败", { type: "error" });
+  } catch (error: any) {
+    message(error?.message || "同步失败", { type: "error" });
   } finally {
     tableLoading.value = false;
   }
@@ -691,6 +760,13 @@ onMounted(() => {
   .time-text {
     font-size: 12px;
     color: #909399;
+  }
+
+  // 描述文本
+  .desc-text {
+    font-size: 12px;
+    line-height: 1.5;
+    color: #606266;
   }
 
   .text-muted {

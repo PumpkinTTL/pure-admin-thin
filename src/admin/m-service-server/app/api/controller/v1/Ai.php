@@ -21,7 +21,7 @@ class Ai extends BaseController
         // 从配置文件获取API密钥
         $this->apiKey = Config::get('keys.qwq_api', 'sk-W0rpStc95T7JVYVwDYc29IyirjtpPPby6SozFMQr17m8KWeo');
     }
-    
+    //api配置列表
     public function index()
     {
         $key = Config::get('keys.cerebras');
