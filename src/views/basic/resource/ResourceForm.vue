@@ -2,47 +2,50 @@
   <el-dialog
     v-model="dialogVisible"
     :title="formTitle"
-    width="900px"
+    width="85%"
     :before-close="handleClose"
     destroy-on-close
     class="resource-form-dialog"
-    top="5vh"
+    top="3vh"
   >
-    <div class="form-toolbar">
-      <div class="form-actions">
-        <el-button
-          type="primary"
-          size="default"
-          class="fill-data-btn"
-          @click="fillTestData"
-        >
-          <font-awesome-icon :icon="['fas', 'magic']" class="mr-1" />
-          一键填充数据
-        </el-button>
-        <el-button
-          type="success"
-          size="default"
-          :loading="submitting"
-          class="submit-btn"
-          @click="submitForm"
-        >
+    <template #header="{ titleId, titleClass }">
+      <div class="dialog-header-custom">
+        <h3 :id="titleId" :class="titleClass">
           <font-awesome-icon
-            :icon="['fas', isEdit ? 'save' : 'plus-circle']"
-            class="mr-1"
+            :icon="['fas', isEdit ? 'edit' : 'plus-circle']"
+            class="mr-2"
           />
-          {{ isEdit ? "更新资源" : "创建资源" }}
-        </el-button>
+          {{ formTitle }}
+        </h3>
+        <div class="header-actions">
+          <el-button type="primary" size="small" plain @click="fillTestData">
+            <font-awesome-icon :icon="['fas', 'magic']" class="mr-1" />
+            填充测试数据
+          </el-button>
+          <el-button
+            type="success"
+            size="small"
+            :loading="submitting"
+            @click="submitForm"
+          >
+            <font-awesome-icon
+              :icon="['fas', isEdit ? 'save' : 'plus-circle']"
+              class="mr-1"
+            />
+            {{ isEdit ? "保存" : "创建" }}
+          </el-button>
+        </div>
       </div>
-    </div>
+    </template>
 
-    <el-scrollbar height="calc(85vh - 180px)" class="form-scrollbar">
+    <el-scrollbar height="calc(92vh - 140px)" class="form-scrollbar">
       <el-form
         ref="formRef"
         :model="form"
         :rules="rules"
-        label-width="90px"
+        label-width="80px"
         label-position="right"
-        size="default"
+        size="small"
         class="animated-form"
       >
         <!-- 文件拖拽区域 -->
@@ -654,7 +657,8 @@ import {
   nextTick,
   defineComponent
 } from "vue";
-import { ElMessageBox } from "element-plus";
+import { ElMessageBox, ElIcon } from "element-plus";
+import { Loading } from "@element-plus/icons-vue";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { message } from "@/utils/message";
 import { generateSerialNumbers } from "@/utils/dataUtil";
@@ -1810,12 +1814,21 @@ watch(
               key !== "user_id" &&
               key !== "is_premium"
             ) {
-              form[key] =
-                typeof form[key] === "boolean"
-                  ? false
-                  : Array.isArray(form[key])
-                    ? []
-                    : "";
+              // 根据字段类型设置默认值
+              if (
+                key === "resource_size" ||
+                key === "download_count" ||
+                key === "view_count" ||
+                key === "favorite_count"
+              ) {
+                form[key] = 0; // 数字类型字段设置为 0
+              } else if (typeof form[key] === "boolean") {
+                form[key] = false;
+              } else if (Array.isArray(form[key])) {
+                form[key] = [];
+              } else {
+                form[key] = "";
+              }
             }
           });
           form.is_premium = false;
@@ -1847,6 +1860,40 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+
+
+/* 响应式优化 */
+@media (width <= 768px) {
+  .dialog-header-custom {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+
+    .header-actions {
+      justify-content: flex-end;
+      width: 100%;
+    }
+  }
+
+  .file-select-compact {
+    flex-direction: column;
+    text-align: center;
+
+    .select-text-compact {
+      flex-direction: column;
+    }
+  }
+
+  .file-info-compact {
+    flex-direction: column;
+
+    .file-actions-compact {
+      justify-content: center;
+      width: 100%;
+    }
+  }
+}
+
 .resource-form-dialog {
   :deep(.el-dialog__header) {
     padding: 12px 16px;
@@ -1871,7 +1918,7 @@ onMounted(() => {
     border-radius: 6px;
     box-shadow: 0 2px 12px rgb(0 0 0 / 10%);
 
-    @media (width <= 768px) {
+    @media (width <=768px) {
       width: 95% !important;
       margin: 0 auto;
     }
@@ -2947,6 +2994,324 @@ onMounted(() => {
         background-color: var(--el-bg-color-overlay);
       }
     }
+  }
+}
+
+/* ========== 紧凑优化样式 ========== */
+.dialog-header-custom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0;
+
+  h3 {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    font-size: 15px;
+    font-weight: 500;
+    color: #303133;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+  }
+}
+
+/* 紧凑文件选择器 */
+.file-selector-compact {
+  margin-bottom: 12px;
+}
+
+.file-drop-zone-compact {
+  padding: 16px;
+  cursor: pointer;
+  background: #fafafa;
+  border: 2px dashed #dcdfe6;
+  border-radius: 6px;
+  transition: all 0.3s;
+
+  &.active {
+    background: var(--el-color-primary-light-9);
+    border-color: var(--el-color-primary);
+  }
+
+  &.has-file {
+    cursor: default;
+    background: var(--el-color-success-light-9);
+    border-color: var(--el-color-success);
+  }
+}
+
+.file-select-compact {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+
+  .select-icon-compact {
+    font-size: 32px;
+    color: var(--el-color-primary);
+  }
+
+  .select-text-compact {
+    display: flex;
+    flex: 1;
+    gap: 12px;
+    align-items: center;
+    font-size: 13px;
+
+    .select-title {
+      color: #606266;
+    }
+
+    .select-hint {
+      font-size: 12px;
+      color: #909399;
+    }
+  }
+}
+
+.file-info-compact {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+
+  .file-icon-compact {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
+    color: white;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 8px;
+
+    &.icon-image {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    &.icon-video {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    &.icon-audio {
+      background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+
+    &.icon-pdf {
+      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
+
+    &.icon-archive {
+      background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+    }
+  }
+
+  .file-details-compact {
+    flex: 1;
+    min-width: 0;
+
+    .file-name-compact {
+      margin-bottom: 6px;
+      overflow: hidden;
+      font-size: 14px;
+      font-weight: 500;
+      color: #303133;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .file-meta-compact {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 6px;
+      font-size: 12px;
+      color: #909399;
+
+      .meta-item-compact {
+        display: flex;
+        gap: 4px;
+        align-items: center;
+      }
+    }
+
+    .file-hash-compact {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 4px 8px;
+      font-family: "Courier New", monospace;
+      font-size: 12px;
+      color: #606266;
+      cursor: pointer;
+      background: #f5f7fa;
+      border-radius: 4px;
+      transition: all 0.2s;
+
+      &:hover {
+        background: #e4e7ed;
+
+        .copy-icon {
+          opacity: 1;
+        }
+      }
+
+      .copy-icon {
+        opacity: 0.5;
+        transition: opacity 0.2s;
+      }
+    }
+
+    .file-hash-loading {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      font-size: 12px;
+      color: #909399;
+    }
+  }
+
+  .file-actions-compact {
+    display: flex;
+    flex-shrink: 0;
+    gap: 6px;
+  }
+}
+
+/* 优化表单间距 */
+:deep(.el-form-item) {
+  margin-bottom: 14px !important;
+
+  .el-form-item__label {
+    font-size: 13px !important;
+    line-height: 28px !important;
+  }
+
+  .el-input__wrapper {
+    box-shadow: 0 0 0 1px #dcdfe6 inset !important;
+
+    &:hover {
+      box-shadow: 0 0 0 1px #c0c4cc inset !important;
+    }
+
+    &.is-focus {
+      box-shadow: 0 0 0 1px var(--el-color-primary) inset !important;
+    }
+  }
+
+  .form-tip {
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #909399;
+  }
+}
+
+/* 优化封面上传 */
+:deep(.cover-uploader) {
+  .el-upload {
+    width: 100%;
+    overflow: hidden;
+    border-radius: 6px;
+  }
+
+  .cover-preview {
+    position: relative;
+    width: 100%;
+    height: 160px;
+    overflow: hidden;
+    border-radius: 6px;
+
+    .cover-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .cover-actions {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      display: flex;
+      gap: 6px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    &:hover .cover-actions {
+      opacity: 1;
+    }
+  }
+
+  .cover-uploader-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 160px;
+    cursor: pointer;
+    background: #fafafa;
+    border: 2px dashed #dcdfe6;
+    border-radius: 6px;
+    transition: all 0.3s;
+
+    &:hover {
+      background: var(--el-color-primary-light-9);
+      border-color: var(--el-color-primary);
+    }
+
+    .upload-icon {
+      margin-bottom: 8px;
+      font-size: 32px;
+      color: #c0c4cc;
+    }
+
+    span {
+      font-size: 13px;
+      color: #606266;
+    }
+  }
+
+  .upload-tip {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #909399;
+    text-align: center;
+  }
+}
+
+/* 优化下载方式卡片 */
+.download-method-card-compact {
+  padding: 12px;
+  margin-bottom: 10px;
+  background: #fafafa;
+  border: 1px solid #ebeef5;
+  border-radius: 6px;
+  transition: all 0.3s;
+
+  &:hover {
+    border-color: var(--el-color-primary-light-5);
+    box-shadow: 0 2px 8px rgb(64 158 255 / 10%);
+  }
+
+  .card-header-compact {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+
+    .method-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: #303133;
+    }
+  }
+
+  .el-row {
+    margin-bottom: 0 !important;
   }
 }
 </style>
