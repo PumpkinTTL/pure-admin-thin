@@ -78,7 +78,7 @@ class users extends Model
     // 关联经验日志
     public function experienceLogs(): \think\model\relation\HasMany
     {
-        return $this->hasMany(userExperienceLog::class, 'user_id', 'id');
+        return $this->hasMany(ExperienceLog::class, 'user_id', 'id');
     }
     
     /**
